@@ -124,6 +124,3 @@ Dự án được phân phối dưới giấy phép **MIT License**.
 
 ---
 
-<div align="center">
-  <sub>Made with ❤️ by <b>King Ha Trung</b> & Team</sub>
-</div>
