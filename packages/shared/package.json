@@ -1,0 +1,13 @@
+{
+  "name": "@tro-oi/shared",
+  "version": "1.0.0",
+  "private": true,
+  "main": "dist/index.ts",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc"
+  },
+  "devDependencies": {
+    "typescript": "^7.0.2"
+  }
+}

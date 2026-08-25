@@ -9,5 +9,9 @@
     "dev:web": "yarn workspace web dev",
     "dev:api": "yarn workspace api dev",
     "dev:mobile": "yarn workspace mobile start"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.5",
+    "typescript": "^7.0.2"
   }
 }

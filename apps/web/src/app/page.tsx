@@ -1,4 +1,5 @@
 import Image from "next/image";
+import type { User } from "@tro-oi/shared";
 
 export default function Home() {
   return (
