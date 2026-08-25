@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="assets/images/banner.png" alt="Trọ Ơi Banner" width="100%" />
+  <img src="tro-oi.png" alt="Trọ Ơi Banner" width="100%" />
 
 # 🏠 TRỌ ƠI! - PLATFORM TÌM KIẾM & QUẢN LÝ TRỌ THÔNG MINH
 
