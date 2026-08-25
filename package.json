@@ -1,0 +1,13 @@
+{
+  "name": "tro-oi",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:web": "yarn workspace web dev",
+    "dev:api": "yarn workspace api dev",
+    "dev:mobile": "yarn workspace mobile start"
+  }
+}
