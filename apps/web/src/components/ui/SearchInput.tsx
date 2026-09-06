@@ -50,9 +50,9 @@ export function SearchInput() {
                 <div className="p-3 font-bold text-[16px] text-center">Khu vục</div>
                 <Divider className="my-0!" />
                 <div className="p-3 flex flex-col gap-3">
-                  <FloatingInput title="Chọn tỉnh thành" className="h-12! px-4!" />
-                  <FloatingInput title="Chọn quận huyện" className="h-12! px-4!" />
-                  <FloatingInput title="Chọn phường/xã" className="h-12! px-4!" />
+                  <FloatingInput title="Chọn tỉnh thành" className="h-12! px-4! border-2!" />
+                  <FloatingInput title="Chọn quận huyện" className="h-12! px-4! border-2!" />
+                  <FloatingInput title="Chọn phường/xã" className="h-12! px-4! border-2!" />
                 </div>
                 <Divider className="my-0!" />
                 <Flex gap={12} className="p-3!">
