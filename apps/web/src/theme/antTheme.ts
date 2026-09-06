@@ -32,7 +32,6 @@ export const theme: ThemeConfig = {
     colorFill: "#EAF8F7",
     colorFillSecondary: "#F4FBFA",
     colorFillTertiary: "#F8FCFC",
-    colorFillQuaternary: "#FFFFFF",
 
     // Status
     colorSuccess: "#22C55E",
@@ -140,7 +139,7 @@ export const theme: ThemeConfig = {
       controlHeightSM: 32,
       controlHeightLG: 48,
 
-      paddingInline: 20,
+      paddingInline: 16,
       paddingInlineSM: 16,
       paddingInlineLG: 24,
 

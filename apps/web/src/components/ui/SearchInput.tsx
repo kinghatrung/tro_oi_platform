@@ -1,7 +1,36 @@
 "use client";
 
-import { Flex, Input, Button, Space } from "antd";
-import { Search } from "lucide-react";
+import { Flex, Input, Button, Space, Dropdown, Divider, type MenuProps } from "antd";
+import { Search, ChevronDown, MapPin } from "lucide-react";
+
+import { FloatingInput } from "@/components/ui";
+
+const items: MenuProps["items"] = [
+  {
+    key: "boarding-room",
+    label: <FloatingInput title="Chọn tỉnh thành" className="h-12! px-4!" />,
+  },
+  {
+    key: "boarding-room",
+    label: <FloatingInput title="Chọn quận huyện" className="h-12! px-4!" />,
+  },
+  {
+    key: "boarding-room",
+    label: <FloatingInput title="Chọn phường/xã" className="h-12! px-4!" />,
+  },
+  { label: <Divider className="my-0!" />, key: "divider" },
+  {
+    key: "setting",
+    label: (
+      <Flex gap={12}>
+        <Button className="rounded-md! w-full! h-10! text-[16px]!">Xóa lọc</Button>
+        <Button className="rounded-md! w-full! h-10! text-[16px]!" type="primary">
+          Áp dụng
+        </Button>
+      </Flex>
+    ),
+  },
+];
 
 export function SearchInput() {
   return (
@@ -9,12 +38,43 @@ export function SearchInput() {
       <Flex gap={4} align="center" className="h-full">
         <Search size={24} />
         <Input
-          placeholder="Tìm sản phẩm..."
+          placeholder="Tìm trọ..."
           className="text-[16px]! outline-0! border-0! flex-1 border-none! shadow-none! focus:border-none! focus:shadow-none! focus-visible:outline-none!"
         />
-        <Space>
-          <Button>Hà Nội</Button>
-          <Button>Hà Nội</Button>
+        <Space size={12}>
+          <Dropdown
+            trigger={["click"]}
+            placement="bottomLeft"
+            popupRender={(menu) => (
+              <div className="bg-white rounded-lg shadow-md w-90" onClick={(e) => e.stopPropagation()}>
+                <div className="p-3 font-bold text-[16px] text-center">Khu vục</div>
+                <Divider className="my-0!" />
+                <div className="p-3 flex flex-col gap-3">
+                  <FloatingInput title="Chọn tỉnh thành" className="h-12! px-4!" />
+                  <FloatingInput title="Chọn quận huyện" className="h-12! px-4!" />
+                  <FloatingInput title="Chọn phường/xã" className="h-12! px-4!" />
+                </div>
+                <Divider className="my-0!" />
+                <Flex gap={12} className="p-3!">
+                  <Button className="rounded-md! w-full! h-10! text-[16px]!"> Xóa lọc </Button>
+                  <Button className="rounded-md! w-full! h-10! text-[16px]!" type="primary">
+                    Áp dụng
+                  </Button>
+                </Flex>
+              </div>
+            )}
+          >
+            <Button className="rounded-md! h-12! text-[16px]! font-medium!">
+              <Space size={8} align="center">
+                <MapPin size={18} />
+                Hà Nội
+                <ChevronDown size={18} />
+              </Space>
+            </Button>
+          </Dropdown>
+          <Button type="primary" className="rounded-md! h-12! text-[16px]!">
+            Tìm trọ
+          </Button>
         </Space>
       </Flex>
     </div>
