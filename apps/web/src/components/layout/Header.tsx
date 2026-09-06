@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import Navbar from "@/components/layout/Navbar";
-import { SearchInput } from "@/components/ui";
+import Navbar from '@/components/layout/Navbar';
+import { SearchInput } from '@/components/sections';
 
 function Header() {
   return (

@@ -1,6 +1,6 @@
 'use client';
 
-import { Property } from '@/components/ui';
+import { Property } from '@/components/sections';
 
 export default function Container() {
   return (

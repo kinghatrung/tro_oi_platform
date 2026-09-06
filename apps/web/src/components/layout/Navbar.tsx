@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import Link from "next/link";
-import { Button, Flex, Space, Dropdown, Divider, type MenuProps } from "antd";
+import Link from 'next/link';
+import { Button, Flex, Space, Dropdown, Divider, type MenuProps } from 'antd';
 import {
   Heart,
   Bell,
@@ -17,55 +17,55 @@ import {
   Clock3,
   Star,
   Settings,
-} from "lucide-react";
+} from 'lucide-react';
 
 function Navbar() {
-  const items: MenuProps["items"] = [
+  const items: MenuProps['items'] = [
     {
-      key: "boarding-room",
-      label: <span className="ml-2">Phòng trọ</span>,
+      key: 'boarding-room',
+      label: <span className="ml-2 font-semibold">Phòng trọ</span>,
       icon: <BedDouble size={24} />,
     },
     {
-      key: "apartment",
-      label: <span className="ml-2">Căn hộ</span>,
+      key: 'apartment',
+      label: <span className="ml-2 font-semibold">Căn hộ</span>,
       icon: <Building2 size={24} />,
     },
     {
-      key: "whole-house",
-      label: <span className="ml-2">Nguyên căn</span>,
+      key: 'whole-house',
+      label: <span className="ml-2 font-semibold">Nguyên căn</span>,
       icon: <House size={24} />,
     },
     {
-      key: "roommate",
-      label: <span className="ml-2">Tìm người ở ghép</span>,
+      key: 'roommate',
+      label: <span className="ml-2 font-semibold">Tìm người ở ghép</span>,
       icon: <UsersRound size={24} />,
     },
   ];
 
-  const menus: MenuProps["items"] = [
+  const menus: MenuProps['items'] = [
     {
-      key: "saved",
+      key: 'saved',
       label: <span className="ml-2 text-[#595959] text-[16px] font-bold">Tin đã lưu</span>,
       icon: <Heart fill="#595959" color="#595959" size={20} />,
     },
     {
-      key: "search",
+      key: 'search',
       label: <span className="ml-2 text-[#595959] text-[16px] font-bold">Tìm kiếm đã lưu</span>,
       icon: <Bookmark fill="#595959" color="#595959" size={20} />,
     },
     {
-      key: "history",
+      key: 'history',
       label: <span className="ml-2 text-[#595959] text-[16px] font-bold">Lịch sử xem tin</span>,
       icon: <Clock3 fill="#595959" color="#595959" size={20} />,
     },
     {
-      key: "for-me",
+      key: 'for-me',
       label: <span className="ml-2 text-[#595959] text-[16px] font-bold">Đánh giá từ tôi</span>,
       icon: <Star fill="#595959" color="#595959" size={20} />,
     },
     {
-      key: "settings",
+      key: 'settings',
       label: <span className="ml-2 text-[#595959] text-[16px] font-bold">Đăng xuất</span>,
       icon: <Settings fill="#595959" color="#595959" size={20} />,
     },
@@ -77,7 +77,7 @@ function Navbar() {
         <Space>
           <Dropdown
             menu={{ items }}
-            trigger={["click"]}
+            trigger={['click']}
             placement="bottomLeft"
             popupRender={(menu) => (
               <div className="bg-white rounded-lg shadow-md w-70">
@@ -105,7 +105,7 @@ function Navbar() {
           <Button type="primary">Đăng tin</Button>
           <Dropdown
             menu={{ items: menus }}
-            trigger={["click"]}
+            trigger={['click']}
             placement="bottomRight"
             popupRender={(menu) => (
               <div className="bg-[#f7f7f7] rounded-lg shadow-md w-100 p-4 border-4 border-white">
@@ -118,7 +118,9 @@ function Navbar() {
 
                     <Flex gap={12}>
                       <Link href="/dang-nhap" className="w-full">
-                        <Button className="rounded-md! w-full! h-10! text-[16px]!">Tạo tài khoản</Button>
+                        <Button className="rounded-md! w-full! h-10! text-[16px]!">
+                          Tạo tài khoản
+                        </Button>
                       </Link>
                       <Link href="/dang-nhap" className="w-full">
                         <Button className="rounded-md! w-full! h-10! text-[16px]!" type="primary">
