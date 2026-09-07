@@ -1,18 +1,15 @@
-import Header from "@/components/layout/Header";
-import { SearchInput } from "@/components/ui";
+'use client';
+
+import Header from '@/components/layout/Header';
+import Container from '@/components/layout/Container';
+import Footer from '@/components/layout/Footer';
 
 export default function Home() {
   return (
     <main>
-      <section
-        className="relative w-full min-h-50 bg-cover bg-center bg-no-repeat"
-        style={{ backgroundImage: "url('/images/bg-trooi.png')" }}
-      >
-        <Header />
-        <div className="absolute left-1/2 bottom-0 -translate-x-1/2 translate-y-1/2 w-full max-w-220 px-4">
-          <SearchInput />
-        </div>
-      </section>
+      <Header />
+      <Container />
+      <Footer />
     </main>
   );
 }

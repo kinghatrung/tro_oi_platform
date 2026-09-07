@@ -8,6 +8,11 @@ interface FloatingInputProps {
   className?: string;
 }
 
+/**
+ * Floating label input component with animated label that moves up when focused or filled.
+ * @param title - Label text to display
+ * @param className - Additional CSS classes to apply to the input
+ */
 export function FloatingInput({ title, className }: FloatingInputProps) {
   const [value, setValue] = useState("");
   const [focused, setFocused] = useState(false);

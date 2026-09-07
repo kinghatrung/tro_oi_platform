@@ -1,13 +1,17 @@
-"use client";
+'use client';
 
-import Link from "next/link";
-import { Button, Card, Flex, Typography, Divider, Form } from "antd";
-import { FcGoogle } from "react-icons/fc";
-import { FaFacebookF } from "react-icons/fa6";
-import { ChevronLeft } from "lucide-react";
+import Link from 'next/link';
+import { Button, Card, Flex, Typography, Divider, Form } from 'antd';
+import { FcGoogle } from 'react-icons/fc';
+import { FaFacebookF } from 'react-icons/fa6';
+import { ChevronLeft } from 'lucide-react';
 
-import { FloatingInput } from "@/components/ui";
+import { FloatingInput } from '@/components/common';
 
+/**
+ * Sign in page component that renders a login/registration form with social auth options.
+ * Allows users to sign in with Google, Facebook, or phone number.
+ */
 function SignInPage() {
   const [form] = Form.useForm();
 
@@ -16,7 +20,7 @@ function SignInPage() {
       className="min-h-screen bg-cover bg-center bg-no-repeat flex justify-center items-center"
       style={{ backgroundImage: "url('/images/bg-tro-oi-login.svg')" }}
     >
-      <Card className="w-120" styles={{ body: { padding: "20px 40px 40px" } }}>
+      <Card className="w-120" styles={{ body: { padding: '20px 40px 40px' } }}>
         <Flex align="center" gap={16}>
           <Link href="/">
             <Button type="text" icon={<ChevronLeft />} />
@@ -52,11 +56,11 @@ function SignInPage() {
               name="phone"
               className="mb-0!"
               rules={[
-                { required: true, message: "Vui lòng nhập số điện thoại" },
-                { pattern: /^(0|\+84)(3|5|7|8|9)[0-9]{8}$/, message: "Số điện thoại không hợp lệ" },
+                { required: true, message: 'Vui lòng nhập số điện thoại' },
+                { pattern: /^(0|\+84)(3|5|7|8|9)[0-9]{8}$/, message: 'Số điện thoại không hợp lệ' },
               ]}
             >
-              <FloatingInput title="Số điện thoại" className="h-12! px-4!" />
+              <FloatingInput title="Số điện thoại" className="h-12! px-4! border-2!" />
             </Form.Item>
             <Button htmlType="submit" type="primary" className="w-full text-[16px]! h-12!">
               Tiếp tục
