@@ -32,6 +32,10 @@ const items: MenuProps['items'] = [
   },
 ];
 
+/**
+ * Search input component with location dropdown filter.
+ * Allows users to search for properties and filter by province, district, and ward.
+ */
 export function SearchInput() {
   return (
     <div className="bg-white rounded-2xl shadow-md px-6 py-3 h-18">

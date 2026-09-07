@@ -19,6 +19,10 @@ import {
   Settings,
 } from 'lucide-react';
 
+/**
+ * Navigation bar component with dropdown menus for categories and user utilities.
+ * Includes logo, menu items, notifications, and authentication buttons.
+ */
 function Navbar() {
   const items: MenuProps['items'] = [
     {

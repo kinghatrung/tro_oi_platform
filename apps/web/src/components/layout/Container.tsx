@@ -2,6 +2,10 @@
 
 import { Property } from '@/components/sections';
 
+/**
+ * Container component that wraps the Property section with a background image.
+ * Provides centered layout with maximum width constraint.
+ */
 export default function Container() {
   return (
     <section

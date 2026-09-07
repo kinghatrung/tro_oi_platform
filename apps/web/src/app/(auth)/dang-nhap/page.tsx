@@ -8,6 +8,10 @@ import { ChevronLeft } from 'lucide-react';
 
 import { FloatingInput } from '@/components/common';
 
+/**
+ * Sign in page component that renders a login/registration form with social auth options.
+ * Allows users to sign in with Google, Facebook, or phone number.
+ */
 function SignInPage() {
   const [form] = Form.useForm();
 

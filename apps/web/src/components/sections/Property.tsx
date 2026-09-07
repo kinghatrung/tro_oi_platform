@@ -6,6 +6,10 @@ import { Flex } from 'antd';
 
 import { CATEGORIES } from '@/constants';
 
+/**
+ * Property categories display component that renders a grid of property type cards.
+ * Each card includes an image, title, and count with hover effects.
+ */
 export function Property() {
   return (
     <div className="bg-white rounded-lg p-2">
