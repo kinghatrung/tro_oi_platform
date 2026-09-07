@@ -26,24 +26,48 @@ import {
 function Navbar() {
   const items: MenuProps['items'] = [
     {
-      key: 'boarding-room',
-      label: <span className="ml-2 font-semibold">Phòng trọ</span>,
+      key: 'buy-room',
+      label: <span className="ml-2 font-semibold">Mua bán</span>,
       icon: <BedDouble size={24} />,
+      children: [
+        {
+          key: 'apartment',
+          label: <span className="ml-2 font-semibold">Căn hộ</span>,
+          icon: <Building2 size={24} />,
+        },
+        {
+          key: 'whole-house',
+          label: <span className="ml-2 font-semibold">Nguyên căn</span>,
+          icon: <House size={24} />,
+        },
+      ],
     },
     {
-      key: 'apartment',
-      label: <span className="ml-2 font-semibold">Căn hộ</span>,
-      icon: <Building2 size={24} />,
-    },
-    {
-      key: 'whole-house',
-      label: <span className="ml-2 font-semibold">Nguyên căn</span>,
-      icon: <House size={24} />,
-    },
-    {
-      key: 'roommate',
-      label: <span className="ml-2 font-semibold">Tìm người ở ghép</span>,
-      icon: <UsersRound size={24} />,
+      key: 'rent-room',
+      label: <span className="ml-2 font-semibold">Cho thuê</span>,
+      icon: <BedDouble size={24} />,
+      children: [
+        {
+          key: 'boarding-room',
+          label: <span className="ml-2 font-semibold">Phòng trọ</span>,
+          icon: <BedDouble size={24} />,
+        },
+        {
+          key: 'apartment',
+          label: <span className="ml-2 font-semibold">Căn hộ</span>,
+          icon: <Building2 size={24} />,
+        },
+        {
+          key: 'whole-house',
+          label: <span className="ml-2 font-semibold">Nguyên căn</span>,
+          icon: <House size={24} />,
+        },
+        {
+          key: 'roommate',
+          label: <span className="ml-2 font-semibold">Tìm người ở ghép</span>,
+          icon: <UsersRound size={24} />,
+        },
+      ],
     },
   ];
 

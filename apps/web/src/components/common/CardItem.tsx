@@ -6,14 +6,20 @@ import { useState } from 'react';
 import { Flex, Space } from 'antd';
 import { MapPin, Heart, Image } from 'lucide-react';
 
+import { formatPrice, formatRelativeTime } from '@/helpers';
+
 interface CardItemProps {
   id?: string;
+  timeAgo?: string;
+  countMedia?: number;
   imageUrl?: string;
   title?: string;
   propertyType?: string;
-  area?: string;
-  price?: string;
-  pricePerSquareMeter?: string;
+  area?: number;
+  price?: number;
+  pricePerSquareMeter?: number;
+  bedrooms?: number;
+  mainDirection?: string;
   address?: string;
 }
 
@@ -21,10 +27,14 @@ export function CardItem({
   id,
   imageUrl,
   title,
+  timeAgo,
+  countMedia,
   propertyType,
   area,
   price,
   pricePerSquareMeter,
+  bedrooms,
+  mainDirection,
   address,
 }: CardItemProps) {
   const [isFavorite, setIsFavorite] = useState(false);
@@ -41,7 +51,6 @@ export function CardItem({
         cursor-pointer
         transition-all duration-300
         ease-in-out
-        hover:-translate-y-1
         hover:shadow-lg
       `)}
     >
@@ -50,7 +59,7 @@ export function CardItem({
           src={imageUrl || '/images/test.jpg'}
           alt={title || ''}
           className={clsx(`
-            aspect-4/3
+            aspect-4/4
             size-full
             object-cover
             transition-transform duration-500
@@ -94,10 +103,10 @@ export function CardItem({
             bg-[linear-gradient(#2220_0%,#222222bf_100%)]
           `)}
         >
-          <p className="text-muted">8 phút trước</p>
+          <p className="text-muted">{formatRelativeTime(timeAgo || 0)}</p>
 
           <Space>
-            <p className="text-muted">5</p>
+            <p className="text-muted">{countMedia}</p>
             <Image size={16} color="#fff" />
           </Space>
         </Flex>
@@ -109,13 +118,17 @@ export function CardItem({
         </p>
 
         <Flex vertical gap={4} className="mt-1!">
-          <Space>
-            <p className="text-secondary">1 PN</p>
-            <p className="text-secondary">{propertyType || 'Căn hộ dịch vụ, mini'}</p>
+          <Space size={8} wrap>
+            <p className="text-secondary">{bedrooms} PN</p>
+            <p className="text-secondary">{mainDirection || null}</p>
+            <p className="text-secondary">{propertyType || null}</p>
           </Space>
-          <Space>
-            <p className="text-primary text-[#f0325e]">{price || '3,2 triệu/tháng'}</p>
-            <p className="text-secondary text-[#222]!">{area || '50 m²'}</p>
+          <Space size={8} wrap>
+            <p className="text-primary text-[#f0325e]">{formatPrice(price || 0)}</p>
+            <p className="text-secondary text-[#222]!">
+              {formatPrice(pricePerSquareMeter || 0)}/m²
+            </p>
+            <p className="text-secondary text-[#222]!">{area || null} m²</p>
           </Space>
           <Space size={4}>
             <MapPin size={16} color="#bfbfbf" />

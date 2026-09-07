@@ -199,3 +199,40 @@ h6 {
   line-height: 1.2;
   font-weight: 600;
 }
+
+.ant-carousel .slick-arrow {
+  width: 44px !important;
+  height: 44px !important;
+  border: 1px solid #0f8f8c !important;
+  border-radius: 50%;
+  background: #fff !important;
+  z-index: 10;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  opacity: 1 !important;
+
+  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1) !important;
+}
+
+.ant-carousel .slick-arrow:hover {
+  transform: translateY(-50%) scale(1.08) !important;
+}
+
+.ant-carousel .slick-prev {
+  left: -32px !important;
+}
+
+.ant-carousel .slick-next {
+  right: -32px !important;
+}
+
+.ant-carousel .slick-arrow::after {
+  display: none !important;
+}
+
+/* Nút bị disabled thì ẩn */
+.ant-carousel .slick-arrow.slick-disabled {
+  opacity: 0 !important;
+  pointer-events: none;
+}
