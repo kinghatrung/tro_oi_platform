@@ -1,6 +1,6 @@
 'use client';
 
-import { Property, Room, Apartment, WholeHouse, Roommate } from '@/components/sections';
+import { Property, BuyNews, RentNews, AreaNews } from '@/components/sections';
 
 /**
  * Container component that wraps the Property section with a background image.
@@ -14,10 +14,9 @@ export default function Container() {
     >
       <div className="w-full max-w-300 mx-auto pt-16 pb-3">
         <Property />
-        <Room />
-        <Apartment />
-        <WholeHouse />
-        <Roommate />
+        <BuyNews />
+        <RentNews />
+        <AreaNews />
       </div>
     </section>
   );
