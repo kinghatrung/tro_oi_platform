@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 :root {
   /* ========================================
@@ -47,7 +47,7 @@
 
   --font-sans: var(--font-reddit-sans);
 
-  --font-mono: "Fira Code", "Cascadia Code", monospace;
+  --font-mono: 'Fira Code', 'Cascadia Code', monospace;
 
   /* ========================================
      Spacing
@@ -89,6 +89,22 @@
    ======================================== */
 
 @layer components {
+  .text-default {
+    @apply text-[#222] text-[16px];
+  }
+
+  .text-primary {
+    @apply text-[#222] text-lg font-bold;
+  }
+
+  .text-secondary {
+    @apply text-[#8c8c8c] text-sm font-medium;
+  }
+
+  .text-muted {
+    @apply text-white font-bold text-xs;
+  }
+
   .btn {
     @apply inline-flex items-center justify-center rounded-full px-5 py-2.5 font-medium transition-all duration-200;
 

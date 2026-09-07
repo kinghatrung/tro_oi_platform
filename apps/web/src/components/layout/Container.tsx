@@ -1,6 +1,6 @@
 'use client';
 
-import { Property } from '@/components/sections';
+import { Property, LatestNews } from '@/components/sections';
 
 /**
  * Container component that wraps the Property section with a background image.
@@ -14,6 +14,7 @@ export default function Container() {
     >
       <div className="w-full max-w-300 mx-auto pt-16">
         <Property />
+        <LatestNews />
       </div>
     </section>
   );
