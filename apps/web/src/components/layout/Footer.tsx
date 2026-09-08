@@ -1,8 +1,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { Col, Flex, Row, Space } from 'antd';
-import { Play } from 'lucide-react';
-import { FaLinkedin, FaFacebookSquare } from 'react-icons/fa';
+import { FaLinkedin, FaFacebookSquare, FaYoutube } from 'react-icons/fa';
 
 export default function Footer() {
   return (
@@ -18,7 +17,7 @@ export default function Footer() {
               <Flex align="center" gap={16}>
                 {/* QR Code */}
                 <Image
-                  src="/images/footer/qr-code.png"
+                  src="/images/qr-download.png"
                   alt="QR Code Chợ Tốt"
                   width={84}
                   height={84}
@@ -29,7 +28,7 @@ export default function Footer() {
                 <Flex vertical gap={8}>
                   <Link href="#" aria-label="Download on App Store">
                     <Image
-                      src="/images/footer/app-store.png"
+                      src="/images/appstore-dowload.webp"
                       alt="Download on the App Store"
                       width={115}
                       height={39}
@@ -39,7 +38,7 @@ export default function Footer() {
 
                   <Link href="#" aria-label="Get it on Google Play">
                     <Image
-                      src="/images/footer/google-play.png"
+                      src="/images/googleplay-dowload.webp"
                       alt="Get it on Google Play"
                       width={115}
                       height={39}
@@ -61,35 +60,28 @@ export default function Footer() {
                   href="/"
                   className="text-sm text-[#595959]! transition-colors hover:text-gray-900"
                 >
-                  Về Nhà Tốt
+                  Phòng trọ
                 </Link>
 
                 <Link
                   href="/quy-che-hoat-dong-san"
                   className="text-sm text-[#595959]! transition-colors hover:text-gray-900"
                 >
-                  Quy chế hoạt động sàn
+                  Căn hộ
                 </Link>
 
                 <Link
                   href="/chinh-sach-bao-mat"
                   className="text-sm text-[#595959]! transition-colors hover:text-gray-900"
                 >
-                  Chính sách bảo mật
+                  Nguyên căn
                 </Link>
 
                 <Link
                   href="/giai-quyet-tranh-chap"
                   className="text-sm text-[#595959]! transition-colors hover:text-gray-900"
                 >
-                  Giải quyết tranh chấp
-                </Link>
-
-                <Link
-                  href="/dieu-khoan-su-dung"
-                  className="text-sm text-[#595959]! transition-colors hover:text-gray-900"
-                >
-                  Điều khoản sử dụng
+                  Tìm người ở ghép
                 </Link>
               </Space>
             </Flex>
@@ -99,15 +91,14 @@ export default function Footer() {
           <Col lg={8} md={12} xs={24}>
             <Flex vertical gap={12}>
               <p className="text-sm! text-primary">Liên kết</p>
-
               {/* Social */}
-              <Flex>
+              <Flex gap={8}>
                 <Link
                   href="#"
                   aria-label="LinkedIn"
                   className="flex h-8 w-8 items-center justify-center rounded-md bg-[#0A66C2] text-white transition-opacity hover:opacity-80"
                 >
-                  <FaLinkedin size={24} fill="#0a67c4" />
+                  <FaLinkedin size={32} fill="#0a67c4" />
                 </Link>
 
                 <Link
@@ -115,7 +106,7 @@ export default function Footer() {
                   aria-label="YouTube"
                   className="flex h-8 w-8 items-center justify-center rounded-md bg-[#FF0033] text-white transition-opacity hover:opacity-80"
                 >
-                  <Play size={24} fill="#ff0629" color="#ff0629" />
+                  <FaYoutube size={32} fill="#ff0629" color="#ff0629" />
                 </Link>
 
                 <Link
@@ -123,7 +114,7 @@ export default function Footer() {
                   aria-label="Facebook"
                   className="flex h-8 w-8 items-center justify-center rounded-md bg-[#1877F2] text-white transition-opacity hover:opacity-80"
                 >
-                  <FaFacebookSquare size={24} fill="#2c6de4" />
+                  <FaFacebookSquare size={32} fill="#2c6de4" />
                 </Link>
               </Flex>
 
