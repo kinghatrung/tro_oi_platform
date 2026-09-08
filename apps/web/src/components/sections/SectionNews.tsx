@@ -1,6 +1,9 @@
+'use client';
+
 import { Button, Flex, Space, Tabs, type TabsProps } from 'antd';
 
 import { CarouselItem } from '@/components/common';
+import { LocationGrid } from '@/components/sections';
 
 interface SectionNews {
   title?: string;
@@ -12,22 +15,22 @@ const items: TabsProps['items'] = [
   {
     key: '1',
     label: 'Phòng trọ',
-    children: 'Content of Tab Pane 1',
+    children: <LocationGrid />,
   },
   {
     key: '2',
     label: 'Căn hộ',
-    children: 'Content of Tab Pane 2',
+    children: <LocationGrid />,
   },
   {
     key: '3',
     label: 'Nguyên căn',
-    children: 'Content of Tab Pane 3',
+    children: <LocationGrid />,
   },
   {
     key: '4',
     label: 'Tìm người ở ghép',
-    children: 'Content of Tab Pane 4',
+    children: <LocationGrid />,
   },
 ];
 

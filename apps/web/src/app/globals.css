@@ -200,6 +200,8 @@ h6 {
   font-weight: 600;
 }
 
+/* Custom Ant design */
+/* Crousel */
 .ant-carousel .slick-arrow {
   width: 44px !important;
   height: 44px !important;
@@ -235,4 +237,13 @@ h6 {
 .ant-carousel .slick-arrow.slick-disabled {
   opacity: 0 !important;
   pointer-events: none;
+}
+
+/* Tabs */
+.ant-tabs-nav {
+  border-bottom: none !important;
+}
+
+.ant-tabs-nav::before {
+  border-bottom: none !important;
 }

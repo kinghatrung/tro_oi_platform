@@ -1,3 +1,8 @@
+export const formatNumber = (num: number | null | undefined): string => {
+  if (num === null || num === undefined) return '0';
+  return new Intl.NumberFormat('vi-VN').format(num);
+};
+
 export function formatRelativeTime(date: Date | string | number): string {
   const now = Date.now();
   const target = new Date(date).getTime();
@@ -41,4 +46,21 @@ export function formatRelativeTime(date: Date | string | number): string {
   }
 
   return `${years} năm trước`;
+}
+
+export function formatVietnameseCurrency(value: string | number | null | undefined): string {
+  const amount = Number.parseInt(String(value), 10);
+  if (!Number.isFinite(amount)) return '0';
+  const absValue = Math.abs(amount);
+  const sign = amount < 0 ? '-' : '';
+  if (absValue >= 1_000_000_000) {
+    return `${sign}${formatNumber(absValue / 1_000_000_000)} tỷ`;
+  }
+  if (absValue >= 1_000_000) {
+    return `${sign}${formatNumber(absValue / 1_000_000)} triệu`;
+  }
+  if (absValue >= 1_000) {
+    return `${sign}${formatNumber(absValue / 1_000)} nghìn`;
+  }
+  return `${sign}${formatNumber(absValue)}`;
 }

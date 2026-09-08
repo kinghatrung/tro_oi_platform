@@ -6,7 +6,7 @@ import { useState } from 'react';
 import { Flex, Space } from 'antd';
 import { MapPin, Heart, Image } from 'lucide-react';
 
-import { formatPrice, formatRelativeTime } from '@/helpers';
+import { formatVietnameseCurrency, formatRelativeTime } from '@/utils/helpers';
 
 interface CardItemProps {
   id?: string;
@@ -124,9 +124,9 @@ export function CardItem({
             <p className="text-secondary">{propertyType || null}</p>
           </Space>
           <Space size={8} wrap>
-            <p className="text-primary text-[#f0325e]">{formatPrice(price || 0)}</p>
+            <p className="text-primary text-[#f0325e]">{formatVietnameseCurrency(price || 0)}</p>
             <p className="text-secondary text-[#222]!">
-              {formatPrice(pricePerSquareMeter || 0)}/m²
+              {formatVietnameseCurrency(pricePerSquareMeter || 0)}/m²
             </p>
             <p className="text-secondary text-[#222]!">{area || null} m²</p>
           </Space>
