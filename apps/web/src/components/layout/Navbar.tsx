@@ -106,7 +106,7 @@ function Navbar() {
           <Dropdown
             menu={{ items }}
             trigger={['click']}
-            placement="bottomLeft"
+            placement="bottomRight"
             popupRender={(menu) => (
               <div className="bg-white rounded-lg shadow-md w-70">
                 <div className="p-3 font-bold text-[16px]">Danh mục</div>

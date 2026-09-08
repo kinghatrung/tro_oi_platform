@@ -5,33 +5,6 @@ import { Search, ChevronDown, MapPin } from 'lucide-react';
 
 import { FloatingInput } from '@/components/common';
 
-const items: MenuProps['items'] = [
-  {
-    key: 'boarding-room',
-    label: <FloatingInput title="Chọn tỉnh thành" className="h-12! px-4!" />,
-  },
-  {
-    key: 'boarding-room',
-    label: <FloatingInput title="Chọn quận huyện" className="h-12! px-4!" />,
-  },
-  {
-    key: 'boarding-room',
-    label: <FloatingInput title="Chọn phường/xã" className="h-12! px-4!" />,
-  },
-  { label: <Divider className="my-0!" />, key: 'divider' },
-  {
-    key: 'setting',
-    label: (
-      <Flex gap={12}>
-        <Button className="rounded-md! w-full! h-10! text-[16px]!">Xóa lọc</Button>
-        <Button className="rounded-md! w-full! h-10! text-[16px]!" type="primary">
-          Áp dụng
-        </Button>
-      </Flex>
-    ),
-  },
-];
-
 /**
  * Search input component with location dropdown filter.
  * Allows users to search for properties and filter by province, district, and ward.

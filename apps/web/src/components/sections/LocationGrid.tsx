@@ -48,7 +48,7 @@ export function LocationGrid() {
         <div className="h-full min-h-64">
           <LocationCard {...featured} />
         </div>
-      </Col>
+      </Col>  
 
       {/* Other locations */}
       <Col xs={24} md={12}>

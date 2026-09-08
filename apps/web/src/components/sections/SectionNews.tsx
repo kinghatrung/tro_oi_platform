@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { Button, Flex, Space, Tabs, type TabsProps } from 'antd';
 
 import { CarouselItem } from '@/components/common';
@@ -41,15 +42,17 @@ export function SectionNews({ title, buttonText, isArea }: SectionNews) {
 
   return (
     <div className="bg-white rounded-lg p-5 mb-4">
-      <Flex gap={16} align="center" className=" mb-4!">
-        <p className="text-primary">{title}</p>
-        {isArea && (
-          <Space size={8}>
-            <Button type="primary">Mua bán</Button>
-            <Button>Cho thuê</Button>
-          </Space>
-        )}
-      </Flex>
+      {title && (
+        <Flex gap={16} align="center" className=" mb-4!">
+          <p className="text-primary">{title}</p>
+          {isArea && (
+            <Space size={8}>
+              <Button type="primary">Mua bán</Button>
+              <Button>Cho thuê</Button>
+            </Space>
+          )}
+        </Flex>
+      )}
 
       {isArea && <Tabs defaultActiveKey="1" items={items} onChange={onChange} />}
 

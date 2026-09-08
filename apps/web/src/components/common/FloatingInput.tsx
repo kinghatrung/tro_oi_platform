@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { Input } from "antd";
+import { useState } from 'react';
+import { Input } from 'antd';
 
 interface FloatingInputProps {
   title?: string;
@@ -14,7 +14,7 @@ interface FloatingInputProps {
  * @param className - Additional CSS classes to apply to the input
  */
 export function FloatingInput({ title, className }: FloatingInputProps) {
-  const [value, setValue] = useState("");
+  const [value, setValue] = useState('');
   const [focused, setFocused] = useState(false);
 
   const floating = focused || value.length > 0;
@@ -36,8 +36,8 @@ export function FloatingInput({ title, className }: FloatingInputProps) {
             transition-all duration-200
             ${
               floating
-                ? "top-0 -translate-y-1/2 text-xs text-[#16A6A3]"
-                : "top-1/2 -translate-y-1/2 text-sm text-[#8c8c8c]"
+                ? 'top-0 -translate-y-1/2 text-xs text-[#16A6A3]'
+                : 'top-1/2 -translate-y-1/2 text-sm text-[#8c8c8c]'
             }
           `}
       >

@@ -1,4 +1,4 @@
-'use client';
+import { Button, Space } from 'antd';
 
 import Navbar from '@/components/layout/Navbar';
 import { SearchInput } from '@/components/sections';
@@ -14,6 +14,9 @@ function Header() {
       style={{ backgroundImage: "url('/images/phan1_tren.png')" }}
     >
       <Navbar />
+      <p className="absolute left-1/2 -translate-x-1/2 translate-y-1/2 text-large">
+        Nhà vừa ý, giá hợp lý!
+      </p>
       <div className="absolute left-1/2 bottom-0 -translate-x-1/2 translate-y-1/2 w-full max-w-250 px-4 z-100">
         <SearchInput />
       </div>
