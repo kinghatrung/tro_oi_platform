@@ -98,7 +98,7 @@ function Navbar() {
   ];
 
   return (
-    <nav className="fixed top-0 z-50 w-full bg-transparent">
+    <nav className="sticky top-0 z-50 w-full bg-transparent">
       <Flex align="center" justify="space-between" className="py-3! h-18 px-6!">
         <Space>
           <Dropdown
