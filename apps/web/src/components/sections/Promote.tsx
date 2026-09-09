@@ -5,15 +5,16 @@ export function Promote() {
   return (
     <div className="bg-white mb-4 rounded-lg">
       <Carousel autoplay draggable className="cursor-pointer">
-        {Array.from({ length: 5 }).map((_, index) => (
-          <Image
-            key={index}
-            width={1200}
-            height={300}
-            className="object-contain rounded-lg"
-            alt="Ảnh banner"
-            src="/images/banner.png"
-          />
+        {Array.from({ length: 4 }).map((_, index) => (
+          <div key={index} className="relative h-100">
+            <Image
+              fill
+              src={`/images/banner-${index}.png`}
+              alt={`Ảnh banner ${index}`}
+              className="rounded-lg object-cover"
+              priority={index === 0}
+            />
+          </div>
         ))}
       </Carousel>
     </div>
