@@ -4,7 +4,7 @@ import Image from 'next/image';
 import { Button, Flex, Space, Tabs, type TabsProps } from 'antd';
 
 import { CarouselItem } from '@/components/common';
-import { LocationGrid } from '@/components/sections';
+import { LocationGrid } from './LocationGrid';
 
 interface SectionNews {
   title?: string;

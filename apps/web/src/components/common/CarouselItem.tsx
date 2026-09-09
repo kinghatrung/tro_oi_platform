@@ -42,6 +42,7 @@ export function CarouselItem() {
             {Array.from({ length: 5 }).map((_, index) => (
               <CardItem
                 key={index}
+                id={index}
                 title="Giảm 300tr- 30M2 3 tầng hẻm xe hơi - Emart 2 Sổ mới 2026"
                 price={3350000000}
                 countMedia={5}

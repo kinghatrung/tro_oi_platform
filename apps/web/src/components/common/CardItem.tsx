@@ -9,7 +9,7 @@ import { MapPin, Heart, Image } from 'lucide-react';
 import { formatVietnameseCurrency, formatRelativeTime } from '@/utils/helpers';
 
 interface CardItemProps {
-  id?: string;
+  id?: number;
   timeAgo?: string;
   countMedia?: number;
   imageUrl?: string;
@@ -41,7 +41,7 @@ export function CardItem({
 
   return (
     <Link
-      href={`/bat-dong-san/${id}`}
+      href={`/phong-tro/${id}`}
       className={clsx(`
         group
         block

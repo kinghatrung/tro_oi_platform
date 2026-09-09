@@ -1,5 +1,3 @@
-'use client';
-
 import Link from 'next/link';
 import { Button, Flex, Space, Dropdown, Divider, type MenuProps } from 'antd';
 import {
@@ -31,7 +29,7 @@ function Navbar() {
       icon: <BedDouble size={24} />,
       children: [
         {
-          key: 'apartment',
+          key: 'apartment-buy',
           label: <span className="ml-2 font-semibold">Căn hộ</span>,
           icon: <Building2 size={24} />,
         },
@@ -53,7 +51,7 @@ function Navbar() {
           icon: <BedDouble size={24} />,
         },
         {
-          key: 'apartment',
+          key: 'apartment-rent',
           label: <span className="ml-2 font-semibold">Căn hộ</span>,
           icon: <Building2 size={24} />,
         },
@@ -100,7 +98,7 @@ function Navbar() {
   ];
 
   return (
-    <nav className="sticky top-0 z-50 w-full bg-transparent">
+    <nav className="fixed top-0 z-50 w-full bg-transparent">
       <Flex align="center" justify="space-between" className="py-3! h-18 px-6!">
         <Space>
           <Dropdown
