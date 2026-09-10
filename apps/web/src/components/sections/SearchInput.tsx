@@ -22,7 +22,7 @@ export function SearchInput() {
           <Dropdown
             trigger={['click']}
             placement="bottomLeft"
-            popupRender={(menu) => (
+            popupRender={() => (
               <div
                 className="bg-white rounded-lg shadow-md w-90"
                 onClick={(e) => e.stopPropagation()}

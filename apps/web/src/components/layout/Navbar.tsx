@@ -15,7 +15,10 @@ import {
   Clock3,
   Star,
   Settings,
+  MapPin,
 } from 'lucide-react';
+
+import { FloatingInput } from '@/components/common';
 
 /**
  * Navigation bar component with dropdown menus for categories and user utilities.
@@ -98,8 +101,9 @@ function Navbar() {
   ];
 
   return (
-    <nav className="sticky top-0 z-50 w-full bg-transparent">
+    <nav className="static top-0 z-50 w-full bg-transparent">
       <Flex align="center" justify="space-between" className="py-3! h-18 px-6!">
+        {/* Dropdown danh mục */}
         <Space>
           <Dropdown
             menu={{ items }}
@@ -120,7 +124,42 @@ function Navbar() {
               <img className="w-20 h-20 object-contain" src="/images/tro-oi-logo.svg" />
             </Button>
           </Link>
+
+          <Dropdown
+            menu={{ items: menus }}
+            trigger={['click']}
+            placement="bottomLeft"
+            popupRender={() => (
+              <div
+                className="bg-white rounded-lg shadow-lg w-90"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="p-3 font-bold text-[16px] text-center">Khu vực</div>
+                <Divider className="my-0!" />
+                <div className="p-3 flex flex-col gap-3">
+                  <FloatingInput title="Chọn tỉnh thành" className="h-12! px-4! border-2!" />
+                  <FloatingInput title="Chọn quận huyện" className="h-12! px-4! border-2!" />
+                  <FloatingInput title="Chọn phường/xã" className="h-12! px-4! border-2!" />
+                </div>
+                <Divider className="my-0!" />
+                <Flex gap={12} className="p-3!">
+                  <Button className="rounded-md! w-full! h-10! text-[16px]!"> Xóa lọc </Button>
+                  <Button className="rounded-md! w-full! h-10! text-[16px]!" type="primary">
+                    Áp dụng
+                  </Button>
+                </Flex>
+              </div>
+            )}
+          >
+            <Button>
+              <MapPin size={24} fill="#16a6a3" color="#fff" />
+              <span className="text-[16px] text-black">Chọn khu vực</span>
+              <ChevronDown />
+            </Button>
+          </Dropdown>
         </Space>
+
+        {/* Dropdown người dùng */}
         <Space>
           <Button icon={<Heart size={20} />} />
           <Button icon={<Bell size={20} />} />

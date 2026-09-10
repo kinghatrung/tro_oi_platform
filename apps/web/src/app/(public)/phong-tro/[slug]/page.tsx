@@ -1,3 +1,5 @@
+import { Breadcrumb } from 'antd';
+
 interface PageProps {
   params: Promise<{
     slug: string;
@@ -7,5 +9,9 @@ interface PageProps {
 export default async function DetailPage({ params }: PageProps) {
   const { slug } = await params;
 
-  return <div>DetailPage {slug}</div>;
+  return (
+    <div>
+      <div>{slug}</div>
+    </div>
+  );
 }

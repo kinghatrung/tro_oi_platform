@@ -32,7 +32,7 @@ export default function Footer() {
                       alt="Download on the App Store"
                       width={115}
                       height={39}
-                      className="object-contain"
+                      className="h-auto w-[115px] object-contain"
                     />
                   </Link>
 
@@ -42,7 +42,7 @@ export default function Footer() {
                       alt="Get it on Google Play"
                       width={115}
                       height={39}
-                      className="object-contain"
+                      className="h-auto w-[115px] object-contain"
                     />
                   </Link>
                 </Flex>
