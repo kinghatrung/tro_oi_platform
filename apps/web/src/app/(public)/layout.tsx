@@ -8,7 +8,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
     <main>
       <SubHeader />
       <BreadcrumbItem />
-      <section className="w-full max-w-300 mx-auto pt-16 pb-3">{children}</section>
+      <section className="w-full max-w-300 mx-auto pb-3 mt-3">{children}</section>
       <Footer />
     </main>
   );
