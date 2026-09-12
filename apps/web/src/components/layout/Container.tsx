@@ -1,6 +1,4 @@
-'use client';
-
-import { Property } from '@/components/sections';
+import { Property, BuyNews, RentNews, AreaNews, Promote } from '@/components/sections';
 
 /**
  * Container component that wraps the Property section with a background image.
@@ -9,11 +7,15 @@ import { Property } from '@/components/sections';
 export default function Container() {
   return (
     <section
-      className="w-full bg-cover bg-center bg-no-repeat"
-      style={{ backgroundImage: "url('/images/phan2_duoi.png')" }}
+      className="w-full bg-cover bg-center bg-no-repeat bg-fixed"
+      style={{ backgroundImage: "url('/images/test2.png')" }}
     >
-      <div className="w-full max-w-300 mx-auto pt-16">
+      <div className="w-full max-w-300 mx-auto pt-16 pb-3">
         <Property />
+        <BuyNews />
+        <RentNews />
+        <AreaNews />
+        <Promote />
       </div>
     </section>
   );

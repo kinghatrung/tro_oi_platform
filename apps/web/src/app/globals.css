@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 :root {
   /* ========================================
@@ -17,7 +17,7 @@
   --color-secondary-hover: #526b6c;
 
   /* Background */
-  --color-background: #f4fbfa;
+  --color-background: #f4f4f4;
   --color-background-secondary: #eaf8f7;
 
   /* Foreground */
@@ -47,7 +47,7 @@
 
   --font-sans: var(--font-reddit-sans);
 
-  --font-mono: "Fira Code", "Cascadia Code", monospace;
+  --font-mono: 'Fira Code', 'Cascadia Code', monospace;
 
   /* ========================================
      Spacing
@@ -89,6 +89,26 @@
    ======================================== */
 
 @layer components {
+  .text-default {
+    @apply text-[#222] text-[16px];
+  }
+
+  .text-primary {
+    @apply text-[#222] text-lg font-bold;
+  }
+
+  .text-secondary {
+    @apply text-[#8c8c8c] text-sm font-medium;
+  }
+
+  .text-muted {
+    @apply text-white font-bold text-xs;
+  }
+
+  .text-large {
+    @apply text-[32px] font-bold text-[#16a6a3];
+  }
+
   .btn {
     @apply inline-flex items-center justify-center rounded-full px-5 py-2.5 font-medium transition-all duration-200;
 
@@ -182,4 +202,61 @@ h6 {
   color: var(--color-foreground);
   line-height: 1.2;
   font-weight: 600;
+}
+
+/* Custom Ant design */
+/* Crousel */
+.ant-carousel .slick-arrow {
+  width: 44px !important;
+  height: 44px !important;
+  border: 1px solid #0f8f8c !important;
+  border-radius: 50%;
+  background: #fff !important;
+  z-index: 10;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  opacity: 1 !important;
+  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1) !important;
+}
+
+.ant-carousel .slick-arrow:hover {
+  transform: translateY(-50%) scale(1.08) !important;
+}
+
+.ant-carousel .slick-prev {
+  left: -32px !important;
+}
+
+.ant-carousel .slick-next {
+  right: -32px !important;
+}
+
+.ant-carousel .slick-arrow::after {
+  display: none !important;
+}
+
+/* Nút bị disabled thì ẩn */
+.ant-carousel .slick-arrow.slick-disabled {
+  opacity: 0 !important;
+  pointer-events: none;
+}
+
+/* Tabs */
+.ant-tabs-nav {
+  font-weight: 600 !important;
+  border-bottom: none !important;
+}
+
+.ant-tabs-nav::before {
+  border-bottom: none !important;
+}
+
+.ant-tabs-nav .ant-tabs-tab-active {
+  font-weight: 600 !important;
+  /* color: var(--color-foreground) !important; */
+}
+
+.ant-tabs-nav .ant-tabs-ink-bar {
+  height: 3px !important;
 }

@@ -1,12 +1,12 @@
-import express from "express";
+import express from 'express';
 
 const app = express();
 
 app.use(express.json());
 
-app.get("/", (_req, res) => {
+app.get('/', (_req, res) => {
   res.json({
-    message: "API is running 🚀",
+    message: 'API is running 🚀',
   });
 });
 
