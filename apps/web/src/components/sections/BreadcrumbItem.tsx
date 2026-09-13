@@ -68,7 +68,7 @@ export function BreadcrumbItem({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
       )}
-      <Breadcrumb className="w-full max-w-300 mx-auto!" items={antdItems} />
+      <Breadcrumb className="w-full max-w-300 mx-auto! px-4! py-3!" items={antdItems} />
     </section>
   );
 }
