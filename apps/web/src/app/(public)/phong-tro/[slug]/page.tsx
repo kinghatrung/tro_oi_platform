@@ -1,4 +1,6 @@
-import { Row, Col, Space, Avatar, Button, Flex, Badge } from 'antd';
+import { Row, Col } from 'antd';
+
+import { SectionNews, AgentCard, PropertyOverview } from '@/components/sections';
 
 interface PageProps {
   params: Promise<{
@@ -14,39 +16,28 @@ export default async function DetailPage({ params }: PageProps) {
   return (
     <Row gutter={[16, 16]}>
       <Col lg={15} md={24} xs={24}>
-        <div className="rounded-lg bg-white p-5">hello1</div>
+        <PropertyOverview />
       </Col>
 
       <Col lg={9} md={24} xs={24}>
-        <div className="rounded-lg bg-white p-5">
-          <Flex vertical gap={12}>
-            <Space>
-              <Avatar className="w-12! h-12!" />
-              <Space vertical size={0}>
-                <p className="text-primary text-[16px]">Minh Huyên</p>
-                <p className="text-secondary">Môi giới</p>
-              </Space>
-            </Space>
-            <Space>
-              <Badge
-                color="#52c41a"
-                text={<span className="text-secondary">Hoạt động 37 phút trước</span>}
-              />
+        <AgentCard />
+      </Col>
 
-              <p className="text-secondary">
-                Phản hồi: <strong>83%</strong>
-              </p>
-            </Space>
-            <Space>
-              <p>16 tin đăng</p>
-              <p>6 tháng trên Trọ ơi!</p>
-            </Space>
-            <Space>
-              <Button>Chat</Button>
-              <Button>Liên hệ</Button>
-            </Space>
-          </Flex>
-        </div>
+      <Col lg={24} md={24} xs={24}>
+        <SectionNews
+          title="Tin đăng tương tự"
+          buttonText="Xem thêm"
+          classButton="w-75!"
+          className="mb-0!"
+        />
+      </Col>
+
+      <Col lg={24} md={24} xs={24}>
+        <SectionNews
+          title="Tin rao khác của Minh Huyên"
+          buttonText="Xem thêm"
+          classButton="w-75!"
+        />
       </Col>
     </Row>
   );

@@ -7,3 +7,5 @@ export * from './AreaNews';
 export * from './LocationGrid';
 export * from './Promote';
 export * from './BreadcrumbItem';
+export * from './AgentCard';
+export * from './PropertyOverview';

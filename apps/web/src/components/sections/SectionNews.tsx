@@ -1,6 +1,6 @@
 'use client';
 
-import Image from 'next/image';
+import clsx from 'clsx';
 import { Button, Flex, Space, Tabs, type TabsProps } from 'antd';
 
 import { CarouselItem } from '@/components/common';
@@ -10,6 +10,8 @@ interface SectionNews {
   title?: string;
   buttonText?: string;
   isArea?: boolean;
+  classButton?: string;
+  className?: string;
 }
 
 const items: TabsProps['items'] = [
@@ -35,15 +37,21 @@ const items: TabsProps['items'] = [
   },
 ];
 
-export function SectionNews({ title, buttonText, isArea }: SectionNews) {
+export function SectionNews({
+  title,
+  buttonText,
+  isArea,
+  classButton,
+  className = 'bg-white rounded-lg p-5 mb-4',
+}: SectionNews) {
   const onChange = (key: string) => {
     console.log(key);
   };
 
   return (
-    <div className="bg-white rounded-lg p-5 mb-4">
+    <div className={clsx('bg-white rounded-lg p-5 mb-4', className)}>
       {title && (
-        <Flex gap={16} align="center" className=" mb-4!">
+        <Flex gap={16} align="center" className="mb-4!">
           <p className="text-primary">{title}</p>
           {isArea && (
             <Space size={8}>
@@ -58,7 +66,7 @@ export function SectionNews({ title, buttonText, isArea }: SectionNews) {
 
       {!isArea && <CarouselItem />}
 
-      {buttonText && <Button className="mx-auto block!">{buttonText}</Button>}
+      {buttonText && <Button className={clsx(`mx-auto block!`, classButton)}>{buttonText}</Button>}
     </div>
   );
 }
