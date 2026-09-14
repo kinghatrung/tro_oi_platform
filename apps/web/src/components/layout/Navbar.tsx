@@ -18,7 +18,7 @@ import {
   MapPin,
 } from 'lucide-react';
 
-import { FloatingInput } from '@/components/common';
+import { FloatingInput, ButtonDropdown } from '@/components/common';
 
 /**
  * Navigation bar component with dropdown menus for categories and user utilities.
@@ -105,10 +105,8 @@ function Navbar() {
       <Flex align="center" justify="space-between" className="py-3! h-18 px-6!">
         {/* Dropdown danh mục */}
         <Space>
-          <Dropdown
-            menu={{ items }}
-            trigger={['click']}
-            placement="bottomRight"
+          <ButtonDropdown
+            menus={items}
             popupRender={(menu) => (
               <div className="bg-white rounded-lg shadow-md w-70">
                 <div className="p-3 font-bold text-[16px]">Danh mục</div>
@@ -116,19 +114,17 @@ function Navbar() {
                 {menu}
               </div>
             )}
-          >
-            <Button icon={<Menu size={20} />} />
-          </Dropdown>
+            iconButton={<Menu size={20} />}
+          />
+
           <Link href="/">
             <Button>
               <img className="w-20 h-20 object-contain" src="/images/tro-oi-logo.svg" />
             </Button>
           </Link>
 
-          <Dropdown
-            menu={{ items: menus }}
-            trigger={['click']}
-            placement="bottomLeft"
+          <ButtonDropdown
+            menus={menus}
             popupRender={() => (
               <div
                 className="bg-white rounded-lg shadow-lg w-90"
@@ -150,13 +146,10 @@ function Navbar() {
                 </Flex>
               </div>
             )}
-          >
-            <Button>
-              <MapPin size={24} fill="#16a6a3" color="#fff" />
-              <span className="text-[16px] text-black">Chọn khu vực</span>
-              <ChevronDown />
-            </Button>
-          </Dropdown>
+            iconLeft={<MapPin size={24} fill="#16a6a3" color="#fff" />}
+            label="Chọn khu vực"
+            dropdown
+          />
         </Space>
 
         {/* Dropdown người dùng */}
@@ -168,10 +161,10 @@ function Navbar() {
             <Button>Đăng nhập</Button>
           </Link>
           <Button type="primary">Đăng tin</Button>
-          <Dropdown
-            menu={{ items: menus }}
-            trigger={['click']}
-            placement="bottomRight"
+          <ButtonDropdown
+            dropdown
+            menus={menus}
+            iconLeft={<UserRound size={20} />}
             popupRender={(menu) => (
               <div className="bg-[#f7f7f7] rounded-lg shadow-md w-100 p-4 border-4 border-white">
                 <div className="bg-white p-4 rounded-lg">
@@ -202,12 +195,7 @@ function Navbar() {
                 {menu}
               </div>
             )}
-          >
-            <Button>
-              <UserRound size={20} />
-              <ChevronDown />
-            </Button>
-          </Dropdown>
+          />
         </Space>
       </Flex>
     </nav>
