@@ -120,6 +120,12 @@
       @apply bg-white text-[#073b3d] hover:bg-[#eaf8f7] active:scale-[0.98];
     }
 
+    &.btn-secondary,
+    &.btn-muted,
+    &.btn-gray {
+      @apply bg-[#f4f4f4] text-[#073b3d] hover:bg-[#e8e8e8] active:scale-[0.98];
+    }
+
     &.btn-outline {
       @apply border border-[#d5e9e7] bg-transparent text-[#087f83] hover:border-[#16a6a3] hover:bg-[#eafbf9];
     }
@@ -259,4 +265,30 @@ h6 {
 
 .ant-tabs-nav .ant-tabs-ink-bar {
   height: 3px !important;
+}
+
+/* Ant Design Button Style f4f4f4 (Gray/Muted/Secondary) */
+.ant-btn.btn-gray,
+.ant-btn.btn-muted,
+.ant-btn.btn-secondary,
+.ant-btn-gray,
+.ant-btn-muted,
+.ant-btn-secondary {
+  background-color: #f4f4f4 !important;
+  background: #f4f4f4 !important;
+  border-color: transparent !important;
+  color: #073b3d !important;
+  box-shadow: none !important;
+}
+
+.ant-btn.btn-gray:hover,
+.ant-btn.btn-muted:hover,
+.ant-btn.btn-secondary:hover,
+.ant-btn-gray:hover,
+.ant-btn-muted:hover,
+.ant-btn-secondary:hover {
+  background-color: #e5e5e5 !important;
+  background: #e5e5e5 !important;
+  border-color: transparent !important;
+  color: #073b3d !important;
 }

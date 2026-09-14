@@ -8,6 +8,7 @@ interface ButtonDropdownProps extends Omit<ButtonProps, 'icon' | 'children'> {
   iconLeft?: ReactNode;
   iconRight?: ReactNode;
   label?: ReactNode;
+  placement?: DropdownProps['placement'];
   /** Hiển thị icon mũi tên xuống mặc định (bỏ qua nếu đã truyền iconRight). Mặc định: false */
   dropdown?: boolean;
   /** Icon truyền cho prop `icon` gốc của antd Button (dùng cho icon-only button) */
@@ -23,6 +24,7 @@ export function ButtonDropdown({
   dropdown = false,
   iconButton,
   className,
+  placement = 'bottomLeft',
   ...buttonProps
 }: ButtonDropdownProps) {
   const rightIcon = iconRight ?? (dropdown ? <ChevronDown size={16} /> : null);
@@ -32,7 +34,7 @@ export function ButtonDropdown({
     <Dropdown
       menu={{ items: menus }}
       trigger={['click']}
-      placement="bottomLeft"
+      placement={placement}
       popupRender={popupRender}
     >
       <Button icon={iconButton} className={className} {...buttonProps}>
