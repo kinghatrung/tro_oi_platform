@@ -1,6 +1,7 @@
 import { Row, Col, Space, Avatar, Button, Flex, Badge } from 'antd';
 import { List, MessageCircle, PhoneCall } from 'lucide-react';
 
+/** Displays the listing agent's profile, activity, and contact actions. */
 export function AgentCard() {
   return (
     <section className="sticky top-4 rounded-lg bg-white p-5">

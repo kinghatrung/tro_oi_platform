@@ -3,6 +3,7 @@ import Footer from '@/components/layout/Footer';
 
 import { BreadcrumbItem } from '@/components/sections';
 
+/** Renders the shared navigation, breadcrumb, content, and footer for public pages. */
 export default function PublicLayout({ children }: { children: React.ReactNode }) {
   return (
     <main>

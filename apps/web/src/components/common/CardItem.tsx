@@ -23,6 +23,7 @@ interface CardItemProps {
   address?: string;
 }
 
+/** Displays a property summary card with listing details and a favorite control. */
 export function CardItem({
   id,
   imageUrl,

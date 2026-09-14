@@ -1,6 +1,7 @@
 import Image from 'next/image';
 import { Carousel } from 'antd';
 
+/** Displays promotional banners in an autoplay carousel. */
 export function Promote() {
   return (
     <div className="bg-white mb-4 rounded-lg">

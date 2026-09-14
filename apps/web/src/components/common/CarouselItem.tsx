@@ -11,6 +11,7 @@ interface ArrowProps {
   [key: string]: unknown;
 }
 
+/** Renders the previous-slide control for a property carousel. */
 function PrevArrow({ currentSlide, slideCount, ...props }: ArrowProps) {
   return (
     <button type="button" {...props}>
@@ -19,6 +20,7 @@ function PrevArrow({ currentSlide, slideCount, ...props }: ArrowProps) {
   );
 }
 
+/** Renders the next-slide control for a property carousel. */
 function NextArrow({ currentSlide, slideCount, ...props }: ArrowProps) {
   return (
     <button type="button" {...props}>
@@ -27,6 +29,7 @@ function NextArrow({ currentSlide, slideCount, ...props }: ArrowProps) {
   );
 }
 
+/** Displays property cards in a navigable carousel. */
 export function CarouselItem() {
   return (
     <Carousel

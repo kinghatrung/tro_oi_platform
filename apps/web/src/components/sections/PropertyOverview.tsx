@@ -106,6 +106,7 @@ const items: MenuProps['items'] = [
   },
 ];
 
+/** Displays a property's gallery, key details, description, and map. */
 export function PropertyOverview() {
   const carouselRef = useRef<CarouselRef>(null);
   const scrollRef = useRef<HTMLDivElement>(null);

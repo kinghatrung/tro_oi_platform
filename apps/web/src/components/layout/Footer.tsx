@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { Col, Flex, Row, Space } from 'antd';
 import { FaLinkedin, FaFacebookSquare, FaYoutube } from 'react-icons/fa';
 
+/** Renders site links, contact details, social links, and app download options. */
 export default function Footer() {
   return (
     <footer className="w-full border-t border-gray-200 bg-white">

@@ -38,6 +38,7 @@ const LOCATIONS: Location[] = [
   },
 ];
 
+/** Displays featured and secondary locations in a responsive grid. */
 export function LocationGrid() {
   const [featured, ...locations] = LOCATIONS;
 

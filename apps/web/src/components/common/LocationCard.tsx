@@ -9,6 +9,7 @@ interface Location {
   featured?: boolean;
 }
 
+/** Displays a location image with its name and available listing count. */
 export function LocationCard({ name, image, listingCount, featured = false }: Location) {
   return (
     <Card

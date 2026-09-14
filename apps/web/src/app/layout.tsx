@@ -16,6 +16,7 @@ export const metadata: Metadata = {
     'Trọ ơi là nền tảng tìm trọ trực tuyến giúp bạn dễ dàng tìm kiếm và thuê phòng trọ, căn hộ, nguyên căn, mặt bằng và tìm người ở ghép tại Việt Nam.',
 };
 
+/** Provides the document shell and global UI providers for the application. */
 export default function RootLayout({ children }: LayoutProps<'/'>) {
   return (
     <html

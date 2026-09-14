@@ -21,6 +21,7 @@ const DEFAULT_HOME_ITEM: BreadcrumbCustomItem = {
   href: '/',
 };
 
+/** Renders navigation breadcrumbs and optional breadcrumb structured data. */
 export function BreadcrumbItem({
   items,
   slug,

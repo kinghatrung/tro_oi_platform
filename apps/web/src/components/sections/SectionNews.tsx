@@ -37,6 +37,7 @@ const items: TabsProps['items'] = [
   },
 ];
 
+/** Renders either a property carousel or area tabs under a configurable heading. */
 export function SectionNews({
   title,
   buttonText,

@@ -22,6 +22,7 @@ interface LocationMapProps {
   className?: string;
 }
 
+/** Displays an OpenStreetMap centered on a property's coordinates. */
 export function LocationMap({
   latitude,
   longitude,

@@ -1,8 +1,10 @@
+/** Formats a number using Vietnamese digit grouping. */
 export const formatNumber = (num: number | null | undefined): string => {
   if (num === null || num === undefined) return '0';
   return new Intl.NumberFormat('vi-VN').format(num);
 };
 
+/** Formats a date as a Vietnamese relative time label. */
 export function formatRelativeTime(date: Date | string | number): string {
   const now = Date.now();
   const target = new Date(date).getTime();
@@ -48,6 +50,7 @@ export function formatRelativeTime(date: Date | string | number): string {
   return `${years} năm trước`;
 }
 
+/** Formats an amount as a compact Vietnamese currency value. */
 export function formatVietnameseCurrency(value: string | number | null | undefined): string {
   const amount = Number.parseInt(String(value), 10);
   if (!Number.isFinite(amount)) return '0';
