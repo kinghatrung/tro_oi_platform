@@ -1,9 +1,8 @@
-'use client';
-
 import Header from '@/components/layout/Header';
-import Container from '@/components/layout/Container';
 import Footer from '@/components/layout/Footer';
+import Container from '@/components/layout/Container';
 
+/** Renders the public home page. */
 export default function Home() {
   return (
     <main>

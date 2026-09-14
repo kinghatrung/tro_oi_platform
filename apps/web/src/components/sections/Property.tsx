@@ -12,7 +12,7 @@ import { CATEGORIES } from '@/constants';
  */
 export function Property() {
   return (
-    <div className="bg-white rounded-lg p-2">
+    <div className="bg-white rounded-lg p-2 mb-4">
       <Flex gap={16} justify="space-between">
         {CATEGORIES.map((item) => (
           <Link key={item.href} href={item.href} className="group block">
@@ -40,8 +40,8 @@ export function Property() {
               />
 
               <Flex vertical gap={4}>
-                <p className="text-[#222] font-bold text-lg">{item.title}</p>
-                <p className="text-[#8c8c8c] font-medium text-sm">{item.count}</p>
+                <p className="text-primary">{item.title}</p>
+                <p className="text-secondary">{item.count}</p>
               </Flex>
             </Flex>
           </Link>
