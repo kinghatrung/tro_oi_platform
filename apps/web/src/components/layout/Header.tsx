@@ -1,25 +1,25 @@
-"use client";
+'use client';
 
-import Link from "next/link";
-import { Button, Flex, Space, Dropdown, type MenuProps } from "antd";
-import { Heart, Bell, MessageCircle, Menu, UserRound, ChevronDown } from "lucide-react";
+import Link from 'next/link';
+import { Button, Flex, Space, Dropdown, type MenuProps } from 'antd';
+import { Heart, Bell, MessageCircle, Menu, UserRound, ChevronDown } from 'lucide-react';
 
 function Header() {
-  const items: MenuProps["items"] = [
+  const items: MenuProps['items'] = [
     {
-      key: "profile",
-      label: "Trang cá nhân",
+      key: 'profile',
+      label: 'Trang cá nhân',
     },
     {
-      key: "settings",
-      label: "Cài đặt",
+      key: 'settings',
+      label: 'Cài đặt',
     },
     {
-      type: "divider",
+      type: 'divider',
     },
     {
-      key: "logout",
-      label: "Đăng xuất",
+      key: 'logout',
+      label: 'Đăng xuất',
       danger: true,
     },
   ];
@@ -28,7 +28,7 @@ function Header() {
     <header className="sticky top-0 z-50 w-full bg-transparent">
       <Flex align="center" justify="space-between" className="py-3! h-18 px-6!">
         <Space>
-          <Dropdown menu={{ items }} trigger={["click"]} placement="bottomRight">
+          <Dropdown menu={{ items }} trigger={['click']} placement="bottomRight">
             <Button icon={<Menu size={20} />} />
           </Dropdown>
           <Button>
