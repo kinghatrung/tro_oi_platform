@@ -1,7 +1,30 @@
-import { Card, Space, Button, Flex, type MenuProps } from 'antd';
-import { Bookmark, ListFilter } from 'lucide-react';
+'use client';
 
-import { ButtonDropdown } from '@/components/common';
+import Image from 'next/image';
+
+import { Card, Space, Button, Flex, type MenuProps } from 'antd';
+import { Bookmark, ListFilter, BedDouble } from 'lucide-react';
+
+import { ButtonDropdown, CardDropdown, FloatingInput } from '@/components/common';
+
+const categories = [
+  {
+    label: 'Phòng trọ',
+    icon: '/images/01-duplex.svg',
+  },
+  {
+    label: 'Căn hộ',
+    icon: '/images/02-apartment.svg',
+  },
+  {
+    label: 'Nguyên căn',
+    icon: '/images/03-house.svg',
+  },
+  {
+    label: 'Tìm người ở ghép',
+    icon: '/images/04-family-roof.svg',
+  },
+];
 
 const items: MenuProps['items'] = [
   {
@@ -22,10 +45,23 @@ const items: MenuProps['items'] = [
   },
 ];
 
+const itemsCate: MenuProps['items'] = [
+  {
+    key: 'buy-room',
+    label: <span className="ml-2 font-semibold">Mua bán</span>,
+    icon: <BedDouble size={24} />,
+  },
+  {
+    key: 'rent-room',
+    label: <span className="ml-2 font-semibold">Cho thuê</span>,
+    icon: <BedDouble size={24} />,
+  },
+];
+
 export function SearchFilters() {
   return (
     <Card variant="borderless">
-      <Flex gap={8} vertical>
+      <Flex gap={16} vertical>
         <Space size={20}>
           <p className="text-primary text-[16px]!">
             Mua Bán Bất Động Sản Hà Nội Tháng 09/2026 Giá Rẻ
@@ -50,11 +86,19 @@ export function SearchFilters() {
             </Button>
 
             <ButtonDropdown
-              menus={items}
+              menus={itemsCate}
               size="small"
               dropdown
               label="Cho thuê"
               className="rounded-2xl! btn-gray"
+              popupRender={(menu) => (
+                <CardDropdown
+                  title="Danh mục"
+                  menu={menu}
+                  footer="clear"
+                  onClick={(e) => e.stopPropagation()}
+                />
+              )}
             />
 
             <ButtonDropdown
@@ -62,6 +106,20 @@ export function SearchFilters() {
               dropdown
               label="Loại hình"
               className="rounded-2xl! btn-gray"
+              popupRender={(menu) => (
+                <CardDropdown
+                  title="Loại hình bất động sản"
+                  menu={menu}
+                  footer="clear"
+                  onClick={(e) => e.stopPropagation()}
+                />
+              )}
+              menus={[
+                { key: 'phong-tro', label: 'Phòng trọ' },
+                { key: 'can-ho', label: 'Căn hộ' },
+                { key: 'nguyen-can', label: 'Nguyên căn' },
+                { key: 'o-ghep', label: 'Tìm người ở ghép' },
+              ]}
             />
 
             <ButtonDropdown
@@ -69,16 +127,29 @@ export function SearchFilters() {
               dropdown
               label="Giá bán"
               className="rounded-2xl! btn-gray"
-            />
-
-            <ButtonDropdown
-              size="small"
-              dropdown
-              label="Đăng bởi"
-              className="rounded-2xl! btn-gray"
+              popupRender={() => (
+                <CardDropdown title="Khoảng giá" footer="both" onClick={(e) => e.stopPropagation()}>
+                  <div className="flex items-center gap-2">
+                    <FloatingInput title="Từ (triệu)" className="h-10! px-3!" />
+                    <span>-</span>
+                    <FloatingInput title="Đến (triệu)" className="h-10! px-3!" />
+                  </div>
+                </CardDropdown>
+              )}
             />
           </Space>
-          <p className="text-sm text-[#222] font-bold">Xóa lọc</p>
+          <Button type="link" className="text-sm! text-[#222]! font-bold!">
+            Xóa lọc
+          </Button>
+        </Flex>
+
+        <Flex align="center" gap={32}>
+          {categories.map((item) => (
+            <Space key={item.label} vertical align="center" className="cursor-pointer">
+              <Image width={64} height={64} alt={item.label} src={item.icon} />
+              <p className="text-[#595959] text-sm font-bold">{item.label}</p>
+            </Space>
+          ))}
         </Flex>
       </Flex>
     </Card>

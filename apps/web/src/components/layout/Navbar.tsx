@@ -1,5 +1,6 @@
 import Link from 'next/link';
-import { Button, Flex, Space, Dropdown, Divider, type MenuProps } from 'antd';
+import { Button, Flex, Space, type MenuProps } from 'antd';
+import { FloatingInput, ButtonDropdown, CardDropdown } from '@/components/common';
 import {
   Heart,
   Bell,
@@ -17,8 +18,6 @@ import {
   Settings,
   MapPin,
 } from 'lucide-react';
-
-import { FloatingInput, ButtonDropdown } from '@/components/common';
 
 /**
  * Navigation bar component with dropdown menus for categories and user utilities.
@@ -108,11 +107,7 @@ function Navbar() {
           <ButtonDropdown
             menus={items}
             popupRender={(menu) => (
-              <div className="bg-white rounded-lg shadow-md w-70">
-                <div className="p-3 font-bold text-[16px]">Danh mục</div>
-                <Divider className="my-0!" />
-                {menu}
-              </div>
+              <CardDropdown title="Danh mục" menu={menu} centerTitle={false} width={280} />
             )}
             iconButton={<Menu size={20} />}
           />
@@ -124,27 +119,12 @@ function Navbar() {
           </Link>
 
           <ButtonDropdown
-            menus={menus}
             popupRender={() => (
-              <div
-                className="bg-white rounded-lg shadow-lg w-90"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <div className="p-3 font-bold text-[16px] text-center">Khu vực</div>
-                <Divider className="my-0!" />
-                <div className="p-3 flex flex-col gap-3">
-                  <FloatingInput title="Chọn tỉnh thành" className="h-12! px-4! border-2!" />
-                  <FloatingInput title="Chọn quận huyện" className="h-12! px-4! border-2!" />
-                  <FloatingInput title="Chọn phường/xã" className="h-12! px-4! border-2!" />
-                </div>
-                <Divider className="my-0!" />
-                <Flex gap={12} className="p-3!">
-                  <Button className="rounded-md! w-full! h-10! text-[16px]!"> Xóa lọc </Button>
-                  <Button className="rounded-md! w-full! h-10! text-[16px]!" type="primary">
-                    Áp dụng
-                  </Button>
-                </Flex>
-              </div>
+              <CardDropdown title="Khu vực" footer="both" onClick={(e) => e.stopPropagation()}>
+                <FloatingInput title="Chọn tỉnh thành" className="h-12! px-4!" />
+                <FloatingInput title="Chọn quận huyện" className="h-12! px-4!" />
+                <FloatingInput title="Chọn phường/xã" className="h-12! px-4!" />
+              </CardDropdown>
             )}
             iconLeft={<MapPin size={24} fill="#16a6a3" color="#fff" />}
             label="Chọn khu vực"
