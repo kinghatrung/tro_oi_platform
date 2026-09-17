@@ -143,11 +143,11 @@ export function SearchFilters() {
           </Button>
         </Flex>
 
-        <Flex align="center" gap={32}>
+        <Flex align="start" gap={32}>
           {categories.map((item) => (
-            <Space key={item.label} vertical align="center" className="cursor-pointer">
+            <Space key={item.label} vertical align="center" className="cursor-pointer max-w-21!">
               <Image width={64} height={64} alt={item.label} src={item.icon} />
-              <p className="text-[#595959] text-sm font-bold">{item.label}</p>
+              <p className="text-[#595959] text-sm font-bold text-center">{item.label}</p>
             </Space>
           ))}
         </Flex>

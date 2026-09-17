@@ -1,6 +1,7 @@
-import { Row, Col } from 'antd';
+import { Row, Col, Card } from 'antd';
 
 import { SearchFilters } from '@/components/sections';
+import { CardItemSearch } from '@/components/common';
 
 interface SearchPageProps {
   searchParams: Promise<{
@@ -20,16 +21,16 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
 
   return (
     <Row gutter={[16, 16]}>
-      <Col lg={24} md={24} xs={24}>
+      <Col span={24}>
         <SearchFilters />
       </Col>
 
       <Col lg={17} md={24} xs={24}>
-        hhello
+        <CardItemSearch />
       </Col>
 
       <Col lg={7} md={24} xs={24}>
-        hhello
+        <CardItemSearch />
       </Col>
     </Row>
   );
