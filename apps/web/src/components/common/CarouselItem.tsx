@@ -55,7 +55,7 @@ export function CarouselItem() {
                 pricePerSquareMeter={111670000}
                 timeAgo="2026-09-07T09:00:00+07:00"
                 area={30}
-                address="Hà Nội"
+                location="Hà Nội"
               />
             ))}
           </Flex>

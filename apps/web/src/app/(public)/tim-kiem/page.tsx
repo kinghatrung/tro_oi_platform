@@ -1,7 +1,7 @@
 import { Row, Col, Flex } from 'antd';
 
 import { SearchFilters } from '@/components/sections';
-import { CardItemSearch } from '@/components/common';
+import { CardItem } from '@/components/common';
 
 interface SearchPageProps {
   searchParams: Promise<{
@@ -13,6 +13,12 @@ interface SearchPageProps {
     page?: string;
   }>;
 }
+
+const authorData = {
+  name: 'Minh Huyên',
+  posted: 12,
+  rank: 'Chuyên gia',
+};
 
 export default async function SearchPage({ searchParams }: SearchPageProps) {
   const params = await searchParams;
@@ -27,13 +33,24 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
 
       <Col lg={18} md={24} xs={24}>
         <Flex gap={4} vertical>
-          <CardItemSearch />
-          <CardItemSearch />
-          <CardItemSearch />
-          <CardItemSearch />
-          <CardItemSearch />
-          <CardItemSearch />
-          <CardItemSearch />
+          {Array.from({ length: 5 }).map((_, index) => (
+            <CardItem
+              key={index}
+              column
+              id={index}
+              title="Giảm 300tr- 30M2 3 tầng hẻm xe hơi - Emart 2 Sổ mới 2026"
+              price={3350000000}
+              countMedia={5}
+              bedrooms={3}
+              propertyType="Đã có sổ"
+              mainDirection="Đông Nam"
+              pricePerSquareMeter={111670000}
+              timeAgo="2026-09-07T09:00:00+07:00"
+              area={30}
+              address="Q. Đống Đa (P. Văn Miếu - Quốc Tử Giám)"
+              author={authorData}
+            />
+          ))}
         </Flex>
       </Col>
 
