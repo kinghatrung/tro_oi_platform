@@ -120,6 +120,12 @@
       @apply bg-white text-[#073b3d] hover:bg-[#eaf8f7] active:scale-[0.98];
     }
 
+    &.btn-secondary,
+    &.btn-muted,
+    &.btn-gray {
+      @apply bg-[#f4f4f4] text-[#073b3d] hover:bg-[#e8e8e8] active:scale-[0.98];
+    }
+
     &.btn-outline {
       @apply border border-[#d5e9e7] bg-transparent text-[#087f83] hover:border-[#16a6a3] hover:bg-[#eafbf9];
     }
@@ -130,6 +136,10 @@
 
     &.btn-danger {
       @apply bg-[#ef4444] text-white hover:bg-[#dc2626] active:scale-[0.98];
+    }
+
+    &.btn-dark {
+      @apply bg-[#222] text-white hover:bg-[#333] active:scale-[0.98];
     }
   }
 }
@@ -199,7 +209,6 @@ h3,
 h4,
 h5,
 h6 {
-  color: var(--color-foreground);
   line-height: 1.2;
   font-weight: 600;
 }
@@ -259,4 +268,156 @@ h6 {
 
 .ant-tabs-nav .ant-tabs-ink-bar {
   height: 3px !important;
+}
+
+/* Ant Design Button Style f4f4f4 (Gray/Muted/Secondary) */
+.ant-btn.btn-gray,
+.ant-btn.btn-muted,
+.ant-btn.btn-secondary,
+.ant-btn-gray,
+.ant-btn-muted,
+.ant-btn-secondary {
+  background-color: #f4f4f4 !important;
+  background: #f4f4f4 !important;
+  border-color: transparent !important;
+  color: #073b3d !important;
+  box-shadow: none !important;
+}
+
+.ant-btn.btn-gray:hover,
+.ant-btn.btn-muted:hover,
+.ant-btn.btn-secondary:hover,
+.ant-btn-gray:hover,
+.ant-btn-muted:hover,
+.ant-btn-secondary:hover {
+  background-color: #e5e5e5 !important;
+  background: #e5e5e5 !important;
+  border-color: transparent !important;
+  color: #073b3d !important;
+}
+
+/* ========================================
+   Pagination
+   ======================================== */
+
+.pagination-circle .ant-pagination {
+  display: flex !important;
+  align-items: center !important;
+  flex-wrap: nowrap !important;
+  gap: 12px !important;
+}
+
+/* All li items inline */
+.pagination-circle .ant-pagination-item,
+.pagination-circle .ant-pagination-prev,
+.pagination-circle .ant-pagination-next,
+.pagination-circle .ant-pagination-jump-prev,
+.pagination-circle .ant-pagination-jump-next {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 42px !important;
+  height: 42px !important;
+  min-width: 42px !important;
+  margin: 0 !important;
+  flex-shrink: 0 !important;
+}
+
+/* Regular page number buttons */
+.pagination-circle .ant-pagination-item {
+  border-radius: 50% !important;
+  border: 1.5px solid #e0e0e0 !important;
+  background: #fff !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  color: #222 !important;
+  transition: all 0.2s !important;
+  box-shadow: none !important;
+  line-height: 1 !important;
+}
+
+.pagination-circle .ant-pagination-item a {
+  color: #222 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 100% !important;
+  height: 100% !important;
+  line-height: 1 !important;
+}
+
+.pagination-circle .ant-pagination-item:hover {
+  border-color: #16a6a3 !important;
+}
+
+.pagination-circle .ant-pagination-item:hover a {
+  color: #16a6a3 !important;
+}
+
+.pagination-circle .ant-pagination-item-active {
+  background: #16a6a3 !important;
+  border-color: #16a6a3 !important;
+}
+
+.pagination-circle .ant-pagination-item-active a {
+  color: #fff !important;
+  font-weight: 700 !important;
+}
+
+.pagination-circle .ant-pagination-item-active:hover {
+  background: #16a6a3 !important;
+  border-color: #16a6a3 !important;
+}
+
+.pagination-circle .ant-pagination-item-active:hover a {
+  color: #fff !important;
+}
+
+/* Prev / Next arrow link */
+.pagination-circle .ant-pagination-prev .ant-pagination-item-link,
+.pagination-circle .ant-pagination-next .ant-pagination-item-link {
+  width: 40px !important;
+  height: 40px !important;
+  border-radius: 50% !important;
+  border: 1.5px solid #e0e0e0 !important;
+  background: #fff !important;
+  color: #222 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all 0.2s !important;
+  box-shadow: none !important;
+}
+
+.pagination-circle .ant-pagination-prev:hover .ant-pagination-item-link,
+.pagination-circle .ant-pagination-next:hover .ant-pagination-item-link {
+  border-color: #16a6a3 !important;
+  color: #16a6a3 !important;
+}
+
+/* Ellipsis jump buttons */
+.pagination-circle .ant-pagination-jump-prev .ant-pagination-item-link,
+.pagination-circle .ant-pagination-jump-next .ant-pagination-item-link {
+  width: 40px !important;
+  height: 40px !important;
+  border-radius: 50% !important;
+  border: 1.5px solid #e0e0e0 !important;
+  background: #fff !important;
+  color: #8c8c8c !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-shadow: none !important;
+}
+
+.pagination-circle .ant-pagination-jump-prev:hover .ant-pagination-item-link,
+.pagination-circle .ant-pagination-jump-next:hover .ant-pagination-item-link {
+  border-color: #16a6a3 !important;
+  color: #16a6a3 !important;
+}
+
+.pagination-circle .ant-pagination-total-text {
+  color: #8c8c8c;
+  font-size: 13px;
+  margin-right: 8px;
 }

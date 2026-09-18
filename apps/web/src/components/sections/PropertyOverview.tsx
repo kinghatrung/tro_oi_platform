@@ -36,7 +36,7 @@ import {
 import { FaFacebookF, FaFacebookMessenger, FaLink } from 'react-icons/fa';
 import type { CarouselRef } from 'antd/es/carousel';
 
-import { LocationMap } from '@/components/common';
+import { LocationMap, ButtonDropdown } from '@/components/common';
 
 const propertyFeatures = [
   {
@@ -178,9 +178,9 @@ export function PropertyOverview() {
           />
 
           <Space align="center" className="absolute top-3 right-3 z-10">
-            <Dropdown
-              trigger={['click']}
-              placement="bottomRight"
+            <ButtonDropdown
+              iconButton={<Share size={18} />}
+              className="w-9! h-9!"
               popupRender={() => (
                 <div className="bg-white rounded-lg shadow-md w-full px-5 py-4">
                   <div className="font-bold text-[16px] text-center mb-4">Chia sẻ qua:</div>
@@ -197,13 +197,14 @@ export function PropertyOverview() {
                   </Space>
                 </div>
               )}
-            >
-              <Button icon={<Share size={18} />} className="w-9! h-9!" />
-            </Dropdown>
+            />
 
-            <Dropdown menu={{ items }} trigger={['click']} placement="bottomRight">
-              <Button icon={<EllipsisVertical size={18} />} className="w-9! h-9!" />
-            </Dropdown>
+            <ButtonDropdown
+              placement="bottomRight"
+              menus={items}
+              className="w-9! h-9!"
+              iconButton={<EllipsisVertical size={18} />}
+            />
           </Space>
 
           <p className="absolute bottom-5 right-5 text-white text-sm z-10">

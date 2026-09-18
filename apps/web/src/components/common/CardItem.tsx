@@ -1,15 +1,23 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import clsx from 'clsx';
 import { useState } from 'react';
-import { Flex, Space } from 'antd';
-import { MapPin, Heart, Image } from 'lucide-react';
+import { Flex, Space, Card, Button } from 'antd';
+import { MapPin, Heart, House, CircleUserRound, Image as ImageIcon, BedDouble } from 'lucide-react';
 
 import { formatVietnameseCurrency, formatRelativeTime } from '@/utils/helpers';
 
+interface AuthorType {
+  name?: string;
+  posted?: number;
+  rank?: string;
+}
+
 interface CardItemProps {
   id?: number;
+  column?: boolean;
   timeAgo?: string;
   countMedia?: number;
   imageUrl?: string;
@@ -21,11 +29,14 @@ interface CardItemProps {
   bedrooms?: number;
   mainDirection?: string;
   address?: string;
+  location?: string;
+  author?: AuthorType;
 }
 
 /** Displays a property summary card with listing details and a favorite control. */
 export function CardItem({
   id,
+  column,
   imageUrl,
   title,
   timeAgo,
@@ -37,8 +48,141 @@ export function CardItem({
   bedrooms,
   mainDirection,
   address,
+  location,
+  author,
 }: CardItemProps) {
   const [isFavorite, setIsFavorite] = useState(false);
+
+  if (column) {
+    return (
+      <Card
+        variant="borderless"
+        className="rounded-none! transition-shadow! duration-200! hover:shadow-[0_4px_20px_rgba(0,0,0,0.16)]!"
+        classNames={{
+          body: 'pt-3! pb-4! px-6!',
+        }}
+      >
+        {/* Breadcrumb / mô tả ngắn */}
+        <p className="text-secondary mb-2 text-xs!">
+          Nhà đất Quận Đống Đa - Phố Tôn Đức Thắng - 5 tầng - 3PN - 15m² - Nội thất đầy đủ
+        </p>
+
+        <Link href={`/phong-tro/${id}`} className="block">
+          <Flex gap={16}>
+            {/* Image */}
+            <div className="relative h-40 w-40 min-w-40 overflow-hidden rounded-lg">
+              <Image
+                src={imageUrl || '/images/test.jpg'}
+                alt={title || 'Ảnh nhà đất'}
+                fill
+                sizes="160px"
+                className="object-cover"
+              />
+
+              {/* Overlay */}
+              <Flex
+                justify="space-between"
+                align="center"
+                className="absolute right-0 bottom-0 left-0 bg-black/50 px-2! py-1.5!"
+              >
+                <span className="text-xs! font-semibold text-white">
+                  {formatRelativeTime(timeAgo || 0)}
+                </span>
+
+                <Flex align="center" gap={1}>
+                  <span className="text-xs! font-semibold text-white">{countMedia}</span>
+                  <ImageIcon size={13} className="text-white" />
+                </Flex>
+              </Flex>
+            </div>
+
+            {/* Content */}
+            <Flex vertical gap={7} className="min-w-0! flex-1">
+              {/* Title + Save */}
+              <Flex justify="space-between" align="start" gap={12}>
+                <h3 className="text-default text-[#222] m-0! line-clamp-2 font-semibold leading-5! min-w-0 flex-1">
+                  {title}
+                </h3>
+
+                <Button
+                  size="small"
+                  icon={
+                    <Heart
+                      size={18}
+                      className={isFavorite ? 'fill-[#f0325e] stroke-[#f0325e]' : ''}
+                    />
+                  }
+                  className="shrink-0 text-sm! text-[#222]! rounded-xl! btn-ghost!"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setIsFavorite((prev) => !prev);
+                  }}
+                >
+                  Lưu
+                </Button>
+              </Flex>
+
+              {/* Property information */}
+              <Flex align="center" gap={12} wrap>
+                {bedrooms != null && (
+                  <Flex align="center" gap={4}>
+                    <BedDouble size={16} color="#222" />
+                    <span className="text-secondary text-[#222]">{bedrooms} PN</span>
+                  </Flex>
+                )}
+
+                {mainDirection && (
+                  <Flex align="center" gap={4}>
+                    <House size={16} color="#222" />
+                    <span className="text-secondary text-[#222]">{mainDirection}</span>
+                  </Flex>
+                )}
+
+                {propertyType && <span className="text-secondary text-[#222]">{propertyType}</span>}
+              </Flex>
+
+              {/* Address */}
+              {address && (
+                <Flex align="center" gap={4}>
+                  <MapPin size={16} color="#222" />
+                  <span className="text-secondary text-[#222]">{address}</span>
+                </Flex>
+              )}
+
+              {/* Poster */}
+              {author && (
+                <Flex align="center" gap={8}>
+                  <div className="flex size-5 items-center justify-center rounded-full bg-yellow-400">
+                    <CircleUserRound size={15} className="text-white" />
+                  </div>
+
+                  <span className="text-secondary text-[#222]">{author?.name}</span>
+                  <span className="text-secondary text-sm">
+                    {author?.rank} · {author?.posted} tin
+                  </span>
+                </Flex>
+              )}
+
+              {/* Price */}
+              <Flex align="center" gap={12}>
+                <span className="text-primary text-[#f0325e]">
+                  {formatVietnameseCurrency(price || 0)}
+                  {area != null && ` - ${area}m²`}
+                </span>
+
+                {pricePerSquareMeter != null && (
+                  <span className="text-default font-semibold">
+                    {formatVietnameseCurrency(pricePerSquareMeter)}/m²
+                  </span>
+                )}
+              </Flex>
+            </Flex>
+          </Flex>
+        </Link>
+      </Card>
+    );
+  }
 
   return (
     <Link
@@ -108,7 +252,7 @@ export function CardItem({
 
           <Space>
             <p className="text-muted">{countMedia}</p>
-            <Image size={16} color="#fff" />
+            <ImageIcon size={16} color="#fff" />
           </Space>
         </Flex>
       </div>
@@ -133,7 +277,7 @@ export function CardItem({
           </Space>
           <Space size={4}>
             <MapPin size={16} color="#bfbfbf" />
-            <p className="text-secondary">{address || 'Hà Nội'}</p>
+            <p className="text-secondary">{location || 'Hà Nội'}</p>
           </Space>
         </Flex>
       </div>
