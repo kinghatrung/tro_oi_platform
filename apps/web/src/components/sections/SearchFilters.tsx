@@ -1,6 +1,8 @@
 'use client';
 
 import Image from 'next/image';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useState } from 'react';
 
 import { Card, Space, Button, Flex, type MenuProps } from 'antd';
 import { Bookmark, ListFilter, BedDouble } from 'lucide-react';
@@ -9,39 +11,24 @@ import { ButtonDropdown, CardDropdown, FloatingInput } from '@/components/common
 
 const categories = [
   {
+    key: 'phong-tro',
     label: 'Phòng trọ',
     icon: '/images/01-duplex.svg',
   },
   {
+    key: 'can-ho',
     label: 'Căn hộ',
     icon: '/images/02-apartment.svg',
   },
   {
+    key: 'nguyen-can',
     label: 'Nguyên căn',
     icon: '/images/03-house.svg',
   },
   {
+    key: 'o-ghep',
     label: 'Tìm người ở ghép',
     icon: '/images/04-family-roof.svg',
-  },
-];
-
-const items: MenuProps['items'] = [
-  {
-    key: 'profile',
-    label: 'Trang cá nhân',
-  },
-  {
-    key: 'settings',
-    label: 'Cài đặt',
-  },
-  {
-    type: 'divider',
-  },
-  {
-    key: 'logout',
-    label: 'Đăng xuất',
-    danger: true,
   },
 ];
 
@@ -58,7 +45,60 @@ const itemsCate: MenuProps['items'] = [
   },
 ];
 
+const propertyTypeItems: MenuProps['items'] = categories.map(({ key, label }) => ({ key, label }));
+
+interface FilterState {
+  transaction: string;
+  category: string;
+  minPrice: string;
+  maxPrice: string;
+}
+
+const readFilters = (params: URLSearchParams): FilterState => ({
+  transaction: params.get('transaction') ?? '',
+  category: params.get('category') ?? '',
+  minPrice: params.get('minPrice') ?? '',
+  maxPrice: params.get('maxPrice') ?? '',
+});
+
 export function SearchFilters() {
+  const serializedParams = useSearchParams().toString();
+
+  return <SearchFiltersForm key={serializedParams} serializedParams={serializedParams} />;
+}
+
+function SearchFiltersForm({ serializedParams }: { serializedParams: string }) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const [filters, setFilters] = useState<FilterState>(() =>
+    readFilters(new URLSearchParams(serializedParams)),
+  );
+  const [saved, setSaved] = useState(false);
+
+  const navigateWithFilters = (nextFilters: FilterState) => {
+    const params = new URLSearchParams(serializedParams);
+
+    (Object.entries(nextFilters) as [keyof FilterState, string][]).forEach(([key, value]) => {
+      if (value) params.set(key, value);
+      else params.delete(key);
+    });
+    params.delete('page');
+
+    const query = params.toString();
+    router.push(query ? `${pathname}?${query}` : pathname);
+  };
+
+  const clearAllFilters = () => {
+    const cleared = { transaction: '', category: '', minPrice: '', maxPrice: '' };
+    setFilters(cleared);
+    navigateWithFilters(cleared);
+  };
+
+  const saveSearch = () => {
+    navigateWithFilters(filters);
+    setSaved(true);
+  };
+
   return (
     <Card variant="borderless">
       <Flex gap={16} vertical>
@@ -70,8 +110,9 @@ export function SearchFilters() {
             size="small"
             icon={<Bookmark size={20} strokeWidth={2.2} />}
             className="rounded-2xl! font-bold!"
+            onClick={saveSearch}
           >
-            Lưu tìm kiếm
+            {saved ? 'Đã lưu tìm kiếm' : 'Lưu tìm kiếm'}
           </Button>
         </Space>
 
@@ -81,6 +122,7 @@ export function SearchFilters() {
               size="small"
               className="rounded-2xl! btn-gray"
               icon={<ListFilter size={16} strokeWidth={2.5} />}
+              onClick={() => navigateWithFilters(filters)}
             >
               Lọc
             </Button>
@@ -89,37 +131,44 @@ export function SearchFilters() {
               menus={itemsCate}
               size="small"
               dropdown
-              label="Cho thuê"
+              label={filters.transaction === 'buy-room' ? 'Mua bán' : 'Cho thuê'}
               className="rounded-2xl! btn-gray"
               popupRender={(menu) => (
                 <CardDropdown
                   title="Danh mục"
                   menu={menu}
-                  footer="clear"
+                  footer="both"
+                  onClear={() => setFilters((current) => ({ ...current, transaction: '' }))}
+                  onApply={() => navigateWithFilters(filters)}
                   onClick={(e) => e.stopPropagation()}
                 />
               )}
+              selectedKeys={filters.transaction ? [filters.transaction] : []}
+              onMenuClick={({ key }) =>
+                setFilters((current) => ({ ...current, transaction: key }))
+              }
             />
 
             <ButtonDropdown
               size="small"
               dropdown
-              label="Loại hình"
+              label={categories.find(({ key }) => key === filters.category)?.label ?? 'Loại hình'}
               className="rounded-2xl! btn-gray"
               popupRender={(menu) => (
                 <CardDropdown
                   title="Loại hình bất động sản"
                   menu={menu}
-                  footer="clear"
+                  footer="both"
+                  onClear={() => setFilters((current) => ({ ...current, category: '' }))}
+                  onApply={() => navigateWithFilters(filters)}
                   onClick={(e) => e.stopPropagation()}
                 />
               )}
-              menus={[
-                { key: 'phong-tro', label: 'Phòng trọ' },
-                { key: 'can-ho', label: 'Căn hộ' },
-                { key: 'nguyen-can', label: 'Nguyên căn' },
-                { key: 'o-ghep', label: 'Tìm người ở ghép' },
-              ]}
+              menus={propertyTypeItems}
+              selectedKeys={filters.category ? [filters.category] : []}
+              onMenuClick={({ key }) =>
+                setFilters((current) => ({ ...current, category: key }))
+              }
             />
 
             <ButtonDropdown
@@ -128,27 +177,63 @@ export function SearchFilters() {
               label="Giá bán"
               className="rounded-2xl! btn-gray"
               popupRender={() => (
-                <CardDropdown title="Khoảng giá" footer="both" onClick={(e) => e.stopPropagation()}>
+                <CardDropdown
+                  title="Khoảng giá"
+                  footer="both"
+                  onClear={() =>
+                    setFilters((current) => ({ ...current, minPrice: '', maxPrice: '' }))
+                  }
+                  onApply={() => navigateWithFilters(filters)}
+                  onClick={(e) => e.stopPropagation()}
+                >
                   <div className="flex items-center gap-2">
-                    <FloatingInput title="Từ (triệu)" className="h-10! px-3!" />
+                    <FloatingInput
+                      title="Từ (triệu)"
+                      className="h-10! px-3!"
+                      value={filters.minPrice}
+                      onChange={(event) =>
+                        setFilters((current) => ({ ...current, minPrice: event.target.value }))
+                      }
+                    />
                     <span>-</span>
-                    <FloatingInput title="Đến (triệu)" className="h-10! px-3!" />
+                    <FloatingInput
+                      title="Đến (triệu)"
+                      className="h-10! px-3!"
+                      value={filters.maxPrice}
+                      onChange={(event) =>
+                        setFilters((current) => ({ ...current, maxPrice: event.target.value }))
+                      }
+                    />
                   </div>
                 </CardDropdown>
               )}
             />
           </Space>
-          <Button type="link" className="text-sm! text-[#222]! font-bold!">
+          <Button
+            type="link"
+            className="text-sm! text-[#222]! font-bold!"
+            onClick={clearAllFilters}
+          >
             Xóa lọc
           </Button>
         </Flex>
 
         <Flex align="start" gap={32}>
           {categories.map((item) => (
-            <Space key={item.label} vertical align="center" className="cursor-pointer max-w-21!">
-              <Image width={64} height={64} alt={item.label} src={item.icon} />
-              <p className="text-[#595959] text-sm font-bold text-center">{item.label}</p>
-            </Space>
+            <button
+              key={item.key}
+              type="button"
+              aria-pressed={filters.category === item.key}
+              onClick={() => setFilters((current) => ({ ...current, category: item.key }))}
+              className={`cursor-pointer max-w-21! rounded-lg border-0 bg-transparent p-1 ${
+                filters.category === item.key ? 'ring-2 ring-[#16a6a3]' : ''
+              }`}
+            >
+              <Space vertical align="center">
+                <Image width={64} height={64} alt={item.label} src={item.icon} />
+                <p className="text-[#595959] text-sm font-bold text-center">{item.label}</p>
+              </Space>
+            </button>
           ))}
         </Flex>
       </Flex>

@@ -8,7 +8,6 @@ import {
   MessageCircle,
   Menu,
   UserRound,
-  ChevronDown,
   BedDouble,
   Building2,
   House,
@@ -106,6 +105,7 @@ function Navbar() {
         {/* Dropdown danh mục */}
         <Space align="center">
           <ButtonDropdown
+            aria-label="Danh mục"
             menus={items}
             popupRender={(menu) => (
               <CardDropdown title="Danh mục" menu={menu} centerTitle={false} width={280} />
@@ -149,7 +149,9 @@ function Navbar() {
           </Link>
           <Button type="primary">Đăng tin</Button>
           <ButtonDropdown
+            aria-label="Tài khoản"
             dropdown
+            placement="bottomRight"
             menus={menus}
             iconLeft={<UserRound size={20} />}
             popupRender={(menu) => (
