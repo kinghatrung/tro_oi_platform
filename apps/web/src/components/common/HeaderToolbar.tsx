@@ -5,7 +5,7 @@ import { Flex, Switch, Dropdown, type MenuProps } from 'antd';
 import { ChevronDown, List, LayoutGrid } from 'lucide-react';
 import clsx from 'clsx';
 
-interface SearchHeaderToolbarProps {
+interface HeaderToolbarProps {
   onTabChange?: (tabKey: string) => void;
   onVideoOnlyChange?: (checked: boolean) => void;
   onSortChange?: (sortKey: string) => void;
@@ -25,12 +25,12 @@ const tabOptions = [
   { key: 'broker', label: 'Môi giới' },
 ];
 
-export function SearchHeaderToolbar({
+export function HeaderToolbar({
   onTabChange,
   onVideoOnlyChange,
   onSortChange,
   onViewModeChange,
-}: SearchHeaderToolbarProps) {
+}: HeaderToolbarProps) {
   const [activeTab, setActiveTab] = useState('all');
   const [sortLabel, setSortLabel] = useState('Tin mới nhất');
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
@@ -41,7 +41,7 @@ export function SearchHeaderToolbar({
   };
 
   const handleSortMenuClick: MenuProps['onClick'] = (e) => {
-    const selectedItem = sortItems.find((item) => item?.key === e.key);
+    const selectedItem = sortItems?.find((item) => item?.key === e.key);
     if (selectedItem && 'label' in selectedItem) {
       setSortLabel(selectedItem.label as string);
     }

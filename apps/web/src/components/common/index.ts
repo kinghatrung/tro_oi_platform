@@ -14,4 +14,4 @@ export * from './LocationCard';
 export * from './ButtonDropdown';
 export * from './CardDropdown';
 export * from './PaginationControl';
-export * from './SearchHeaderToolbar';
+export * from './HeaderToolbar';
