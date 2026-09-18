@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { Button, Flex, Space, type MenuProps } from 'antd';
 import { FloatingInput, ButtonDropdown, CardDropdown } from '@/components/common';
 import {
@@ -103,7 +104,7 @@ function Navbar() {
     <nav className="static top-0 z-50 w-full bg-transparent">
       <Flex align="center" justify="space-between" className="py-3! h-18 px-6!">
         {/* Dropdown danh mục */}
-        <Space>
+        <Space align="center">
           <ButtonDropdown
             menus={items}
             popupRender={(menu) => (
@@ -114,7 +115,13 @@ function Navbar() {
 
           <Link href="/">
             <Button>
-              <img className="w-20 h-20 object-contain" src="/images/tro-oi-logo.svg" />
+              <Image
+                width={80}
+                height={20}
+                alt="Logo"
+                className="object-contain"
+                src="/images/tro-oi-logo.svg"
+              />
             </Button>
           </Link>
 

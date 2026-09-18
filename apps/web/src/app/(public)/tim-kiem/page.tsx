@@ -1,4 +1,4 @@
-import { Row, Col, Card } from 'antd';
+import { Row, Col, Flex } from 'antd';
 
 import { SearchFilters } from '@/components/sections';
 import { CardItemSearch } from '@/components/common';
@@ -25,12 +25,21 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
         <SearchFilters />
       </Col>
 
-      <Col lg={17} md={24} xs={24}>
-        <CardItemSearch />
+      <Col lg={18} md={24} xs={24}>
+        <Flex gap={4} vertical>
+          <CardItemSearch />
+          <CardItemSearch />
+          <CardItemSearch />
+          <CardItemSearch />
+          <CardItemSearch />
+          <CardItemSearch />
+          <CardItemSearch />
+        </Flex>
       </Col>
 
-      <Col lg={7} md={24} xs={24}>
-        <CardItemSearch />
+      <Col lg={6} md={24} xs={24}>
+        {/* <CardItemSearch /> */}
+        hello
       </Col>
     </Row>
   );

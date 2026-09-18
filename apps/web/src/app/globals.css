@@ -137,6 +137,10 @@
     &.btn-danger {
       @apply bg-[#ef4444] text-white hover:bg-[#dc2626] active:scale-[0.98];
     }
+
+    &.btn-dark {
+      @apply bg-[#222] text-white hover:bg-[#333] active:scale-[0.98];
+    }
   }
 }
 
@@ -205,7 +209,6 @@ h3,
 h4,
 h5,
 h6 {
-  color: var(--color-foreground);
   line-height: 1.2;
   font-weight: 600;
 }
