@@ -1,7 +1,7 @@
 import { Row, Col, Flex } from 'antd';
 
 import { SearchFilters } from '@/components/sections';
-import { CardItem, PaginationControl } from '@/components/common';
+import { CardItem, PaginationControl, SearchHeaderToolbar } from '@/components/common';
 
 interface SearchPageProps {
   searchParams: Promise<{
@@ -36,6 +36,8 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
 
       <Col lg={18} md={24} xs={24}>
         <Flex gap={4} vertical>
+          <SearchHeaderToolbar />
+
           {Array.from({ length: PAGE_SIZE }).map((_, index) => (
             <CardItem
               key={index}
