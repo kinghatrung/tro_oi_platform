@@ -1,7 +1,7 @@
 import { Row, Col, Flex } from 'antd';
 
 import { SearchFilters } from '@/components/sections';
-import { CardItem } from '@/components/common';
+import { CardItem, PaginationControl } from '@/components/common';
 
 interface SearchPageProps {
   searchParams: Promise<{
@@ -20,10 +20,13 @@ const authorData = {
   rank: 'Chuyên gia',
 };
 
+// Mock: tổng số tin đăng (thay bằng API thực tế)
+const TOTAL_ITEMS = 120;
+const PAGE_SIZE = 5;
+
 export default async function SearchPage({ searchParams }: SearchPageProps) {
   const params = await searchParams;
-
-  console.log(params);
+  const currentPage = Number(params.page) || 1;
 
   return (
     <Row gutter={[16, 16]}>
@@ -33,7 +36,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
 
       <Col lg={18} md={24} xs={24}>
         <Flex gap={4} vertical>
-          {Array.from({ length: 5 }).map((_, index) => (
+          {Array.from({ length: PAGE_SIZE }).map((_, index) => (
             <CardItem
               key={index}
               column
@@ -51,6 +54,8 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
               author={authorData}
             />
           ))}
+
+          <PaginationControl total={TOTAL_ITEMS} pageSize={PAGE_SIZE} currentPage={currentPage} />
         </Flex>
       </Col>
 

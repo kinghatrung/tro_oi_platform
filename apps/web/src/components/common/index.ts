@@ -13,3 +13,4 @@ export * from './CarouselItem';
 export * from './LocationCard';
 export * from './ButtonDropdown';
 export * from './CardDropdown';
+export * from './PaginationControl';
