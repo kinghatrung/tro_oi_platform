@@ -57,7 +57,7 @@ export function SearchResultsList({
         <Row gutter={[16, 16]}>
           {items.map((item) => (
             <Col key={item.id} xs={24} sm={12} md={12} lg={8}>
-              <CardItem column={false} {...item} />
+              <CardItem {...item} />
             </Col>
           ))}
         </Row>
