@@ -1,15 +1,17 @@
 'use client';
 
+import clsx from 'clsx';
+
 import { useState } from 'react';
 import { Flex, Switch, Dropdown, type MenuProps } from 'antd';
 import { ChevronDown, List, LayoutGrid } from 'lucide-react';
-import clsx from 'clsx';
 
 interface HeaderToolbarProps {
   onTabChange?: (tabKey: string) => void;
   onVideoOnlyChange?: (checked: boolean) => void;
   onSortChange?: (sortKey: string) => void;
   onViewModeChange?: (mode: 'list' | 'grid') => void;
+  viewMode?: 'list' | 'grid';
 }
 
 const sortItems: MenuProps['items'] = [
@@ -30,10 +32,13 @@ export function HeaderToolbar({
   onVideoOnlyChange,
   onSortChange,
   onViewModeChange,
+  viewMode: viewModeProp,
 }: HeaderToolbarProps) {
   const [activeTab, setActiveTab] = useState('all');
   const [sortLabel, setSortLabel] = useState('Tin mới nhất');
-  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+  const [internalViewMode, setInternalViewMode] = useState<'list' | 'grid'>('list');
+
+  const viewMode = viewModeProp ?? internalViewMode;
 
   const handleTabClick = (key: string) => {
     setActiveTab(key);
@@ -49,7 +54,7 @@ export function HeaderToolbar({
   };
 
   const handleViewModeChange = (mode: 'list' | 'grid') => {
-    setViewMode(mode);
+    setInternalViewMode(mode);
     onViewModeChange?.(mode);
   };
 
