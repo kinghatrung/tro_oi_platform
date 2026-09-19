@@ -44,7 +44,7 @@ export function SearchResultsList({
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
 
   return (
-    <Flex vertical gap={12}>
+    <Flex vertical gap={4}>
       <HeaderToolbar viewMode={viewMode} onViewModeChange={(mode) => setViewMode(mode)} />
 
       {viewMode === 'list' ? (
