@@ -65,7 +65,7 @@ interface CardDropdownProps {
  * <ButtonDropdown
  *   menus={items}
  *   popupRender={(menu) => (
- *     <CardDropdown title="Danh mục" menu={menu} footer="clear" />
+ *     <CardDropdown title="Danh mục" menu={menu} footer="clear" onClear={...} />
  *   )}
  * />
  */
@@ -87,8 +87,14 @@ export function CardDropdown({
   const footerVariant: FooterVariant | false =
     footer === true ? 'both' : footer === false || footer == null ? false : footer;
 
+  const showClear = Boolean(
+    onClear && (footerVariant === 'both' || footerVariant === 'clear'),
+  );
+  const showApply = Boolean(
+    onApply && (footerVariant === 'both' || footerVariant === 'apply'),
+  );
   const hasBody = Boolean(menu || children);
-  const hasFooter = Boolean(footerVariant);
+  const hasFooter = showClear || showApply;
 
   return (
     <div
@@ -116,13 +122,33 @@ export function CardDropdown({
       {hasBody && hasFooter && <Divider className="my-0!" />}
 
       {/* Footer */}
-      {footerVariant && (
+      {hasFooter && (
         <div className="p-3 bg-white">
           {footerVariant === 'both' ? (
             <Flex gap={12}>
+              {showClear && (
+                <Button className="rounded-md! w-full! h-10! text-[16px]!" onClick={onClear}>
+                  {clearText}
+                </Button>
+              )}
+              {showApply && (
+                <Button
+                  className="rounded-md! w-full! h-10! text-[16px]!"
+                  type="primary"
+                  onClick={onApply}
+                >
+                  {applyText}
+                </Button>
+              )}
+            </Flex>
+          ) : footerVariant === 'clear' ? (
+            showClear && (
               <Button className="rounded-md! w-full! h-10! text-[16px]!" onClick={onClear}>
                 {clearText}
               </Button>
+            )
+          ) : (
+            showApply && (
               <Button
                 className="rounded-md! w-full! h-10! text-[16px]!"
                 type="primary"
@@ -130,19 +156,7 @@ export function CardDropdown({
               >
                 {applyText}
               </Button>
-            </Flex>
-          ) : footerVariant === 'clear' ? (
-            <Button className="rounded-md! w-full! h-10! text-[16px]!" onClick={onClear}>
-              {clearText}
-            </Button>
-          ) : (
-            <Button
-              className="rounded-md! w-full! h-10! text-[16px]!"
-              type="primary"
-              onClick={onApply}
-            >
-              {applyText}
-            </Button>
+            )
           )}
         </div>
       )}

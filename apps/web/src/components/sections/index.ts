@@ -10,3 +10,4 @@ export * from './BreadcrumbItem';
 export * from './AgentCard';
 export * from './PropertyOverview';
 export * from './SearchFilters';
+export * from './SearchResults';

@@ -14,16 +14,10 @@ interface SearchPageProps {
   }>;
 }
 
-const authorData = {
-  name: 'Minh Huyên',
-  posted: 12,
-  rank: 'Chuyên gia',
-};
-
+const authorData = { name: 'Minh Huyên', posted: 12, rank: 'Chuyên gia' };
 // Mock: tổng số tin đăng (thay bằng API thực tế)
 const TOTAL_ITEMS = 120;
 const PAGE_SIZE = 6;
-
 const mockListings: PropertyItem[] = Array.from({ length: PAGE_SIZE }).map((_, index) => ({
   id: index + 1,
   title: 'Giảm 300tr- 30M2 3 tầng hẻm xe hơi - Emart 2 Sổ mới 2026',
@@ -60,8 +54,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
       </Col>
 
       <Col lg={6} md={24} xs={24}>
-        {/* <CardItemSearch /> */}
-        hello
+        {/* <CardItemSearch /> */} hello
       </Col>
     </Row>
   );
