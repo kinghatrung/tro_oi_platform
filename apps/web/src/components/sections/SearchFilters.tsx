@@ -144,9 +144,7 @@ function SearchFiltersForm({ serializedParams }: { serializedParams: string }) {
                 />
               )}
               selectedKeys={filters.transaction ? [filters.transaction] : []}
-              onMenuClick={({ key }) =>
-                setFilters((current) => ({ ...current, transaction: key }))
-              }
+              onMenuClick={({ key }) => setFilters((current) => ({ ...current, transaction: key }))}
             />
 
             <ButtonDropdown
@@ -166,9 +164,7 @@ function SearchFiltersForm({ serializedParams }: { serializedParams: string }) {
               )}
               menus={propertyTypeItems}
               selectedKeys={filters.category ? [filters.category] : []}
-              onMenuClick={({ key }) =>
-                setFilters((current) => ({ ...current, category: key }))
-              }
+              onMenuClick={({ key }) => setFilters((current) => ({ ...current, category: key }))}
             />
 
             <ButtonDropdown

@@ -110,10 +110,10 @@ export function CardItem({
                   <span />
                 )}
 
-                <Flex align="center" gap={1}>
+                <Space align="center" size={4}>
                   <span className="text-xs! font-semibold text-white">{countMedia}</span>
                   <ImageIcon size={13} className="text-white" />
-                </Flex>
+                </Space>
               </Flex>
             </div>
 

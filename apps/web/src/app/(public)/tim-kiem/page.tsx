@@ -1,4 +1,4 @@
-import { Row, Col } from 'antd';
+import { Row, Col, Card } from 'antd';
 
 import { SearchFilters } from '@/components/sections';
 import { SearchResultsList, type PropertyItem } from '@/components/common';
@@ -26,7 +26,7 @@ const PAGE_SIZE = 6;
 
 const mockListings: PropertyItem[] = Array.from({ length: PAGE_SIZE }).map((_, index) => ({
   id: index + 1,
-  title: 'Giảm 300tr- 30M2 3 tầng hẻm xe hơi - Emart 2 Sổ mới 2026',
+  title: 'Giảm 300tr - 30M2 3 tầng hẻm xe hơi - Emart 2 Sổ mới 2026',
   price: 3350000000,
   countMedia: 5,
   bedrooms: 3,
@@ -35,8 +35,12 @@ const mockListings: PropertyItem[] = Array.from({ length: PAGE_SIZE }).map((_, i
   pricePerSquareMeter: 111670000,
   timeAgo: '2026-09-07T09:00:00+07:00',
   area: 30,
-  address: 'Q. Đống Đa (P. Văn Miếu - Quốc Tử Giám)',
+  address: 'P. Văn Miếu - Quốc Tử Giám',
   location: 'Hà Nội',
+  district: 'Đống Đa',
+  street: 'Ngõ xe hơi',
+  floorCount: 3,
+  furnishing: 'Nội thất cơ bản',
   author: authorData,
 }));
 
@@ -59,10 +63,17 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
         />
       </Col>
 
-      <Col lg={6} md={24} xs={24}>
-        {/* <CardItemSearch /> */}
-        hello
-      </Col>
+      {/* <Col lg={6} md={24} xs={24}>
+        <Card
+          className="sticky! top-3"
+          variant="borderless"
+          classNames={{
+            body: 'p-4!',
+          }}
+        >
+          <p>Bất động sản theo giá</p>
+        </Card>
+      </Col> */}
     </Row>
   );
 }
