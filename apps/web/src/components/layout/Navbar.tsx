@@ -58,7 +58,7 @@ function Navbar() {
           icon: <Building2 size={24} />,
         },
         {
-          key: 'whole-house',
+          key: 'whole-houses',
           label: <span className="ml-2 font-semibold">Nguyên căn</span>,
           icon: <House size={24} />,
         },
