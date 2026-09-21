@@ -16,7 +16,7 @@ interface AuthorType {
 }
 
 interface CardItemProps {
-  id?: number;
+  id: number;
   column?: boolean;
   timeAgo?: string;
   countMedia?: number;
@@ -30,6 +30,10 @@ interface CardItemProps {
   mainDirection?: string;
   address?: string;
   location?: string;
+  district?: string;
+  street?: string;
+  floorCount?: number;
+  furnishing?: string;
   author?: AuthorType;
 }
 
@@ -49,9 +53,24 @@ export function CardItem({
   mainDirection,
   address,
   location,
+  district,
+  street,
+  floorCount,
+  furnishing,
   author,
 }: CardItemProps) {
   const [isFavorite, setIsFavorite] = useState(false);
+  const locationLabel = address || location;
+  const summary = [
+    district && `Nhà đất ${district}`,
+    street,
+    floorCount != null && `${floorCount} tầng`,
+    bedrooms != null && `${bedrooms}PN`,
+    area != null && `${area}m²`,
+    furnishing,
+  ]
+    .filter(Boolean)
+    .join(' - ');
 
   if (column) {
     return (
@@ -63,9 +82,7 @@ export function CardItem({
         }}
       >
         {/* Breadcrumb / mô tả ngắn */}
-        <p className="text-secondary mb-2 text-xs!">
-          Nhà đất Quận Đống Đa - Phố Tôn Đức Thắng - 5 tầng - 3PN - 15m² - Nội thất đầy đủ
-        </p>
+        {summary && <p className="text-secondary mb-2 text-xs!">{summary}</p>}
 
         <Link href={`/phong-tro/${id}`} className="block">
           <Flex gap={16}>
@@ -85,14 +102,18 @@ export function CardItem({
                 align="center"
                 className="absolute right-0 bottom-0 left-0 bg-black/50 px-2! py-1.5!"
               >
-                <span className="text-xs! font-semibold text-white">
-                  {formatRelativeTime(timeAgo || 0)}
-                </span>
+                {timeAgo ? (
+                  <span className="text-xs! font-semibold text-white">
+                    {formatRelativeTime(timeAgo)}
+                  </span>
+                ) : (
+                  <span />
+                )}
 
-                <Flex align="center" gap={1}>
+                <Space align="center" size={4}>
                   <span className="text-xs! font-semibold text-white">{countMedia}</span>
                   <ImageIcon size={13} className="text-white" />
-                </Flex>
+                </Space>
               </Flex>
             </div>
 
@@ -143,10 +164,10 @@ export function CardItem({
               </Flex>
 
               {/* Address */}
-              {address && (
+              {locationLabel && (
                 <Flex align="center" gap={4}>
                   <MapPin size={16} color="#222" />
-                  <span className="text-secondary text-[#222]">{address}</span>
+                  <span className="text-secondary text-[#222]">{locationLabel}</span>
                 </Flex>
               )}
 
@@ -248,7 +269,7 @@ export function CardItem({
             bg-[linear-gradient(#2220_0%,#222222bf_100%)]
           `)}
         >
-          <p className="text-muted">{formatRelativeTime(timeAgo || 0)}</p>
+          {timeAgo ? <p className="text-muted">{formatRelativeTime(timeAgo)}</p> : <span />}
 
           <Space>
             <p className="text-muted">{countMedia}</p>
@@ -277,7 +298,7 @@ export function CardItem({
           </Space>
           <Space size={4}>
             <MapPin size={16} color="#bfbfbf" />
-            <p className="text-secondary">{location || 'Hà Nội'}</p>
+            <p className="text-secondary">{address || location || 'Hà Nội'}</p>
           </Space>
         </Flex>
       </div>

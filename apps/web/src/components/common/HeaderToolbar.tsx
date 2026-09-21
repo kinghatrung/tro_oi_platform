@@ -1,15 +1,17 @@
 'use client';
 
+import clsx from 'clsx';
+
 import { useState } from 'react';
 import { Flex, Switch, Dropdown, type MenuProps } from 'antd';
 import { ChevronDown, List, LayoutGrid } from 'lucide-react';
-import clsx from 'clsx';
 
 interface HeaderToolbarProps {
   onTabChange?: (tabKey: string) => void;
   onVideoOnlyChange?: (checked: boolean) => void;
   onSortChange?: (sortKey: string) => void;
   onViewModeChange?: (mode: 'list' | 'grid') => void;
+  viewMode?: 'list' | 'grid';
 }
 
 const sortItems: MenuProps['items'] = [
@@ -30,10 +32,13 @@ export function HeaderToolbar({
   onVideoOnlyChange,
   onSortChange,
   onViewModeChange,
+  viewMode: viewModeProp,
 }: HeaderToolbarProps) {
   const [activeTab, setActiveTab] = useState('all');
   const [sortLabel, setSortLabel] = useState('Tin mới nhất');
-  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+  const [internalViewMode, setInternalViewMode] = useState<'list' | 'grid'>('list');
+
+  const viewMode = viewModeProp ?? internalViewMode;
 
   const handleTabClick = (key: string) => {
     setActiveTab(key);
@@ -49,36 +54,13 @@ export function HeaderToolbar({
   };
 
   const handleViewModeChange = (mode: 'list' | 'grid') => {
-    setViewMode(mode);
+    setInternalViewMode(mode);
     onViewModeChange?.(mode);
   };
 
   return (
     <div className="bg-white rounded-t-xl border-b border-[#f0f0f0] px-4 py-2 select-none">
       <Flex align="center" justify="space-between" className="flex-wrap gap-y-2">
-        {/* Left: Tab filters */}
-        <Flex gap={24} align="center" className="h-10">
-          {tabOptions.map((tab) => {
-            const isActive = activeTab === tab.key;
-            return (
-              <button
-                key={tab.key}
-                type="button"
-                onClick={() => handleTabClick(tab.key)}
-                className={clsx(
-                  'relative h-full text-sm font-semibold transition-colors cursor-pointer border-none bg-transparent p-0',
-                  isActive ? 'text-[#222]' : 'text-[#595959] hover:text-[#222]',
-                )}
-              >
-                {tab.label}
-                {isActive && (
-                  <span className="absolute bottom-0 left-0 right-0 h-[3px] bg-[#f0325e] rounded-t-sm" />
-                )}
-              </button>
-            );
-          })}
-        </Flex>
-
         {/* Right options: Video toggle, Sort, View mode toggle */}
         <Flex align="center" gap={16} className="h-10">
           {/* Tin có video */}
@@ -88,7 +70,7 @@ export function HeaderToolbar({
           </Flex>
 
           {/* Divider */}
-          <div className="h-4 w-[1px] bg-[#e8e8e8]" />
+          <div className="h-4 w-px bg-[#e8e8e8]" />
 
           {/* Sort dropdown */}
           <Dropdown menu={{ items: sortItems, onClick: handleSortMenuClick }} trigger={['click']}>
@@ -102,7 +84,7 @@ export function HeaderToolbar({
           </Dropdown>
 
           {/* Divider */}
-          <div className="h-4 w-[1px] bg-[#e8e8e8]" />
+          <div className="h-4 w-px bg-[#e8e8e8]" />
 
           {/* View mode toggle (List / Grid) */}
           <div className="flex align-center bg-[#f4f4f4] rounded-full p-1 gap-1">

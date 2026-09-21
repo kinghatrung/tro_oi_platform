@@ -1,11 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useId, useState, type ChangeEventHandler } from 'react';
 import { Input } from 'antd';
 
 interface FloatingInputProps {
   title?: string;
   className?: string;
+  value?: string;
+  onChange?: ChangeEventHandler<HTMLInputElement>;
 }
 
 /**
@@ -13,17 +15,23 @@ interface FloatingInputProps {
  * @param title - Label text to display
  * @param className - Additional CSS classes to apply to the input
  */
-export function FloatingInput({ title, className }: FloatingInputProps) {
-  const [value, setValue] = useState('');
+export function FloatingInput({ title, className, value, onChange }: FloatingInputProps) {
+  const inputId = useId();
+  const [internalValue, setInternalValue] = useState('');
   const [focused, setFocused] = useState(false);
+  const currentValue = value ?? internalValue;
 
-  const floating = focused || value.length > 0;
+  const floating = focused || currentValue.length > 0;
 
   return (
     <div className="relative">
       <Input
-        value={value}
-        onChange={(e) => setValue(e.target.value)}
+        id={inputId}
+        value={currentValue}
+        onChange={(event) => {
+          if (value === undefined) setInternalValue(event.target.value);
+          onChange?.(event);
+        }}
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
         placeholder=" "
@@ -31,6 +39,7 @@ export function FloatingInput({ title, className }: FloatingInputProps) {
       />
 
       <label
+        htmlFor={inputId}
         className={`
             pointer-events-none absolute left-3 bg-white px-1
             transition-all duration-200

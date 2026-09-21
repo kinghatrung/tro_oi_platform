@@ -303,7 +303,8 @@ h6 {
 .pagination-circle .ant-pagination {
   display: flex !important;
   align-items: center !important;
-  flex-wrap: nowrap !important;
+  justify-content: center !important;
+  flex-wrap: wrap !important;
   gap: 12px !important;
 }
 

@@ -6,7 +6,6 @@ import {
   Carousel,
   Space,
   Button,
-  Dropdown,
   Flex,
   Card,
   Col,
@@ -179,6 +178,7 @@ export function PropertyOverview() {
 
           <Space align="center" className="absolute top-3 right-3 z-10">
             <ButtonDropdown
+              aria-label="Chia sẻ"
               iconButton={<Share size={18} />}
               className="w-9! h-9!"
               popupRender={() => (
@@ -200,6 +200,7 @@ export function PropertyOverview() {
             />
 
             <ButtonDropdown
+              aria-label="Tùy chọn khác"
               placement="bottomRight"
               menus={items}
               className="w-9! h-9!"

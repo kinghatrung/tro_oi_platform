@@ -4,6 +4,8 @@ import { type ReactNode } from 'react';
 
 interface ButtonDropdownProps extends Omit<ButtonProps, 'icon' | 'children'> {
   menus?: MenuProps['items'];
+  onMenuClick?: MenuProps['onClick'];
+  selectedKeys?: string[];
   popupRender?: DropdownProps['popupRender'];
   iconLeft?: ReactNode;
   iconRight?: ReactNode;
@@ -17,6 +19,8 @@ interface ButtonDropdownProps extends Omit<ButtonProps, 'icon' | 'children'> {
 
 export function ButtonDropdown({
   menus,
+  onMenuClick,
+  selectedKeys,
   popupRender,
   iconLeft,
   iconRight,
@@ -32,7 +36,7 @@ export function ButtonDropdown({
 
   return (
     <Dropdown
-      menu={{ items: menus }}
+      menu={{ items: menus, onClick: onMenuClick, selectedKeys }}
       trigger={['click']}
       placement={placement}
       popupRender={popupRender}

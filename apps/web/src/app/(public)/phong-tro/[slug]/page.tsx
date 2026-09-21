@@ -10,9 +10,7 @@ interface PageProps {
 
 /** Renders a property detail page for the requested listing slug. */
 export default async function DetailPage({ params }: PageProps) {
-  const { slug } = await params;
-
-  console.log(slug);
+  const { slug: _slug } = await params;
 
   return (
     <Row gutter={[16, 16]}>
