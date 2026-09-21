@@ -17,17 +17,18 @@
 ## 1. Giới hạn & cấu trúc file
 
 - **Mỗi file ≤ 600 dòng.** Vượt ngưỡng → tách ngay: helper riêng, component con riêng, `const.tsx`, `type.ts`.
-- Mỗi **page** gồm đúng 3 file:
+- Mỗi route theo **App Router** phải đặt page tại `src/app/<route>/page.tsx`:
   ```
-  src/pages/<PageName>/
-  ├── const.tsx   # hằng số, cấu hình cột bảng/form, options — dùng .tsx vì có JSX (render cột)
-  ├── type.ts     # type/interface cục bộ của page
-  └── index.tsx   # logic + JSX
+  src/app/<route>/
+  ├── page.tsx    # entry point của route
+  ├── const.tsx   # tùy chọn: hằng số/config cục bộ, dùng .tsx khi có JSX
+  └── type.ts     # tùy chọn: type/interface cục bộ
   ```
+  Chỉ tách `const.tsx` và `type.ts` khi page có hằng số, cấu hình hoặc type cục bộ cần tái sử dụng/làm gọn `page.tsx`.
 - **Không tạo thư mục `hooks/` riêng.** Vị trí đặt hook theo phạm vi dùng:
   | Phạm vi | Vị trí |
   |---|---|
-  | 1 page | inline trong `index.tsx` |
+  | 1 page | inline trong `page.tsx` |
   | 2–3 page liên quan | file trong thư mục page cha (`useCitizenForm.ts`) |
   | Toàn app (≥3 nơi) | `src/utils/hooks.ts` |
 - Mỗi file trong `lib/api/` = **một domain nghiệp vụ**, chỉ export **hàm async** (không class/singleton).
@@ -174,7 +175,7 @@ Hook query đi kèm mutation: `useCitizenList`, `useCitizenDetail`, `useCreateCi
 ## Checklist nhanh trước khi commit code
 
 ```
-[ ] File < 600 dòng; page có đủ const.tsx / type.ts / index.tsx
+[ ] File < 600 dòng; route dùng `src/app/<route>/page.tsx`; chỉ tách `const.tsx` / `type.ts` khi cần
 [ ] Không tạo thư mục hooks/ riêng
 [ ] Thứ tự trong component: biến → useCallback → useEffect → early return → render
 [ ] Không có function thường khai báo trong component (chỉ useCallback hoặc ngoài component)

@@ -92,9 +92,6 @@ export function SearchResults({ listings, total, pageSize, currentPage }: Search
   return (
     <>
       <HeaderToolbar
-        activeTab={activeTab}
-        videoOnly={videoOnly}
-        sortKey={sortKey}
         viewMode={viewMode}
         onTabChange={(value) => updateControl('tab', value, 'all')}
         onVideoOnlyChange={(checked) => updateControl('video', checked ? '1' : '0', '0')}
@@ -114,11 +111,7 @@ export function SearchResults({ listings, total, pageSize, currentPage }: Search
         </div>
       )}
 
-      <PaginationControl
-        total={total}
-        pageSize={pageSize}
-        currentPage={currentPage}
-      />
+      <PaginationControl total={total} pageSize={pageSize} currentPage={currentPage} />
     </>
   );
 }

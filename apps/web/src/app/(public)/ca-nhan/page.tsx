@@ -6,11 +6,11 @@ export default function ProfilePage() {
   return (
     <Row gutter={[16, 16]}>
       <Col span={24}>
-        <ProfileHeader />
+        <ProfileHeader readOnly />
       </Col>
 
       <Col span={24}>
-        <ProfileListings />
+        <ProfileListings readOnly />
       </Col>
 
       <Col span={24}>

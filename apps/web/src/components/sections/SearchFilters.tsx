@@ -63,17 +63,30 @@ const readFilters = (params: URLSearchParams): FilterState => ({
 
 export function SearchFilters() {
   const serializedParams = useSearchParams().toString();
+  const [saved, setSaved] = useState(false);
 
-  return <SearchFiltersForm key={serializedParams} serializedParams={serializedParams} />;
+  return (
+    <SearchFiltersForm
+      key={serializedParams}
+      serializedParams={serializedParams}
+      saved={saved}
+      onSavedChange={setSaved}
+    />
+  );
 }
 
-function SearchFiltersForm({ serializedParams }: { serializedParams: string }) {
+interface SearchFiltersFormProps {
+  serializedParams: string;
+  saved: boolean;
+  onSavedChange: (saved: boolean) => void;
+}
+
+function SearchFiltersForm({ serializedParams, saved, onSavedChange }: SearchFiltersFormProps) {
   const router = useRouter();
   const pathname = usePathname();
   const [filters, setFilters] = useState<FilterState>(() =>
     readFilters(new URLSearchParams(serializedParams)),
   );
-  const [saved, setSaved] = useState(false);
 
   const navigateWithFilters = (nextFilters: FilterState) => {
     const params = new URLSearchParams(serializedParams);
@@ -96,7 +109,7 @@ function SearchFiltersForm({ serializedParams }: { serializedParams: string }) {
 
   const saveSearch = () => {
     navigateWithFilters(filters);
-    setSaved(true);
+    onSavedChange(true);
   };
 
   return (
@@ -131,7 +144,13 @@ function SearchFiltersForm({ serializedParams }: { serializedParams: string }) {
               menus={itemsCate}
               size="small"
               dropdown
-              label={filters.transaction === 'buy-room' ? 'Mua bán' : 'Cho thuê'}
+              label={
+                filters.transaction
+                  ? filters.transaction === 'buy-room'
+                    ? 'Mua bán'
+                    : 'Cho thuê'
+                  : 'Giao dịch'
+              }
               className="rounded-2xl! btn-gray"
               popupRender={(menu) => (
                 <CardDropdown

@@ -5,12 +5,14 @@ import { useState } from 'react';
 import { Button, Flex, Space } from 'antd';
 
 interface ProfileListingsProps {
+  readOnly?: boolean;
   activeCount?: number;
   soldCount?: number;
   onPostListing?: () => void;
 }
 
 export function ProfileListings({
+  readOnly = false,
   activeCount = 0,
   soldCount = 0,
   onPostListing,
@@ -55,9 +57,11 @@ export function ProfileListings({
 
           <p className="text-[#595959] text-sm">Chưa có tin đăng</p>
 
-          <Button type="primary" onClick={onPostListing}>
-            Đăng tin ngay
-          </Button>
+          {!readOnly && onPostListing && (
+            <Button type="primary" onClick={onPostListing}>
+              Đăng tin ngay
+            </Button>
+          )}
         </Space>
       </Flex>
     </div>
