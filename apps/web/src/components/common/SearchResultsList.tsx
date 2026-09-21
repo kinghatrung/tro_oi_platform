@@ -1,11 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Row, Col, Flex } from 'antd';
 
 import { HeaderToolbar } from './HeaderToolbar';
 import { CardItem } from './CardItem';
 import { PaginationControl } from './PaginationControl';
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface PropertyItem {
   id: number;
@@ -35,6 +37,8 @@ interface SearchResultsListProps {
   currentPage: number;
 }
 
+// ─── Component ────────────────────────────────────────────────────────────────
+
 export function SearchResultsList({
   items,
   totalItems,
@@ -43,9 +47,15 @@ export function SearchResultsList({
 }: SearchResultsListProps) {
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
 
+  // ── Callbacks ──
+  const handleViewModeChange = useCallback((mode: 'list' | 'grid') => {
+    setViewMode(mode);
+  }, []);
+
+  // ── Render ──
   return (
     <Flex vertical gap={4}>
-      <HeaderToolbar viewMode={viewMode} onViewModeChange={(mode) => setViewMode(mode)} />
+      <HeaderToolbar viewMode={viewMode} onViewModeChange={handleViewModeChange} />
 
       {viewMode === 'list' ? (
         <Flex vertical gap={4}>

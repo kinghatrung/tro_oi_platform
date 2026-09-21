@@ -11,3 +11,6 @@ export * from './AgentCard';
 export * from './PropertyOverview';
 export * from './SearchFilters';
 export * from './SearchResults';
+export * from './ProfileHeader';
+export * from './ProfileListings';
+export * from './ProfileReviews';
