@@ -30,6 +30,14 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
         <SearchFilters />
       </Col>
 
+      <Col span={24}>
+        <SearchFilters />
+      </Col>
+
+      <Col span={24}>
+        <SearchFilters />
+      </Col>
+
       <Col lg={18} md={24} xs={24}>
         <SearchResultsList
           items={listings}
