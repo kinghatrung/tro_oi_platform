@@ -35,7 +35,7 @@ import {
 import { FaFacebookF, FaFacebookMessenger, FaLink } from 'react-icons/fa';
 import type { CarouselRef } from 'antd/es/carousel';
 
-import { LocationMap, ButtonDropdown } from '@/components/common';
+import { LocationMap, ButtonDropdown, ImageLightbox } from '@/components/common';
 
 const propertyFeatures = [
   {
@@ -114,6 +114,8 @@ export function PropertyOverview() {
   const [atStart, setAtStart] = useState(true);
   const [atEnd, setAtEnd] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
 
   const checkScrollPosition = useCallback(() => {
     const el = scrollRef.current;
@@ -148,7 +150,14 @@ export function PropertyOverview() {
         <div className="relative bg-[#222] w-full h-103 rounded-xl overflow-hidden">
           <Carousel ref={carouselRef} dots={false} beforeChange={(_, next) => setCurrent(next)}>
             {images.map((src, i) => (
-              <div key={i} className="relative h-103 w-full cursor-zoom-in">
+              <div
+                key={i}
+                onClick={() => {
+                  setLightboxIndex(i);
+                  setIsLightboxOpen(true);
+                }}
+                className="relative h-103 w-full cursor-zoom-in"
+              >
                 <Image
                   src={src}
                   alt={`Ảnh ${i + 1}`}
@@ -380,6 +389,14 @@ export function PropertyOverview() {
           <LocationMap latitude={21.028511} longitude={105.804817} popupText="Căn hộ ABC" />
         </div>
       </Modal>
+
+      {/* Image Lightbox Overlay */}
+      <ImageLightbox
+        open={isLightboxOpen}
+        onClose={() => setIsLightboxOpen(false)}
+        images={images}
+        initialIndex={lightboxIndex}
+      />
     </Flex>
   );
 }
