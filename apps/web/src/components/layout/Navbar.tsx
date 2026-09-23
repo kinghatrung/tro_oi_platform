@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
+import { usePathname } from 'next/navigation';
 import { Button, Flex, Space, type MenuProps } from 'antd';
-import { FloatingInput, ButtonDropdown, CardDropdown } from '@/components/common';
 import {
   Heart,
   Bell,
@@ -19,11 +19,14 @@ import {
   MapPin,
 } from 'lucide-react';
 
+import { FloatingInput, ButtonDropdown, CardDropdown } from '@/components/common';
 /**
  * Navigation bar component with dropdown menus for categories and user utilities.
  * Includes logo, menu items, notifications, and authentication buttons.
  */
 function Navbar() {
+  const pathname = usePathname();
+
   const items: MenuProps['items'] = [
     {
       key: 'buy-room',
@@ -138,6 +141,30 @@ function Navbar() {
             dropdown
           />
         </Space>
+
+        <Flex gap={32} align="center">
+          <Link
+            href="/"
+            className={`text-[16px] font-bold tracking-tight transition-all ${
+              pathname === '/'
+                ? 'text-[#073B3D] opacity-100'
+                : 'text-[#073B3D] opacity-40 hover:opacity-70'
+            }`}
+          >
+            Trọ ơi!
+          </Link>
+
+          <Link
+            href="/cho-oi"
+            className={`text-[16px] font-bold tracking-tight transition-all ${
+              pathname.startsWith('/cho-oi')
+                ? 'text-[#073B3D] opacity-100'
+                : 'text-[#073B3D] opacity-40 hover:opacity-70'
+            }`}
+          >
+            Chợ ơi!
+          </Link>
+        </Flex>
 
         {/* Dropdown người dùng */}
         <Space>
