@@ -16,6 +16,7 @@ import {
   Flag,
   Headphones,
   Share2,
+  MapPin,
 } from 'lucide-react';
 import { ButtonDropdown, CardItem } from '@/components/common';
 
@@ -352,7 +353,7 @@ export function ImageLightbox({
       </div>
 
       {/* RIGHT SECTION: SIDEBAR INFO PANEL */}
-      <div className="px-6 pt-6 w-full lg:w-[470px] xl:w-[470px] text-[#222] bg-white overflow-y-auto rounded-none lg:rounded-xl shadow-2xl shrink-0 max-h-full">
+      <div className="relative px-6 pt-6 w-full lg:w-[470px] xl:w-[470px] text-[#222] bg-white overflow-y-auto rounded-none lg:rounded-xl shadow-2xl shrink-0 max-h-full">
         {/* SELLER / AGENT HEADER */}
         {agent && (
           <div className="flex items-center justify-between pb-3">
@@ -533,28 +534,39 @@ export function ImageLightbox({
             <Divider className="my-2!" />
             <div>
               <p className="text-primary mb-4 font-bold text-base">Tin đăng tương tự</p>
-              <Flex vertical gap={8}>
-                {/* {similarListings.map((item) => (
-                  <CardItem key={item.id} column {...item} />
-                ))} */}
-                <div className="flex gap-3">
-                  <div className="relative h-29.5 w-29.5 min-w-29.5 overflow-hidden rounded-lg">
-                    <Image
-                      src={'/images/test.jpg'}
-                      alt={'Ảnh nhà đất'}
-                      fill
-                      sizes="118px"
-                      className="object-cover"
-                    />
-                  </div>
+              <Flex vertical gap={12}>
+                {similarListings.map((item) => (
+                  <div key={item.id} className="flex gap-3 cursor-pointer">
+                    <div className="relative h-29.5 w-29.5 min-w-29.5 overflow-hidden rounded-lg">
+                      <Image
+                        src={item.imageUrl || '/images/test.jpg'}
+                        alt={item.title || 'Ảnh nhà đất'}
+                        fill
+                        sizes="118px"
+                        className="object-cover"
+                      />
+                    </div>
 
-                  <div className="flex flex-col">
-                    <p>Xuân Đỉnh 42m2 6 tầng mt5m ô tô vào nhà - xây mới, ngõ thông.</p>
-                    <p></p>
-                    <p>15 tỷ</p>
-                    <p>Bắc từ liêm hà nội</p>
+                    <div className="flex flex-col justify-between">
+                      <p className="text-default line-clamp-2 leading-snug">{item.title}</p>
+                      <p className="text-sm text-[#8c8c8c]">
+                        {item.bedrooms ? `${item.bedrooms} PN ` : ''}
+                        {item.propertyType || 'Nhà ngõ, hẻm'}
+                      </p>
+                      <p className="text-primary text-[#f0325e]">
+                        {typeof item.price === 'number'
+                          ? `${(item.price / 1000000).toLocaleString('vi-VN')} triệu/tháng`
+                          : item.price || '15 tỷ'}
+                      </p>
+                      <div className="flex items-start gap-1 text-xs text-[#8c8c8c]">
+                        <MapPin size={14} className="shrink-0 text-gray-400 mt-0.5" />
+                        <span className="text-sm text-[#8c8c8c]">
+                          {item.address || 'Q. Bắc Từ Liêm'}
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                </div>
+                ))}
               </Flex>
             </div>
           </>
