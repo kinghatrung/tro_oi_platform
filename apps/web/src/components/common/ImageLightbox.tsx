@@ -12,13 +12,13 @@ import {
   ChevronLeft,
   ChevronRight,
   Heart,
-  Send,
   Flag,
   Headphones,
   Share2,
   MapPin,
+  SendHorizontal,
 } from 'lucide-react';
-import { ButtonDropdown, CardItem } from '@/components/common';
+import { ButtonDropdown } from '@/components/common';
 
 export interface AgentInfo {
   name: string;
@@ -144,7 +144,6 @@ export function ImageLightbox({
   const [showFullDesc, setShowFullDesc] = useState(false);
   const [showPhone, setShowPhone] = useState(false);
   const [messageInput, setMessageInput] = useState('');
-  const [messages, setMessages] = useState<string[]>([]);
 
   const thumbnailContainerRef = useRef<HTMLDivElement>(null);
   const thumbRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -170,6 +169,15 @@ export function ImageLightbox({
       });
     }
   }, [currentIndex, open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [open]);
 
   const handlePrev = useCallback(() => {
     if (images.length === 0) return;
@@ -222,7 +230,6 @@ export function ImageLightbox({
   const handleSendMessage = (textToSend?: string) => {
     const content = textToSend || messageInput.trim();
     if (!content) return;
-    setMessages((prev) => [...prev, content]);
     onSendMessage?.(content);
     if (!textToSend) setMessageInput('');
   };
@@ -353,224 +360,227 @@ export function ImageLightbox({
       </div>
 
       {/* RIGHT SECTION: SIDEBAR INFO PANEL */}
-      <div className="relative px-6 pt-6 w-full lg:w-[470px] xl:w-[470px] text-[#222] bg-white overflow-y-auto rounded-none lg:rounded-xl shadow-2xl shrink-0 max-h-full">
-        {/* SELLER / AGENT HEADER */}
-        {agent && (
-          <div className="flex items-center justify-between pb-3">
-            <div className="flex items-center gap-3">
-              {agent.avatar ? (
-                <Avatar size={48} src={agent.avatar} className="shrink-0" />
-              ) : (
-                <Avatar
-                  size={48}
-                  className="bg-[#FAAD14]! text-white! font-bold text-lg flex items-center justify-center shrink-0"
-                >
-                  {agent.name ? agent.name.charAt(0).toUpperCase() : 'U'}
-                </Avatar>
-              )}
-              <div className="flex flex-col gap-1">
-                <span className="text-primary text-[16px] font-semibold">{agent.name}</span>
-                {agent.statusText && (
-                  <span className="text-sm text-[#595959] flex items-center gap-1">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>
-                    {agent.statusText}
-                  </span>
+      <div className="w-full lg:w-[470px] xl:w-[470px] bg-white rounded-none lg:rounded-xl shadow-2xl shrink-0 max-h-full overflow-hidden">
+        <div className="relative h-full overflow-y-auto px-6 pt-6">
+          {/* SELLER / AGENT HEADER */}
+          {agent && (
+            <div className="flex items-center justify-between pb-3">
+              <div className="flex items-center gap-3">
+                {agent.avatar ? (
+                  <Avatar size={48} src={agent.avatar} className="shrink-0" />
+                ) : (
+                  <Avatar
+                    size={48}
+                    className="bg-[#FAAD14]! text-white! font-bold text-lg flex items-center justify-center shrink-0"
+                  >
+                    {agent.name ? agent.name.charAt(0).toUpperCase() : 'U'}
+                  </Avatar>
                 )}
+                <div className="flex flex-col gap-1">
+                  <span className="text-primary text-[16px] font-semibold">{agent.name}</span>
+                  {agent.statusText && (
+                    <span className="text-sm text-[#595959] flex items-center gap-1">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>
+                      {agent.statusText}
+                    </span>
+                  )}
+                </div>
               </div>
-            </div>
-            {(agent.profileUrl || onViewAgentProfile) && (
-              <Button
-                className="h-8! btn-gray font-bold! text-[#222]"
-                onClick={() => {
-                  if (onViewAgentProfile) {
-                    onViewAgentProfile();
-                  } else if (agent.profileUrl) {
-                    window.location.href = agent.profileUrl;
-                  }
-                }}
-              >
-                Xem trang
-              </Button>
-            )}
-          </div>
-        )}
-
-        {/* LISTING TITLE & HEART */}
-        {(propertyTitle || isLiked !== undefined) && (
-          <div className="flex flex-col gap-1">
-            <div className="flex items-start justify-between gap-3">
-              {propertyTitle && (
-                <Link
-                  href="/chi-tiet"
-                  className="text-[#222]! text-xl! font-bold! leading-snug line-clamp-2! hover:underline! cursor-pointer"
+              {(agent.profileUrl || onViewAgentProfile) && (
+                <Button
+                  className="h-8! btn-gray font-bold! text-[#222]"
+                  onClick={() => {
+                    if (onViewAgentProfile) {
+                      onViewAgentProfile();
+                    } else if (agent.profileUrl) {
+                      window.location.href = agent.profileUrl;
+                    }
+                  }}
                 >
-                  {propertyTitle}
-                </Link>
+                  Xem trang
+                </Button>
               )}
+            </div>
+          )}
+
+          {/* LISTING TITLE & HEART */}
+          {(propertyTitle || isLiked !== undefined) && (
+            <div className="flex flex-col gap-1">
+              <div className="flex items-start justify-between gap-3">
+                {propertyTitle && (
+                  <Link
+                    href="/chi-tiet"
+                    className="text-[#222]! text-xl! font-bold! leading-snug line-clamp-2! hover:underline! cursor-pointer"
+                  >
+                    {propertyTitle}
+                  </Link>
+                )}
+                <button
+                  onClick={handleLikeClick}
+                  aria-label="Yêu thích"
+                  className="p-2 rounded-full hover:bg-gray-100 text-gray-400 transition-colors shrink-0 cursor-pointer"
+                >
+                  <Heart
+                    size={22}
+                    className={isLiked ? 'fill-red-500 text-red-500' : 'text-gray-400'}
+                  />
+                </button>
+              </div>
+
+              {/* TAGS / BADGES */}
+              {tags && tags.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-2 mt-1">
+                  {tags.map((tag, i) => (
+                    <Tag
+                      key={i}
+                      className="bg-gray-100! text-[#222]! border-none! text-xs font-medium px-3 py-1 rounded-none!"
+                    >
+                      {tag}
+                    </Tag>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* PRICE */}
+          {price && (
+            <div className="text-2xl font-bold text-[#f0325e] tracking-tight mb-2">{price}</div>
+          )}
+
+          {/* DESCRIPTION */}
+          {description && (
+            <div className="text-default leading-relaxed whitespace-pre-line mb-2">
+              <p className={showFullDesc ? '' : 'line-clamp-2'}>{description}</p>
               <button
-                onClick={handleLikeClick}
-                aria-label="Yêu thích"
-                className="p-2 rounded-full hover:bg-gray-100 text-gray-400 transition-colors shrink-0 cursor-pointer"
+                onClick={() => setShowFullDesc(!showFullDesc)}
+                className="text-xs font-bold! mt-1 hover:underline cursor-pointer"
               >
-                <Heart
-                  size={22}
-                  className={isLiked ? 'fill-red-500 text-red-500' : 'text-gray-400'}
-                />
+                {showFullDesc ? 'Thu gọn' : 'Xem thêm'}
               </button>
             </div>
+          )}
 
-            {/* TAGS / BADGES */}
-            {tags && tags.length > 0 && (
-              <div className="flex flex-wrap gap-2 mb-2 mt-1">
-                {tags.map((tag, i) => (
-                  <Tag
-                    key={i}
-                    className="bg-gray-100! text-[#222]! border-none! text-xs font-medium px-3 py-1 rounded-none!"
+          {/* CONTACT BUTTONS */}
+          {agent && (
+            <div className="sticky bottom-0 z-30 -mx-6 px-6 py-3 bg-white/95 backdrop-blur-sm flex items-center gap-2 mb-2 justify-end">
+              {agent.phone && (
+                <Button
+                  className="bg-gray-100! hover:bg-gray-200! border-none! text-[#073B3D]! font-semibold text-xs h-10 rounded-xl"
+                  onClick={() => setShowPhone(!showPhone)}
+                >
+                  {showPhone ? agent.phone : `Hiện số ${agent.phone}`}
+                </Button>
+              )}
+              <Button
+                type="primary"
+                className="bg-[#16A6A3]! hover:bg-[#0F8F8C]! font-semibold text-xs h-10 rounded-xl shadow-md"
+                onClick={() => handleSendMessage('Xin chào, tôi muốn hỏi thông tin về phòng này.')}
+              >
+                Chat
+              </Button>
+            </div>
+          )}
+
+          {/* QUICK MESSAGE INPUT */}
+          <div className="relative flex items-center text-[#222] bg-[#f7f8f8] rounded-full px-4 py-1 border border-gray-200 focus-within:border-[#16A6A3] transition-all">
+            <Input
+              variant="borderless"
+              placeholder="Nhắn tin hỏi mua hàng..."
+              value={messageInput}
+              onChange={(e) => setMessageInput(e.target.value)}
+              onPressEnter={() => handleSendMessage()}
+              className="text-sm! text-[#222]! p-0 outline-none!"
+            />
+            <button
+              type="button"
+              onClick={() => handleSendMessage()}
+              aria-label="Gửi tin nhắn"
+              className="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full text-[#16A6A3] transition-all hover:bg-[#16A6A3]/10 hover:text-[#0F8F8C] active:scale-95"
+            >
+              <SendHorizontal size={18} strokeWidth={2} />
+            </button>
+          </div>
+
+          {/* QUICK QUESTION SUGGESTION CHIPS */}
+          {questions.length > 0 && (
+            <div className="relative flex items-center gap-1 mt-2 text-[#222]">
+              <button
+                onClick={() => scrollQuestions('left')}
+                aria-label="Xem thêm câu hỏi"
+                className="w-10 h-10 rounded-full bg-white shadow-md border border-gray-200 flex items-center justify-center shrink-0 text-gray-500 hover:text-[#16A6A3] cursor-pointer z-10"
+              >
+                <ChevronLeft size={24} />
+              </button>
+              <div
+                ref={questionScrollRef}
+                className="flex align-center gap-2 overflow-x-auto py-1 scroll-smooth no-scrollbar"
+                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+              >
+                {questions.map((q, idx) => (
+                  <span
+                    key={idx}
+                    onClick={() => handleSendMessage(q)}
+                    className="shrink-0 text-sm font-medium bg-gray-100 hover:bg-[#e8e8e8] text-[#222] px-3 py-1.5 rounded-full border-none transition-colors cursor-pointer whitespace-nowrap"
                   >
-                    {tag}
-                  </Tag>
+                    {q}
+                  </span>
                 ))}
               </div>
-            )}
-          </div>
-        )}
-
-        {/* PRICE */}
-        {price && (
-          <div className="text-2xl font-bold text-[#f0325e] tracking-tight mb-2">{price}</div>
-        )}
-
-        {/* DESCRIPTION */}
-        {description && (
-          <div className="text-default leading-relaxed whitespace-pre-line mb-2">
-            <p className={showFullDesc ? '' : 'line-clamp-2'}>{description}</p>
-            <button
-              onClick={() => setShowFullDesc(!showFullDesc)}
-              className="text-xs font-bold! mt-1 hover:underline cursor-pointer"
-            >
-              {showFullDesc ? 'Thu gọn' : 'Xem thêm'}
-            </button>
-          </div>
-        )}
-
-        {/* CONTACT BUTTONS */}
-        {agent && (
-          <div className="flex items-center gap-2 mb-2 justify-end">
-            {agent.phone && (
-              <Button
-                className="bg-gray-100! hover:bg-gray-200! border-none! text-[#073B3D]! font-semibold text-xs h-10 rounded-xl"
-                onClick={() => setShowPhone(!showPhone)}
+              <button
+                onClick={() => scrollQuestions('right')}
+                aria-label="Xem thêm câu hỏi"
+                className="w-10 h-10 rounded-full bg-white shadow-md border border-gray-200 flex items-center justify-center shrink-0 text-gray-500 hover:text-[#16A6A3] cursor-pointer z-10"
               >
-                {showPhone ? agent.phone : `Hiện số ${agent.phone}`}
-              </Button>
-            )}
-            <Button
-              type="primary"
-              className="bg-[#16A6A3]! hover:bg-[#0F8F8C]! font-semibold text-xs h-10 rounded-xl shadow-md"
-              onClick={() => handleSendMessage('Xin chào, tôi muốn hỏi thông tin về phòng này.')}
-            >
-              Chat
-            </Button>
-          </div>
-        )}
-
-        {/* QUICK MESSAGE INPUT */}
-        <div className="relative flex items-center bg-[#f7f8f8] rounded-full px-4 py-2 border border-gray-200 focus-within:border-[#16A6A3] transition-all">
-          <Input
-            variant="borderless"
-            placeholder="Nhắn tin hỏi mua hàng..."
-            value={messageInput}
-            onChange={(e) => setMessageInput(e.target.value)}
-            onPressEnter={() => handleSendMessage()}
-            className="text-xs text-[#073B3D] placeholder:text-gray-400 p-0"
-          />
-          <button
-            onClick={() => handleSendMessage()}
-            aria-label="Gửi tin nhắn"
-            className="text-[#16A6A3] hover:text-[#0F8F8C] transition-colors cursor-pointer pl-2"
-          >
-            <Send size={18} />
-          </button>
-        </div>
-
-        {/* QUICK QUESTION SUGGESTION CHIPS */}
-        {questions.length > 0 && (
-          <div className="relative flex items-center gap-1 mt-1">
-            <button
-              onClick={() => scrollQuestions('left')}
-              aria-label="Xem thêm câu hỏi"
-              className="w-10 h-10 rounded-full bg-white shadow-md border border-gray-200 flex items-center justify-center shrink-0 text-gray-500 hover:text-[#16A6A3] cursor-pointer z-10"
-            >
-              <ChevronLeft size={24} />
-            </button>
-            <div
-              ref={questionScrollRef}
-              className="flex align-center gap-2 overflow-x-auto py-1 scroll-smooth no-scrollbar"
-              style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-            >
-              {questions.map((q, idx) => (
-                <span
-                  key={idx}
-                  onClick={() => handleSendMessage(q)}
-                  className="shrink-0 text-sm font-medium bg-gray-100 hover:bg-[#e8e8e8] text-[#222] px-3 py-1.5 rounded-full border-none transition-colors cursor-pointer whitespace-nowrap"
-                >
-                  {q}
-                </span>
-              ))}
+                <ChevronRight size={24} />
+              </button>
             </div>
-            <button
-              onClick={() => scrollQuestions('right')}
-              aria-label="Xem thêm câu hỏi"
-              className="w-10 h-10 rounded-full bg-white shadow-md border border-gray-200 flex items-center justify-center shrink-0 text-gray-500 hover:text-[#16A6A3] cursor-pointer z-10"
-            >
-              <ChevronRight size={24} />
-            </button>
-          </div>
-        )}
+          )}
 
-        {/* SIMILAR LISTINGS */}
-        {similarListings && similarListings.length > 0 && (
-          <>
-            <Divider className="my-2!" />
-            <div>
-              <p className="text-primary mb-4 font-bold text-base">Tin đăng tương tự</p>
-              <Flex vertical gap={12}>
-                {similarListings.map((item) => (
-                  <div key={item.id} className="flex gap-3 cursor-pointer">
-                    <div className="relative h-29.5 w-29.5 min-w-29.5 overflow-hidden rounded-lg">
-                      <Image
-                        src={item.imageUrl || '/images/test.jpg'}
-                        alt={item.title || 'Ảnh nhà đất'}
-                        fill
-                        sizes="118px"
-                        className="object-cover"
-                      />
-                    </div>
+          {/* SIMILAR LISTINGS */}
+          {similarListings && similarListings.length > 0 && (
+            <>
+              <Divider className="mt-3!" />
+              <div>
+                <p className="text-primary mb-4 font-bold text-base">Tin đăng tương tự</p>
+                <Flex vertical gap={18} className="pb-8!">
+                  {similarListings.map((item) => (
+                    <div key={item.id} className="flex gap-3 cursor-pointer">
+                      <div className="relative h-29.5 w-29.5 min-w-29.5 overflow-hidden rounded-lg">
+                        <Image
+                          src={item.imageUrl || '/images/test.jpg'}
+                          alt={item.title || 'Ảnh nhà đất'}
+                          fill
+                          sizes="118px"
+                          className="object-cover"
+                        />
+                      </div>
 
-                    <div className="flex flex-col justify-between">
-                      <p className="text-default line-clamp-2 leading-snug">{item.title}</p>
-                      <p className="text-sm text-[#8c8c8c]">
-                        {item.bedrooms ? `${item.bedrooms} PN ` : ''}
-                        {item.propertyType || 'Nhà ngõ, hẻm'}
-                      </p>
-                      <p className="text-primary text-[#f0325e]">
-                        {typeof item.price === 'number'
-                          ? `${(item.price / 1000000).toLocaleString('vi-VN')} triệu/tháng`
-                          : item.price || '15 tỷ'}
-                      </p>
-                      <div className="flex items-start gap-1 text-xs text-[#8c8c8c]">
-                        <MapPin size={14} className="shrink-0 text-gray-400 mt-0.5" />
-                        <span className="text-sm text-[#8c8c8c]">
-                          {item.address || 'Q. Bắc Từ Liêm'}
-                        </span>
+                      <div className="flex flex-col justify-between">
+                        <p className="text-default line-clamp-2 leading-snug">{item.title}</p>
+                        <p className="text-sm text-[#8c8c8c]">
+                          {item.bedrooms ? `${item.bedrooms} PN ` : ''}
+                          {item.propertyType || 'Nhà ngõ, hẻm'}
+                        </p>
+                        <p className="text-primary text-[#f0325e]">
+                          {typeof item.price === 'number'
+                            ? `${(item.price / 1000000).toLocaleString('vi-VN')} triệu/tháng`
+                            : item.price || '15 tỷ'}
+                        </p>
+                        <div className="flex items-start gap-1 text-xs text-[#8c8c8c]">
+                          <MapPin size={14} className="shrink-0 text-gray-400 mt-0.5" />
+                          <span className="text-sm text-[#8c8c8c]">
+                            {item.address || 'Q. Bắc Từ Liêm'}
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </Flex>
-            </div>
-          </>
-        )}
+                  ))}
+                </Flex>
+              </div>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -184,33 +184,11 @@ svg {
   height: auto;
 }
 
-button,
 input,
 textarea,
 select {
   font: inherit;
   color: inherit;
-}
-
-button {
-  cursor: pointer;
-  border: none;
-  background: none;
-}
-
-input::placeholder,
-textarea::placeholder {
-  color: var(--color-muted-foreground);
-}
-
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
-  line-height: 1.2;
-  font-weight: 600;
 }
 
 /* Custom Ant design */
