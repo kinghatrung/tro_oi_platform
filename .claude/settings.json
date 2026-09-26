@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(yarn workspace api test)",
+      "Bash(yarn workspace api test:e2e)",
+      "Bash(yarn workspace web lint)"
+    ]
+  }
+}

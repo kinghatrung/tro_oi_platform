@@ -26,6 +26,11 @@ import { FloatingInput, ButtonDropdown, CardDropdown } from '@/components/common
  */
 function Navbar() {
   const pathname = usePathname();
+  const isHousingSection =
+    pathname === '/' ||
+    ['/tim-kiem', '/phong-tro', '/yeu-thich'].some(
+      (route) => pathname === route || pathname.startsWith(`${route}/`),
+    );
 
   const items: MenuProps['items'] = [
     {
@@ -146,7 +151,7 @@ function Navbar() {
           <Link
             href="/"
             className={`text-[16px] font-bold tracking-tight transition-all ${
-              pathname === '/'
+              isHousingSection
                 ? 'text-[#073B3D] opacity-100'
                 : 'text-[#073B3D] opacity-40 hover:opacity-70'
             }`}

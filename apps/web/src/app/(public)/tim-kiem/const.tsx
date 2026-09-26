@@ -22,7 +22,11 @@ export const mockListings: SearchListing[] = Array.from({ length: TOTAL_ITEMS },
   const id = index + 1;
   const categoryIndex = index % categories.length;
   const area = 24 + (index % 7) * 3;
-  const price = 2_800_000_000 + (index % 10) * 110_000_000;
+  const transaction = index % 3 === 0 ? 'buy-room' : 'rent-room';
+  const price =
+    transaction === 'rent-room'
+      ? 2_800_000 + (index % 10) * 500_000
+      : 2_800_000_000 + (index % 10) * 110_000_000;
 
   return {
     id,
@@ -42,7 +46,7 @@ export const mockListings: SearchListing[] = Array.from({ length: TOTAL_ITEMS },
     floorCount: 2 + (index % 5),
     furnishing: 'Nội thất cơ bản',
     author: authorData,
-    transaction: index % 3 === 0 ? 'buy-room' : 'rent-room',
+    transaction,
     category: categories[categoryIndex],
   };
 });

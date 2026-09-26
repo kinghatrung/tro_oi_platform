@@ -1,6 +1,6 @@
 /**
- * Response contract chung cho toàn bộ API.
- * Backend luôn trả về shape này; tầng middleware phía client tự unwrap `data`.
+ * Response contract cho các endpoint sử dụng ApiResponse.
+ * Cách xử lý `data` phụ thuộc vào từng client.
  */
 export interface ApiResponse<T = unknown> {
   success: boolean;

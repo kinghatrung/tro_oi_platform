@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useState } from 'react';
+import { parsePriceRange, searchQueryKey } from '@/lib/searchFilters';
 
 import { Card, Space, Button, Flex, type MenuProps } from 'antd';
 import { Bookmark, ListFilter, BedDouble } from 'lucide-react';
@@ -63,14 +64,15 @@ const readFilters = (params: URLSearchParams): FilterState => ({
 
 export function SearchFilters() {
   const serializedParams = useSearchParams().toString();
-  const [saved, setSaved] = useState(false);
+  const [savedQuery, setSavedQuery] = useState<string | null>(null);
+  const queryKey = searchQueryKey(new URLSearchParams(serializedParams));
 
   return (
     <SearchFiltersForm
       key={serializedParams}
       serializedParams={serializedParams}
-      saved={saved}
-      onSavedChange={setSaved}
+      saved={savedQuery === queryKey}
+      onSavedChange={setSavedQuery}
     />
   );
 }
@@ -78,7 +80,7 @@ export function SearchFilters() {
 interface SearchFiltersFormProps {
   serializedParams: string;
   saved: boolean;
-  onSavedChange: (saved: boolean) => void;
+  onSavedChange: (query: string) => void;
 }
 
 function SearchFiltersForm({ serializedParams, saved, onSavedChange }: SearchFiltersFormProps) {
@@ -88,7 +90,12 @@ function SearchFiltersForm({ serializedParams, saved, onSavedChange }: SearchFil
     readFilters(new URLSearchParams(serializedParams)),
   );
 
+  const [priceError, setPriceError] = useState(false);
+
   const navigateWithFilters = (nextFilters: FilterState) => {
+    const { valid } = parsePriceRange(nextFilters.minPrice, nextFilters.maxPrice);
+    setPriceError(!valid);
+    if (!valid) return null;
     const params = new URLSearchParams(serializedParams);
 
     (Object.entries(nextFilters) as [keyof FilterState, string][]).forEach(([key, value]) => {
@@ -99,6 +106,7 @@ function SearchFiltersForm({ serializedParams, saved, onSavedChange }: SearchFil
 
     const query = params.toString();
     router.push(query ? `${pathname}?${query}` : pathname);
+    return params;
   };
 
   const clearAllFilters = () => {
@@ -108,13 +116,19 @@ function SearchFiltersForm({ serializedParams, saved, onSavedChange }: SearchFil
   };
 
   const saveSearch = () => {
-    navigateWithFilters(filters);
-    onSavedChange(true);
+    const params = navigateWithFilters(filters);
+    if (params) onSavedChange(searchQueryKey(params));
   };
 
   return (
     <Card variant="borderless">
       <Flex gap={16} vertical>
+        {priceError && (
+          <p role="alert" className="text-red-600">
+            Khoảng giá không hợp lệ. Vui lòng nhập số không âm và giá tối đa không nhỏ hơn giá tối
+            thiểu.
+          </p>
+        )}
         <Space size={20}>
           <p className="text-primary text-[16px]!">
             Mua Bán Bất Động Sản Hà Nội Tháng 09/2026 Giá Rẻ

@@ -109,3 +109,6 @@ desktop.ini
 # Misc
 # =========================================
 .DS_Store
+
+# Personal Claude settings
+.claude/settings.local.json

@@ -117,6 +117,10 @@ const menuItems: MenuProps['items'] = [
   },
 ];
 
+function clampIndex(index: number, length: number) {
+  return Math.max(0, Math.min(Number.isFinite(index) ? Math.trunc(index) : 0, length - 1));
+}
+
 /** Renders an image lightbox modal with controls, gallery thumbnails, and listing sidebar. */
 export function ImageLightbox({
   open,
@@ -138,13 +142,17 @@ export function ImageLightbox({
   onHelp,
   onViewAgentProfile,
 }: ImageLightboxProps) {
-  const [currentIndex, setCurrentIndex] = useState(initialIndex);
+  const [imageIndex, setCurrentIndex] = useState(() => clampIndex(initialIndex, images.length));
+  const currentIndex = clampIndex(imageIndex, images.length);
+  const visible = open && images.length > 0;
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isLiked, setIsLiked] = useState(isLikedProp);
   const [showFullDesc, setShowFullDesc] = useState(false);
   const [showPhone, setShowPhone] = useState(false);
   const [messageInput, setMessageInput] = useState('');
 
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
   const thumbnailContainerRef = useRef<HTMLDivElement>(null);
   const thumbRefs = useRef<(HTMLDivElement | null)[]>([]);
   const questionScrollRef = useRef<HTMLDivElement>(null);
@@ -154,10 +162,12 @@ export function ImageLightbox({
   // Synchronize index and favorite state when opened
   useEffect(() => {
     if (open) {
-      setCurrentIndex(initialIndex);
+      // Reset the retained gallery state when its opening props change.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setCurrentIndex(clampIndex(initialIndex, images.length));
       setIsLiked(isLikedProp);
     }
-  }, [open, initialIndex, isLikedProp]);
+  }, [open, initialIndex, isLikedProp, images.length]);
 
   // Auto scroll active thumbnail into view
   useEffect(() => {
@@ -171,13 +181,66 @@ export function ImageLightbox({
   }, [currentIndex, open]);
 
   useEffect(() => {
-    if (!open) return;
+    if (!visible) return;
+    const trigger = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const originalOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = originalOverflow;
+    closeButtonRef.current?.focus();
+
+    const containFocus = (event: FocusEvent) => {
+      if (event.target instanceof Node && !dialogRef.current?.contains(event.target)) {
+        closeButtonRef.current?.focus();
+      }
     };
-  }, [open]);
+    const trapTab = (event: KeyboardEvent) => {
+      if (event.key !== 'Tab') return;
+      const controls = Array.from(
+        dialogRef.current?.querySelectorAll<HTMLElement>(
+          'a[href], button, input, select, textarea, [tabindex]',
+        ) ?? [],
+      ).filter(
+        (element) =>
+          element.tabIndex >= 0 &&
+          !element.matches(':disabled') &&
+          element.getClientRects().length > 0,
+      );
+      const first = controls[0];
+      const last = controls[controls.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last?.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first?.focus();
+      }
+    };
+    document.addEventListener('focusin', containFocus);
+    document.addEventListener('keydown', trapTab);
+    return () => {
+      document.removeEventListener('focusin', containFocus);
+      document.removeEventListener('keydown', trapTab);
+      document.body.style.overflow = originalOverflow;
+      trigger?.focus();
+    };
+  }, [visible]);
+
+  useEffect(() => {
+    const syncFullscreen = () => setIsFullscreen(Boolean(document.fullscreenElement));
+    document.addEventListener('fullscreenchange', syncFullscreen);
+    syncFullscreen();
+    return () => {
+      document.removeEventListener('fullscreenchange', syncFullscreen);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!visible) return;
+    return () => {
+      if (document.fullscreenElement) {
+        void document.exitFullscreen().catch(() => {});
+      }
+    };
+  }, [visible]);
 
   const handlePrev = useCallback(() => {
     if (images.length === 0) return;
@@ -207,17 +270,19 @@ export function ImageLightbox({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [open, onClose, handlePrev, handleNext]);
 
-  const toggleFullscreen = () => {
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().catch((err) => {
-        console.error(`Error attempting to enable fullscreen: ${err.message}`);
-      });
-      setIsFullscreen(true);
-    } else {
-      if (document.exitFullscreen) {
-        document.exitFullscreen();
-        setIsFullscreen(false);
+  const toggleFullscreen = async () => {
+    try {
+      if (document.fullscreenElement) {
+        await document.exitFullscreen();
+      } else {
+        await document.documentElement.requestFullscreen();
+        // The request can finish after the dialog has closed.
+        if (!dialogRef.current && document.fullscreenElement) {
+          await document.exitFullscreen();
+        }
       }
+    } catch (error) {
+      console.error('Unable to change fullscreen mode:', error);
     }
   };
 
@@ -252,7 +317,13 @@ export function ImageLightbox({
   if (!open || images.length === 0) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col gap-10 lg:flex-row bg-[#1c1c1e] text-white overflow-hidden animate-fadeIn p-6">
+    <div
+      ref={dialogRef}
+      role="dialog"
+      aria-modal="true"
+      aria-label={propertyTitle || 'Ảnh nhà đất'}
+      className="fixed inset-0 z-50 flex flex-col gap-10 lg:flex-row bg-[#1c1c1e] text-white overflow-hidden animate-fadeIn p-6"
+    >
       {/* LEFT SECTION: MAIN IMAGE VIEWER */}
       <div className="flex-1 relative flex flex-col justify-between bg-[#1c1c1e] select-none min-h-[50vh] lg:min-h-full">
         {/* TOP TOOLBAR */}
@@ -260,6 +331,7 @@ export function ImageLightbox({
           {/* Left Controls */}
           <div className="flex items-center gap-2">
             <button
+              ref={closeButtonRef}
               onClick={onClose}
               aria-label="Đóng"
               className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 active:bg-white/30 flex items-center justify-center text-white transition-all cursor-pointer"
@@ -268,7 +340,8 @@ export function ImageLightbox({
             </button>
             <button
               onClick={toggleFullscreen}
-              aria-label="Toàn màn hình"
+              aria-label={isFullscreen ? 'Thoát toàn màn hình' : 'Toàn màn hình'}
+              aria-pressed={isFullscreen}
               className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 active:bg-white/30 flex items-center justify-center text-white transition-all cursor-pointer"
             >
               {isFullscreen ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
@@ -286,6 +359,7 @@ export function ImageLightbox({
               aria-label="Thao tác khác"
               placement="bottomRight"
               menus={menuItems}
+              getPopupContainer={(trigger) => dialogRef.current ?? trigger}
               onMenuClick={handleMenuClick}
               className="w-10! h-10! rounded-full! bg-white/10! hover:bg-white/20! border-none! text-white! flex items-center justify-center cursor-pointer"
               iconButton={<EllipsisVertical size={20} className="text-white" />}

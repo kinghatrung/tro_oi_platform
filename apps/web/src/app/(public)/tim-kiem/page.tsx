@@ -1,4 +1,5 @@
 import { Row, Col } from 'antd';
+import { firstQueryValue, parsePriceRange } from '@/lib/searchFilters';
 
 import { SearchFilters } from '@/components/sections';
 import { SearchResultsList } from '@/components/common';
@@ -8,14 +9,16 @@ import { mockListings, PAGE_SIZE } from './const';
 
 export default async function SearchPage({ searchParams }: SearchPageProps) {
   const params = await searchParams;
-  const minPrice = Number(params.minPrice) * 1_000_000;
-  const maxPrice = Number(params.maxPrice) * 1_000_000;
+  const { minPrice, maxPrice, valid } = parsePriceRange(params.minPrice, params.maxPrice);
+  const transaction = firstQueryValue(params.transaction);
+  const category = firstQueryValue(params.category);
   const filteredListings = mockListings.filter(
     (listing) =>
-      (!params.transaction || listing.transaction === params.transaction) &&
-      (!params.category || listing.category === params.category) &&
-      (!minPrice || listing.price >= minPrice) &&
-      (!maxPrice || listing.price <= maxPrice),
+      valid &&
+      (!transaction || listing.transaction === transaction) &&
+      (!category || listing.category === category) &&
+      (minPrice === undefined || listing.price >= minPrice) &&
+      (maxPrice === undefined || listing.price <= maxPrice),
   );
   const totalItems = filteredListings.length;
   const maxPage = Math.max(1, Math.ceil(totalItems / PAGE_SIZE));
@@ -31,6 +34,12 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
       </Col>
 
       <Col lg={18} md={24} xs={24}>
+        {!valid && (
+          <p role="alert" className="mb-4 text-red-600">
+            Khoảng giá không hợp lệ. Vui lòng nhập số không âm và giá tối đa không nhỏ hơn giá tối
+            thiểu.
+          </p>
+        )}
         <SearchResultsList
           items={listings}
           totalItems={totalItems}
