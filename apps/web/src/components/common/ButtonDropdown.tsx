@@ -7,6 +7,7 @@ interface ButtonDropdownProps extends Omit<ButtonProps, 'icon' | 'children'> {
   onMenuClick?: MenuProps['onClick'];
   selectedKeys?: string[];
   popupRender?: DropdownProps['popupRender'];
+  getPopupContainer?: DropdownProps['getPopupContainer'];
   iconLeft?: ReactNode;
   iconRight?: ReactNode;
   label?: ReactNode;
@@ -22,6 +23,7 @@ export function ButtonDropdown({
   onMenuClick,
   selectedKeys,
   popupRender,
+  getPopupContainer,
   iconLeft,
   iconRight,
   label,
@@ -40,6 +42,7 @@ export function ButtonDropdown({
       trigger={['click']}
       placement={placement}
       popupRender={popupRender}
+      getPopupContainer={getPopupContainer}
     >
       <Button icon={iconButton} className={className} {...buttonProps}>
         {hasContent && (

@@ -3,8 +3,10 @@ export interface SearchPageProps {
     keyword?: string;
     city?: string;
     district?: string;
-    minPrice?: string;
-    maxPrice?: string;
+    transaction?: string | string[];
+    category?: string | string[];
+    minPrice?: string | string[];
+    maxPrice?: string | string[];
     page?: string;
   }>;
 }

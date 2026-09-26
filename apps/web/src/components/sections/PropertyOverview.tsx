@@ -35,62 +35,14 @@ import {
 import { FaFacebookF, FaFacebookMessenger, FaLink } from 'react-icons/fa';
 import type { CarouselRef } from 'antd/es/carousel';
 
-import { LocationMap, ButtonDropdown } from '@/components/common';
-
-const propertyFeatures = [
-  {
-    icon: <Home size={18} />,
-    label: 'Loại hình',
-    value: 'Nhà ngõ, hẻm',
-  },
-  {
-    icon: <Ruler size={18} />,
-    label: 'Diện tích đất',
-    value: '60 m²',
-  },
-  {
-    icon: <Building2 size={18} />,
-    label: 'Giá/m²',
-    value: '97,50 triệu/m²',
-  },
-  {
-    icon: <FileText size={18} />,
-    label: 'Giấy tờ pháp lý',
-    value: 'Đã có sổ',
-  },
-  {
-    icon: <BedDouble size={18} />,
-    label: 'Số phòng ngủ',
-    value: '4 phòng',
-  },
-  {
-    icon: <Sofa size={18} />,
-    label: 'Tình trạng nội thất',
-    value: 'Nội thất đầy đủ',
-  },
-];
-
-const images = [
-  '/images/banner-0.png',
-  '/images/banner-1.png',
-  '/images/banner-2.png',
-  '/images/banner-3.png',
-  '/images/test.jpg',
-  '/images/banner-0.png',
-  '/images/banner-1.png',
-  '/images/banner-2.png',
-  '/images/banner-3.png',
-  '/images/test.jpg',
-];
-
-const description = `Chủ ngộp giảm mạnh 200tr chỉ còn 1 tỷ hơn căn nhà 1 trệt 1 lầu không nơi nào có giá rẻ hơn.
-Diện tích 5x18m.
-- Pháp lý sổ hồng sẵn, thổ cư 100%.
-- Công năng: 3 phòng ngủ, 1 toilet, bếp, phòng khách, sân xe hơi, sân sau..
-- Giá: 1 tỷ hơn (thương lượng).
-- Xung quanh dân cư đông đúc, gần chợ, công viên, trường học cấp 1,2,3. Đi trung tâm TP. Biên hòa chỉ 10 phút.
-Giá hợp lý để mua ở lâu dài. Mua bán nhanh tặng luôn bộ nội thất xịn ạ.
-Liên hệ em đi xem nhà nhé`;
+import { LocationMap, ButtonDropdown, ImageLightbox } from '@/components/common';
+import {
+  ROOM_DATA,
+  PROPERTY_FEATURES as propertyFeatures,
+  ROOM_IMAGES as images,
+  ROOM_DESCRIPTION as description,
+  SIMILAR_ROOM_LISTINGS as similarListings,
+} from '@/lib/constants/constantsRoom';
 
 const items: MenuProps['items'] = [
   {
@@ -114,6 +66,8 @@ export function PropertyOverview() {
   const [atStart, setAtStart] = useState(true);
   const [atEnd, setAtEnd] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
 
   const checkScrollPosition = useCallback(() => {
     const el = scrollRef.current;
@@ -148,7 +102,14 @@ export function PropertyOverview() {
         <div className="relative bg-[#222] w-full h-103 rounded-xl overflow-hidden">
           <Carousel ref={carouselRef} dots={false} beforeChange={(_, next) => setCurrent(next)}>
             {images.map((src, i) => (
-              <div key={i} className="relative h-103 w-full cursor-zoom-in">
+              <div
+                key={i}
+                onClick={() => {
+                  setLightboxIndex(i);
+                  setIsLightboxOpen(true);
+                }}
+                className="relative h-103 w-full cursor-zoom-in"
+              >
                 <Image
                   src={src}
                   alt={`Ảnh ${i + 1}`}
@@ -325,24 +286,26 @@ export function PropertyOverview() {
         <p className="text-primary mb-2">Đặc điểm bất động sản</p>
 
         <div className="mt-1">
-          {propertyFeatures.map((item, index) => (
-            <div key={item.label}>
-              <Row align="middle" className="min-h-10">
-                <Col xs={12} md={8} lg={8}>
-                  <Flex align="center" gap={12} className="text-[#333]!">
-                    <span className="flex shrink-0 items-center">{item.icon}</span>
-                    <p className="text-default">{item.label}</p>
-                  </Flex>
-                </Col>
+          {propertyFeatures.map((item, index) => {
+            return (
+              <div key={item.label}>
+                <Row align="middle" className="min-h-10">
+                  <Col xs={12} md={8} lg={8}>
+                    <Flex align="center" gap={12} className="text-[#333]!">
+                      <span className="flex shrink-0 items-center">{item.icon}</span>
+                      <p className="text-default">{item.label}</p>
+                    </Flex>
+                  </Col>
 
-                <Col xs={12} md={16} lg={16}>
-                  <p className="text-default font-bold">{item.value}</p>
-                </Col>
-              </Row>
+                  <Col xs={12} md={16} lg={16}>
+                    <p className="text-default font-bold">{item.value}</p>
+                  </Col>
+                </Row>
 
-              {index !== propertyFeatures.length - 1 && <Divider className="my-1!" />}
-            </div>
-          ))}
+                {index !== propertyFeatures.length - 1 && <Divider className="my-1!" />}
+              </div>
+            );
+          })}
         </div>
 
         {/* Collapse */}
@@ -380,6 +343,21 @@ export function PropertyOverview() {
           <LocationMap latitude={21.028511} longitude={105.804817} popupText="Căn hộ ABC" />
         </div>
       </Modal>
+
+      {/* Image Lightbox Overlay */}
+      <ImageLightbox
+        open={isLightboxOpen}
+        onClose={() => setIsLightboxOpen(false)}
+        images={images}
+        initialIndex={lightboxIndex}
+        propertyTitle={ROOM_DATA.title}
+        price={ROOM_DATA.price}
+        tags={ROOM_DATA.tags}
+        description={ROOM_DATA.description}
+        agent={ROOM_DATA.agent}
+        similarListings={ROOM_DATA.similarListings}
+        sampleQuestions={ROOM_DATA.sampleQuestions}
+      />
     </Flex>
   );
 }
