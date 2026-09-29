@@ -1,3 +1,4 @@
+import { jest } from '@jest/globals';
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuthController } from './auth.controller.js';
 import { AuthService } from './auth.service.js';
@@ -8,7 +9,9 @@ describe('AuthController', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AuthController],
-      providers: [AuthService],
+      providers: [
+        { provide: AuthService, useValue: { verifyPhone: jest.fn() } },
+      ],
     }).compile();
 
     controller = module.get<AuthController>(AuthController);
