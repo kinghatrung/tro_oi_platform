@@ -3,71 +3,78 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import clsx from 'clsx';
-import { useState } from 'react';
-import { Flex, Space, Card, Button } from 'antd';
+import { useCallback, type MouseEvent } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
+import { App, Flex, Space, Card, Button } from 'antd';
 import { MapPin, Heart, House, CircleUserRound, Image as ImageIcon, BedDouble } from 'lucide-react';
+import {
+  DIRECTION_LABELS,
+  FURNISHING_STATUS_LABELS,
+  PROPERTY_CATEGORY_LABELS,
+  USER_ROLE_LABELS,
+  type Listing,
+} from '@tro-oi/shared';
 
-import { formatVietnameseCurrency, formatRelativeTime } from '@/utils/helpers';
-
-interface AuthorType {
-  name?: string;
-  posted?: number;
-  rank?: string;
-}
+import { useAuthStore } from '@/stores/useAuthStore';
+import { formatListingPrice, formatRelativeTime, formatVietnameseCurrency } from '@/utils/helpers';
 
 interface CardItemProps {
-  id: number;
+  listing: Listing;
+  /** Dạng hàng ngang (trang tìm kiếm/danh sách); mặc định dạng thẻ dọc. */
   column?: boolean;
-  timeAgo?: string;
-  countMedia?: number;
-  imageUrl?: string;
-  title?: string;
-  propertyType?: string;
-  area?: number;
-  price?: number;
-  pricePerSquareMeter?: number;
-  bedrooms?: number;
-  mainDirection?: string;
-  address?: string;
-  location?: string;
-  district?: string;
-  street?: string;
-  floorCount?: number;
-  furnishing?: string;
-  author?: AuthorType;
+}
+
+const FALLBACK_IMAGE = '/images/test.jpg';
+
+/** Nút Lưu tin: chưa đăng nhập → chuyển tới trang đăng nhập. */
+function useFavoriteToggle(listing: Listing) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const { message } = App.useApp();
+  const isLoggedIn = useAuthStore((state) => Boolean(state.user));
+  const isFavorite = useAuthStore((state) =>
+    state.favorites.some((item) => item.id === listing.id),
+  );
+  const toggleFavorite = useAuthStore((state) => state.toggleFavorite);
+
+  const handleToggle = useCallback(
+    async (event: MouseEvent) => {
+      event.preventDefault();
+      event.stopPropagation();
+      if (!isLoggedIn) {
+        router.push(`/dang-nhap?redirect=${encodeURIComponent(pathname)}`);
+        return;
+      }
+      try {
+        await toggleFavorite(listing);
+      } catch (error) {
+        message.error((error as Error).message);
+      }
+    },
+    [isLoggedIn, listing, message, pathname, router, toggleFavorite],
+  );
+
+  return { isFavorite, handleToggle };
 }
 
 /** Displays a property summary card with listing details and a favorite control. */
-export function CardItem({
-  id,
-  column,
-  imageUrl,
-  title,
-  timeAgo,
-  countMedia,
-  propertyType,
-  area,
-  price,
-  pricePerSquareMeter,
-  bedrooms,
-  mainDirection,
-  address,
-  location,
-  district,
-  street,
-  floorCount,
-  furnishing,
-  author,
-}: CardItemProps) {
-  const [isFavorite, setIsFavorite] = useState(false);
-  const locationLabel = address || location;
+export function CardItem({ listing, column }: CardItemProps) {
+  const { isFavorite, handleToggle } = useFavoriteToggle(listing);
+  const { id, title, images, area, price, pricePerSquareMeter, bedrooms, address, author } =
+    listing;
+  const href = `/phong-tro/${id}`;
+  const imageUrl = images[0] || FALLBACK_IMAGE;
+  const propertyType = PROPERTY_CATEGORY_LABELS[listing.category];
+  const direction = listing.direction && DIRECTION_LABELS[listing.direction];
+  const locationLabel = address?.district ? `${address.district}, ${address.city}` : address?.city;
+  const priceLabel = formatListingPrice(price, listing.transaction);
   const summary = [
-    district && `Nhà đất ${district}`,
-    street,
-    floorCount != null && `${floorCount} tầng`,
+    address?.district && `${propertyType} ${address.district}`,
+    address?.street,
+    listing.floorCount != null && `${listing.floorCount} tầng`,
     bedrooms != null && `${bedrooms}PN`,
     area != null && `${area}m²`,
-    furnishing,
+    listing.furnishing && FURNISHING_STATUS_LABELS[listing.furnishing],
   ]
     .filter(Boolean)
     .join(' - ');
@@ -84,17 +91,11 @@ export function CardItem({
         {/* Breadcrumb / mô tả ngắn */}
         {summary && <p className="text-secondary mb-2 text-xs!">{summary}</p>}
 
-        <Link href={`/phong-tro/${id}`} className="block">
+        <Link href={href} className="block">
           <Flex gap={16}>
             {/* Image */}
             <div className="relative h-40 w-40 min-w-40 overflow-hidden rounded-lg">
-              <Image
-                src={imageUrl || '/images/test.jpg'}
-                alt={title || 'Ảnh nhà đất'}
-                fill
-                sizes="160px"
-                className="object-cover"
-              />
+              <Image src={imageUrl} alt={title} fill sizes="160px" className="object-cover" />
 
               {/* Overlay */}
               <Flex
@@ -102,16 +103,12 @@ export function CardItem({
                 align="center"
                 className="absolute right-0 bottom-0 left-0 bg-black/50 px-2! py-1.5!"
               >
-                {timeAgo ? (
-                  <span className="text-xs! font-semibold text-white">
-                    {formatRelativeTime(timeAgo)}
-                  </span>
-                ) : (
-                  <span />
-                )}
+                <span className="text-xs! font-semibold text-white">
+                  {formatRelativeTime(listing.createdAt)}
+                </span>
 
                 <Space align="center" size={4}>
-                  <span className="text-xs! font-semibold text-white">{countMedia}</span>
+                  <span className="text-xs! font-semibold text-white">{images.length}</span>
                   <ImageIcon size={13} className="text-white" />
                 </Space>
               </Flex>
@@ -127,6 +124,7 @@ export function CardItem({
 
                 <Button
                   size="small"
+                  aria-pressed={isFavorite}
                   icon={
                     <Heart
                       size={18}
@@ -134,13 +132,9 @@ export function CardItem({
                     />
                   }
                   className="shrink-0 text-sm! text-[#222]! rounded-xl! btn-ghost!"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setIsFavorite((prev) => !prev);
-                  }}
+                  onClick={handleToggle}
                 >
-                  Lưu
+                  {isFavorite ? 'Đã lưu' : 'Lưu'}
                 </Button>
               </Flex>
 
@@ -153,14 +147,14 @@ export function CardItem({
                   </Flex>
                 )}
 
-                {mainDirection && (
+                {direction && (
                   <Flex align="center" gap={4}>
                     <House size={16} color="#222" />
-                    <span className="text-secondary text-[#222]">{mainDirection}</span>
+                    <span className="text-secondary text-[#222]">{direction}</span>
                   </Flex>
                 )}
 
-                {propertyType && <span className="text-secondary text-[#222]">{propertyType}</span>}
+                <span className="text-secondary text-[#222]">{propertyType}</span>
               </Flex>
 
               {/* Address */}
@@ -178,17 +172,17 @@ export function CardItem({
                     <CircleUserRound size={15} className="text-white" />
                   </div>
 
-                  <span className="text-secondary text-[#222]">{author?.name}</span>
-                  <span className="text-secondary text-sm">
-                    {author?.rank} · {author?.posted} tin
-                  </span>
+                  <span className="text-secondary text-[#222]">{author.name}</span>
+                  {author.role && (
+                    <span className="text-secondary text-sm">{USER_ROLE_LABELS[author.role]}</span>
+                  )}
                 </Flex>
               )}
 
               {/* Price */}
               <Flex align="center" gap={12}>
                 <span className="text-primary text-[#f0325e]">
-                  {formatVietnameseCurrency(price || 0)}
+                  {priceLabel}
                   {area != null && ` - ${area}m²`}
                 </span>
 
@@ -207,7 +201,7 @@ export function CardItem({
 
   return (
     <Link
-      href={`/phong-tro/${id}`}
+      href={href}
       className={clsx(`
         group
         block
@@ -220,28 +214,21 @@ export function CardItem({
         hover:shadow-lg
       `)}
     >
-      <div className="relative overflow-hidden">
-        <img
-          src={imageUrl || '/images/test.jpg'}
-          alt={title || ''}
-          className={clsx(`
-            aspect-4/4
-            size-full
-            object-cover
-            transition-transform duration-500
-            group-hover:scale-105
-          `)}
+      <div className="relative aspect-square overflow-hidden">
+        <Image
+          src={imageUrl}
+          alt={title}
+          fill
+          sizes="(max-width: 768px) 50vw, 240px"
+          className="object-cover transition-transform duration-500 group-hover:scale-105"
         />
 
         {/* Favorite */}
         <button
           type="button"
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-
-            setIsFavorite((prev) => !prev);
-          }}
+          aria-label={isFavorite ? 'Bỏ lưu tin' : 'Lưu tin'}
+          aria-pressed={isFavorite}
+          onClick={handleToggle}
           className={clsx(`
             absolute top-3 right-3
             flex size-9 items-center justify-center
@@ -269,36 +256,31 @@ export function CardItem({
             bg-[linear-gradient(#2220_0%,#222222bf_100%)]
           `)}
         >
-          {timeAgo ? <p className="text-muted">{formatRelativeTime(timeAgo)}</p> : <span />}
+          <p className="text-muted">{formatRelativeTime(listing.createdAt)}</p>
 
           <Space>
-            <p className="text-muted">{countMedia}</p>
+            <p className="text-muted">{images.length}</p>
             <ImageIcon size={16} color="#fff" />
           </Space>
         </Flex>
       </div>
 
       <div className="p-2">
-        <p className="text-default line-clamp-2">
-          {title || 'Cho thuê nhà nguyên căn + kết hợp làm văn phòng hoặc'}
-        </p>
+        <p className="text-default line-clamp-2">{title}</p>
 
         <Flex vertical gap={4} className="mt-1!">
           <Space size={8} wrap>
-            <p className="text-secondary">{bedrooms} PN</p>
-            <p className="text-secondary">{mainDirection || null}</p>
-            <p className="text-secondary">{propertyType || null}</p>
+            {bedrooms != null && <p className="text-secondary">{bedrooms} PN</p>}
+            {direction && <p className="text-secondary">{direction}</p>}
+            <p className="text-secondary">{propertyType}</p>
           </Space>
           <Space size={8} wrap>
-            <p className="text-primary text-[#f0325e]">{formatVietnameseCurrency(price || 0)}</p>
-            <p className="text-secondary text-[#222]!">
-              {formatVietnameseCurrency(pricePerSquareMeter || 0)}/m²
-            </p>
-            <p className="text-secondary text-[#222]!">{area || null} m²</p>
+            <p className="text-primary text-[#f0325e]">{priceLabel}</p>
+            {area != null && <p className="text-secondary text-[#222]!">{area} m²</p>}
           </Space>
           <Space size={4}>
             <MapPin size={16} color="#bfbfbf" />
-            <p className="text-secondary">{address || location || 'Hà Nội'}</p>
+            <p className="text-secondary line-clamp-1">{locationLabel}</p>
           </Space>
         </Flex>
       </div>

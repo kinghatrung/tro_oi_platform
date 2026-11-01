@@ -37,13 +37,9 @@ export function BreadcrumbItem({
 
   const fullItems = includeHome ? [DEFAULT_HOME_ITEM, ...finalCustomItems] : finalCustomItems;
 
-  const antdItems: BreadcrumbProps['items'] = fullItems.map((item, index) => {
-    const isLast = index === fullItems.length - 1;
-
-    return {
-      title: item.href && <Link href={item.href}>{item.title}</Link>,
-    };
-  });
+  const antdItems: BreadcrumbProps['items'] = fullItems.map((item) => ({
+    title: item.href ? <Link href={item.href}>{item.title}</Link> : item.title,
+  }));
 
   const jsonLd =
     enableJsonLd && fullItems.length > 0

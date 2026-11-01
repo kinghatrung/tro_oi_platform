@@ -1,30 +1,25 @@
 import type { User } from './user';
 
-export interface LoginRequest {
-  email: string;
-  password: string;
+/** Body POST /auth/verify-phone — ID token Firebase sau khi xác minh OTP. */
+export interface VerifyPhoneRequest {
+  firebaseToken: string;
 }
 
-export interface RegisterRequest {
-  name: string;
-  email: string;
-  password: string;
-  phone?: string;
-}
-
-export interface RefreshTokenRequest {
-  refreshToken: string;
+/** Body POST /auth/dev-login — chỉ dùng khi server bật AUTH_DEV_LOGIN. */
+export interface DevLoginRequest {
+  phone: string;
 }
 
 export interface AuthResponse {
   accessToken: string;
-  refreshToken?: string;
+  /** true khi SĐT đăng nhập lần đầu (vừa tạo tài khoản). */
+  isNewUser?: boolean;
   user: User;
 }
 
 export interface JwtPayload {
   /** User id. */
   sub: string;
-  email: string;
+  phone: string;
   role: string;
 }

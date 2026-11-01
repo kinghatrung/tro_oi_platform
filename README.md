@@ -6,7 +6,7 @@
 [![Yarn Monorepo](https://img.shields.io/badge/Monorepo-Yarn_Workspaces-blue.svg?style=for-the-badge&logo=yarn)](https://yarnpkg.com/)
 [![Expo](https://img.shields.io/badge/Mobile-Expo_React_Native-000000.svg?style=for-the-badge&logo=expo)](https://expo.dev/)
 [![Next.js](https://img.shields.io/badge/Web-Next.js_16-000000.svg?style=for-the-badge&logo=next.js)](https://nextjs.org/)
-[![Express](https://img.shields.io/badge/Backend-Express.js-000000.svg?style=for-the-badge&logo=express)](https://expressjs.com/)
+[![NestJS](https://img.shields.io/badge/Backend-NestJS_+_MongoDB-E0234E.svg?style=for-the-badge&logo=nestjs)](https://nestjs.com/)
 [![TypeScript](https://img.shields.io/badge/Language-TypeScript_5+-3178C6.svg?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org/)
 
   <p align="center">
@@ -18,7 +18,9 @@
 
 ## 🌟 Giới Thiệu (Overview)
 
-**Trọ Ơi!** là giải pháp công nghệ hiện đại giúp tối ưu hóa việc tìm kiếm, đăng tin và quản lý phòng trọ/căn hộ dịch vụ. Dự án được thiết kế theo kiến trúc **Monorepo** linh hoạt, chia sẻ mã nguồn giữa ứng dụng **Mobile (Expo/React Native)**, **Web (Next.js 16)** và **Backend API (Express.js)**.
+**Trọ Ơi!** là giải pháp công nghệ hiện đại giúp tối ưu hóa việc tìm kiếm, đăng tin và quản lý phòng trọ/căn hộ dịch vụ. Dự án được thiết kế theo kiến trúc **Monorepo** linh hoạt, chia sẻ mã nguồn giữa ứng dụng **Mobile (Expo/React Native)**, **Web (Next.js 16)** và **Backend API (NestJS + MongoDB)**.
+
+> 📚 Tài liệu cho dev & AI: [docs/](docs/README.md) — quy tắc code, cấu trúc dự án, REST API.
 
 ---
 
@@ -50,7 +52,7 @@
 ```
 tro-oi/
 ├── apps/
-│   ├── api/        # Node.js & Express.js RESTful API
+│   ├── api/        # NestJS + MongoDB RESTful API
 │   ├── mobile/     # Expo (React Native) iOS & Android App
 │   └── web/        # Next.js 16 Web Application
 ├── packages/
@@ -70,7 +72,7 @@ tro-oi/
 | **Core Architecture** | Yarn Workspaces (Monorepo), TypeScript                |
 | **Mobile App**        | React Native, Expo SDK 54, Expo Router, Reanimated v4 |
 | **Web Platform**      | Next.js 16, React 19, Tailwind CSS v4                 |
-| **Backend API**       | Node.js, Express 5, TSX                               |
+| **Backend API**       | NestJS 12, MongoDB (Mongoose), JWT, Firebase Admin    |
 | **Shared Package**    | `@tro-oi/shared`                                      |
 
 ---
@@ -100,9 +102,9 @@ Chạy đồng thời hoặc chọn riêng lẻ từng dịch vụ:
   yarn dev:web
   ```
 
-  _(Truy cập `http://localhost:3000`)_
+  _(Truy cập `http://localhost:3001`)_
 
-- **Chạy Backend API (Express):**
+- **Chạy Backend API (NestJS):** (cần MongoDB, tạo `apps/api/.env.local` từ `.env.example`; dữ liệu mẫu: `yarn workspace api seed`)
 
   ```bash
   yarn dev:api

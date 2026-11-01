@@ -19,7 +19,7 @@ export default function Footer() {
                 {/* QR Code */}
                 <Image
                   src="/images/qr-download.png"
-                  alt="QR Code Chợ Tốt"
+                  alt="QR Code tải ứng dụng Trọ ơi"
                   width={84}
                   height={84}
                   className="object-contain"
@@ -54,32 +54,32 @@ export default function Footer() {
           {/* Về Nhà Tốt */}
           <Col lg={8} md={12} xs={24}>
             <Flex vertical gap={12}>
-              <p className="text-sm! text-primary">Về Nhà Tốt</p>
+              <p className="text-sm! text-primary">Tìm theo loại hình</p>
 
               <Space orientation="vertical" size={10}>
                 <Link
-                  href="/"
+                  href="/tim-kiem?category=phong-tro"
                   className="text-sm text-[#595959]! transition-colors hover:text-gray-900"
                 >
                   Phòng trọ
                 </Link>
 
                 <Link
-                  href="/quy-che-hoat-dong-san"
+                  href="/tim-kiem?category=can-ho"
                   className="text-sm text-[#595959]! transition-colors hover:text-gray-900"
                 >
                   Căn hộ
                 </Link>
 
                 <Link
-                  href="/chinh-sach-bao-mat"
+                  href="/tim-kiem?category=nguyen-can"
                   className="text-sm text-[#595959]! transition-colors hover:text-gray-900"
                 >
                   Nguyên căn
                 </Link>
 
                 <Link
-                  href="/giai-quyet-tranh-chap"
+                  href="/tim-kiem?category=o-ghep"
                   className="text-sm text-[#595959]! transition-colors hover:text-gray-900"
                 >
                   Tìm người ở ghép

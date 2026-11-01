@@ -1,9 +1,10 @@
 'use client';
 
-import { Flex, Carousel } from 'antd';
+import { Carousel, Empty } from 'antd';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import type { Listing } from '@tro-oi/shared';
 
-import { CardItem } from '@/components/common';
+import { CardItem } from './CardItem';
 
 interface ArrowProps {
   currentSlide?: number;
@@ -11,10 +12,16 @@ interface ArrowProps {
   [key: string]: unknown;
 }
 
+interface CarouselItemProps {
+  items: Listing[];
+}
+
+const ITEMS_PER_SLIDE = 5;
+
 /** Renders the previous-slide control for a property carousel. */
 function PrevArrow({ currentSlide, slideCount, ...props }: ArrowProps) {
   return (
-    <button type="button" {...props}>
+    <button type="button" aria-label="Trang trước" {...props}>
       <ChevronLeft size={24} color="#16a6a3" />
     </button>
   );
@@ -23,42 +30,37 @@ function PrevArrow({ currentSlide, slideCount, ...props }: ArrowProps) {
 /** Renders the next-slide control for a property carousel. */
 function NextArrow({ currentSlide, slideCount, ...props }: ArrowProps) {
   return (
-    <button type="button" {...props}>
+    <button type="button" aria-label="Trang sau" {...props}>
       <ChevronRight size={24} color="#16a6a3" />
     </button>
   );
 }
 
-/** Displays property cards in a navigable carousel. */
-export function CarouselItem() {
+/** Displays property cards in a navigable carousel, 5 cards per slide. */
+export function CarouselItem({ items }: CarouselItemProps) {
+  if (items.length === 0) {
+    return <Empty description="Chưa có tin đăng" className="mb-4!" />;
+  }
+
+  const slides = Array.from({ length: Math.ceil(items.length / ITEMS_PER_SLIDE) }, (_, index) =>
+    items.slice(index * ITEMS_PER_SLIDE, (index + 1) * ITEMS_PER_SLIDE),
+  );
+
   return (
     <Carousel
       className="mb-4"
-      arrows
+      arrows={slides.length > 1}
       infinite={false}
       prevArrow={<PrevArrow />}
       nextArrow={<NextArrow />}
     >
-      {Array.from({ length: 2 }).map((_, i) => (
-        <div key={i}>
-          <Flex gap={16}>
-            {Array.from({ length: 5 }).map((_, index) => (
-              <CardItem
-                key={index}
-                id={index}
-                title="Giảm 300tr- 30M2 3 tầng hẻm xe hơi - Emart 2 Sổ mới 2026"
-                price={3350000000}
-                countMedia={5}
-                bedrooms={3}
-                propertyType="Chung cư"
-                mainDirection="Đông Nam"
-                pricePerSquareMeter={111670000}
-                timeAgo="2026-09-07T09:00:00+07:00"
-                area={30}
-                location="Hà Nội"
-              />
+      {slides.map((slide, index) => (
+        <div key={index}>
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
+            {slide.map((listing) => (
+              <CardItem key={listing.id} listing={listing} />
             ))}
-          </Flex>
+          </div>
         </div>
       ))}
     </Carousel>

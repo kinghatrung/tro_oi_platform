@@ -1,90 +1,66 @@
-'use client';
-
 import Image from 'next/image';
 import { Button, Avatar, Flex, Space } from 'antd';
-import { Calendar, MapPin, Settings, Camera } from 'lucide-react';
+import { Calendar, Settings, UserRound, Info } from 'lucide-react';
+import { USER_ROLE_LABELS, type User } from '@tro-oi/shared';
+
+import { formatRelativeTime } from '@/utils/helpers';
 
 interface ProfileHeaderProps {
-  readOnly?: boolean;
-  name?: string;
-  avatarUrl?: string;
-  coverUrl?: string;
-  joinedDays?: number;
-  location?: string;
+  user: User;
+  /** Có callback → hiện nút "Chỉnh sửa trang" (hồ sơ của chính mình). */
   onEditProfile?: () => void;
-  onShareProfile?: () => void;
-  onChangeCover?: () => void;
-  onChangeAvatar?: () => void;
 }
 
-export function ProfileHeader({
-  readOnly = false,
-  name = 'Minh Huyên',
-  avatarUrl = 'https://i.pinimg.com/736x/b1/08/c3/b108c3ad91d76667c45f8b01ff1ad250.jpg',
-  coverUrl = '/images/developer.png',
-  joinedDays = 13,
-  location = 'Chưa cung cấp',
-  onEditProfile,
-  onShareProfile,
-  onChangeCover,
-  onChangeAvatar,
-}: ProfileHeaderProps) {
+const COVER_IMAGE = '/images/developer.png';
+
+/** Ảnh bìa + avatar + thông tin cơ bản của người dùng. */
+export function ProfileHeader({ user, onEditProfile }: ProfileHeaderProps) {
   return (
     <>
-      <div className="relative h-[200px] w-full">
-        <Image src={coverUrl} alt="Ảnh bìa" fill className="object-cover rounded-t-lg" />
-        {!readOnly && onChangeCover && (
-          <Button
-            size="small"
-            onClick={onChangeCover}
-            className="absolute! right-3 bottom-3 text-[#222]! font-bold!"
-          >
-            Thay đổi ảnh bìa
-          </Button>
-        )}
+      <div className="relative h-50 w-full">
+        <Image
+          src={COVER_IMAGE}
+          alt="Ảnh bìa"
+          fill
+          sizes="1200px"
+          className="object-cover rounded-t-lg"
+        />
       </div>
 
       <div className="p-5 rounded-b-lg bg-white">
         <Flex gap={20}>
-          <div className="relative!">
-            <Avatar size={138} src={avatarUrl} />
-            {!readOnly && onChangeAvatar && (
-              <Button
-                aria-label="Thay đổi ảnh đại diện"
-                className="absolute! bottom-0 right-0 rounded-lg!"
-                shape="square"
-                icon={<Camera />}
-                onClick={onChangeAvatar}
-              />
-            )}
-          </div>
+          <Avatar size={138} src={user.avatar} icon={<UserRound size={64} />} />
 
           <Flex vertical gap={12}>
-            <p className="text-primary text-2xl">{name}</p>
+            <Space size={12} align="center">
+              <h1 className="text-primary text-2xl">{user.name}</h1>
+              <span className="text-secondary">{USER_ROLE_LABELS[user.role]}</span>
+            </Space>
 
             <Space>
               <Calendar size={20} className="text-[#595959]" />
-              <p className="text-[16px] text-[#595959]">Đã tham gia: {joinedDays} ngày</p>
+              <p className="text-[16px] text-[#595959]">
+                Tham gia {formatRelativeTime(user.createdAt)}
+              </p>
             </Space>
 
-            <Space size={16}>
-              <Space>
-                <MapPin size={20} className="text-[#595959]" />
-                <p className="text-[16px] text-[#595959]">{location}</p>
+            {user.bio && (
+              <Space align="start">
+                <Info size={20} className="text-[#595959]" />
+                <p className="text-[16px] text-[#595959] whitespace-pre-line">{user.bio}</p>
               </Space>
+            )}
 
-              {!readOnly && onEditProfile && (
-                <Button size="small" icon={<Settings size={20} />} onClick={onEditProfile}>
-                  Chỉnh sửa trang
-                </Button>
-              )}
-
-              {!readOnly && onShareProfile && (
-                <Button size="small" onClick={onShareProfile}>
-                  Chia sẻ
-                </Button>
-              )}
-            </Space>
+            {onEditProfile && (
+              <Button
+                size="small"
+                icon={<Settings size={20} />}
+                onClick={onEditProfile}
+                className="w-fit"
+              >
+                Chỉnh sửa trang
+              </Button>
+            )}
           </Flex>
         </Flex>
       </div>

@@ -1,11 +1,15 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService, type JwtSignOptions } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
 import type { Model } from 'mongoose';
 
 import { FirebaseService } from './firebase.service.js';
-import { User } from './schemas/user.schema.js';
+import { User, toUser } from './schemas/user.schema.js';
 import type { UserDocument } from './schemas/user.schema.js';
 
 @Injectable()
@@ -32,6 +36,18 @@ export class AuthService {
       throw new BadRequestException('Token không chứa số điện thoại');
     }
 
+    return this.loginByPhone(phone);
+  }
+
+  /** Đăng nhập không OTP — chỉ khi AUTH_DEV_LOGIN=true (dev/test). */
+  async devLogin(phone: string) {
+    if (this.configService.get<string>('AUTH_DEV_LOGIN') !== 'true') {
+      throw new NotFoundException();
+    }
+    return this.loginByPhone(phone.replace(/^0/, '+84'));
+  }
+
+  private async loginByPhone(phone: string) {
     //3. Tìm hoặc tạo user (đăng nhập = đăng ký)
     let user = await this.userModel.findOne({ phone }).exec();
     const isNewUser = !user;
@@ -54,19 +70,6 @@ export class AuthService {
       ) as JwtSignOptions['expiresIn'],
     });
 
-    return {
-      accessToken,
-      isNewUser,
-      user: {
-        id: user.id,
-        phone: user.phone,
-        name: user.name,
-        email: user.email,
-        avatar: user.avatar,
-        role: user.role,
-        createdAt: user.createdAt.toISOString(),
-        updatedAt: user.updatedAt.toISOString(),
-      },
-    };
+    return { accessToken, isNewUser, user: toUser(user) };
   }
 }

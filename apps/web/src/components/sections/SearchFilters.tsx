@@ -3,50 +3,40 @@
 import Image from 'next/image';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useState } from 'react';
-import { parsePriceRange, searchQueryKey } from '@/lib/searchFilters';
-
 import { Card, Space, Button, Flex, type MenuProps } from 'antd';
-import { Bookmark, ListFilter, BedDouble } from 'lucide-react';
+import { Bookmark, ListFilter, BedDouble, Building2 } from 'lucide-react';
+import {
+  PROPERTY_CATEGORY_LABELS,
+  TRANSACTION_TYPE_LABELS,
+  TransactionType,
+  type PropertyCategory,
+} from '@tro-oi/shared';
 
 import { ButtonDropdown, CardDropdown, FloatingInput } from '@/components/common';
+import { CATEGORIES } from '@/constants';
+import { parsePriceRange, searchQueryKey } from '@/lib/searchFilters';
 
-const categories = [
+const transactionItems: MenuProps['items'] = [
   {
-    key: 'phong-tro',
-    label: 'Phòng trọ',
-    icon: '/images/01-duplex.svg',
-  },
-  {
-    key: 'can-ho',
-    label: 'Căn hộ',
-    icon: '/images/02-apartment.svg',
-  },
-  {
-    key: 'nguyen-can',
-    label: 'Nguyên căn',
-    icon: '/images/03-house.svg',
-  },
-  {
-    key: 'o-ghep',
-    label: 'Tìm người ở ghép',
-    icon: '/images/04-family-roof.svg',
-  },
-];
-
-const itemsCate: MenuProps['items'] = [
-  {
-    key: 'buy-room',
-    label: <span className="ml-2 font-semibold">Mua bán</span>,
+    key: TransactionType.RENT,
+    label: (
+      <span className="ml-2 font-semibold">{TRANSACTION_TYPE_LABELS[TransactionType.RENT]}</span>
+    ),
     icon: <BedDouble size={24} />,
   },
   {
-    key: 'rent-room',
-    label: <span className="ml-2 font-semibold">Cho thuê</span>,
-    icon: <BedDouble size={24} />,
+    key: TransactionType.BUY,
+    label: (
+      <span className="ml-2 font-semibold">{TRANSACTION_TYPE_LABELS[TransactionType.BUY]}</span>
+    ),
+    icon: <Building2 size={24} />,
   },
 ];
 
-const propertyTypeItems: MenuProps['items'] = categories.map(({ key, label }) => ({ key, label }));
+const propertyTypeItems: MenuProps['items'] = CATEGORIES.map(({ category, title }) => ({
+  key: category,
+  label: title,
+}));
 
 interface FilterState {
   transaction: string;
@@ -55,12 +45,27 @@ interface FilterState {
   maxPrice: string;
 }
 
+const EMPTY_FILTERS: FilterState = { transaction: '', category: '', minPrice: '', maxPrice: '' };
+
 const readFilters = (params: URLSearchParams): FilterState => ({
   transaction: params.get('transaction') ?? '',
   category: params.get('category') ?? '',
   minPrice: params.get('minPrice') ?? '',
   maxPrice: params.get('maxPrice') ?? '',
 });
+
+/** Tiêu đề trang theo bộ lọc, vd "Cho thuê Phòng trọ Hà Nội tháng 11/2026". */
+function buildTitle(params: URLSearchParams) {
+  const transaction = params.get('transaction') as TransactionType | null;
+  const category = params.get('category') as PropertyCategory | null;
+  const now = new Date();
+  return [
+    (transaction && TRANSACTION_TYPE_LABELS[transaction]) || 'Cho thuê & mua bán',
+    (category && PROPERTY_CATEGORY_LABELS[category]) || 'nhà ở',
+    [params.get('district'), params.get('city')].filter(Boolean).join(', ') || 'toàn quốc',
+    `tháng ${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}`,
+  ].join(' ');
+}
 
 export function SearchFilters() {
   const serializedParams = useSearchParams().toString();
@@ -110,11 +115,11 @@ function SearchFiltersForm({ serializedParams, saved, onSavedChange }: SearchFil
   };
 
   const clearAllFilters = () => {
-    const cleared = { transaction: '', category: '', minPrice: '', maxPrice: '' };
-    setFilters(cleared);
-    navigateWithFilters(cleared);
+    setFilters(EMPTY_FILTERS);
+    navigateWithFilters(EMPTY_FILTERS);
   };
 
+  // shortcut: chỉ ghi nhớ trong phiên hiện tại, cần API "tìm kiếm đã lưu" để lưu lâu dài
   const saveSearch = () => {
     const params = navigateWithFilters(filters);
     if (params) onSavedChange(searchQueryKey(params));
@@ -130,9 +135,9 @@ function SearchFiltersForm({ serializedParams, saved, onSavedChange }: SearchFil
           </p>
         )}
         <Space size={20}>
-          <p className="text-primary text-[16px]!">
-            Mua Bán Bất Động Sản Hà Nội Tháng 09/2026 Giá Rẻ
-          </p>
+          <h1 className="text-primary text-[16px]! first-letter:uppercase">
+            {buildTitle(new URLSearchParams(serializedParams))}
+          </h1>
           <Button
             size="small"
             icon={<Bookmark size={20} strokeWidth={2.2} />}
@@ -155,20 +160,14 @@ function SearchFiltersForm({ serializedParams, saved, onSavedChange }: SearchFil
             </Button>
 
             <ButtonDropdown
-              menus={itemsCate}
+              menus={transactionItems}
               size="small"
               dropdown
-              label={
-                filters.transaction
-                  ? filters.transaction === 'buy-room'
-                    ? 'Mua bán'
-                    : 'Cho thuê'
-                  : 'Giao dịch'
-              }
+              label={TRANSACTION_TYPE_LABELS[filters.transaction as TransactionType] ?? 'Giao dịch'}
               className="rounded-2xl! btn-gray"
               popupRender={(menu) => (
                 <CardDropdown
-                  title="Danh mục"
+                  title="Hình thức"
                   menu={menu}
                   footer="both"
                   onClear={() => setFilters((current) => ({ ...current, transaction: '' }))}
@@ -183,11 +182,11 @@ function SearchFiltersForm({ serializedParams, saved, onSavedChange }: SearchFil
             <ButtonDropdown
               size="small"
               dropdown
-              label={categories.find(({ key }) => key === filters.category)?.label ?? 'Loại hình'}
+              label={PROPERTY_CATEGORY_LABELS[filters.category as PropertyCategory] ?? 'Loại hình'}
               className="rounded-2xl! btn-gray"
               popupRender={(menu) => (
                 <CardDropdown
-                  title="Loại hình bất động sản"
+                  title="Loại hình"
                   menu={menu}
                   footer="both"
                   onClear={() => setFilters((current) => ({ ...current, category: '' }))}
@@ -203,7 +202,11 @@ function SearchFiltersForm({ serializedParams, saved, onSavedChange }: SearchFil
             <ButtonDropdown
               size="small"
               dropdown
-              label="Giá bán"
+              label={
+                filters.minPrice || filters.maxPrice
+                  ? `${filters.minPrice || 0} - ${filters.maxPrice || '∞'} triệu`
+                  : 'Khoảng giá'
+              }
               className="rounded-2xl! btn-gray"
               popupRender={() => (
                 <CardDropdown
@@ -248,19 +251,19 @@ function SearchFiltersForm({ serializedParams, saved, onSavedChange }: SearchFil
         </Flex>
 
         <Flex align="start" gap={32}>
-          {categories.map((item) => (
+          {CATEGORIES.map((item) => (
             <button
-              key={item.key}
+              key={item.category}
               type="button"
-              aria-pressed={filters.category === item.key}
-              onClick={() => setFilters((current) => ({ ...current, category: item.key }))}
+              aria-pressed={filters.category === item.category}
+              onClick={() => navigateWithFilters({ ...filters, category: item.category })}
               className={`cursor-pointer max-w-21! rounded-lg border-0 bg-transparent p-1 ${
-                filters.category === item.key ? 'ring-2 ring-[#16a6a3]' : ''
+                filters.category === item.category ? 'ring-2 ring-[#16a6a3]' : ''
               }`}
             >
               <Space vertical align="center">
-                <Image width={64} height={64} alt={item.label} src={item.icon} />
-                <p className="text-[#595959] text-sm font-bold text-center">{item.label}</p>
+                <Image width={64} height={64} alt={item.title} src={item.icon} />
+                <p className="text-[#595959] text-sm font-bold text-center">{item.title}</p>
               </Space>
             </button>
           ))}

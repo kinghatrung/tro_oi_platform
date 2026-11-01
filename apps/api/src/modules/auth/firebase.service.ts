@@ -6,8 +6,8 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import admin from 'firebase-admin';
-import type { DecodedIdToken } from 'firebase-admin/auth';
+import { cert, getApps, initializeApp } from 'firebase-admin/app';
+import { getAuth, type DecodedIdToken } from 'firebase-admin/auth';
 
 @Injectable()
 export class FirebaseService implements OnModuleInit {
@@ -16,7 +16,7 @@ export class FirebaseService implements OnModuleInit {
   constructor(private readonly configService: ConfigService) {}
 
   onModuleInit() {
-    if (admin.apps.length > 0) return;
+    if (getApps().length > 0) return;
 
     const projectId = this.configService.get<string>('FIREBASE_PROJECT_ID');
     const clientEmail = this.configService.get<string>('FIREBASE_CLIENT_EMAIL');
@@ -36,8 +36,8 @@ export class FirebaseService implements OnModuleInit {
     }
 
     try {
-      admin.initializeApp({
-        credential: admin.credential.cert({
+      initializeApp({
+        credential: cert({
           projectId,
           clientEmail,
           //env file thường escape dấu xuống dòng thành \n
@@ -54,13 +54,13 @@ export class FirebaseService implements OnModuleInit {
 
   /** Xác minh Firebase ID token do frontend gửi lên sau khi xác nhận OTP. */
   async verifyIdToken(token: string): Promise<DecodedIdToken> {
-    if (admin.apps.length === 0) {
+    if (getApps().length === 0) {
       throw new ServiceUnavailableException(
         'Firebase chưa được cấu hình trên server',
       );
     }
     try {
-      return await admin.auth().verifyIdToken(token);
+      return await getAuth().verifyIdToken(token);
     } catch {
       throw new UnauthorizedException(
         'Token Firebase không hợp lệ hoặc đã hết hạn',

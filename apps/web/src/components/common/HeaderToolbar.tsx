@@ -1,79 +1,51 @@
 'use client';
 
 import clsx from 'clsx';
-
-import { useState } from 'react';
-import { Flex, Switch, Dropdown, type MenuProps } from 'antd';
+import { useMemo } from 'react';
+import { Flex, Dropdown, type MenuProps } from 'antd';
 import { ChevronDown, List, LayoutGrid } from 'lucide-react';
 
+import { SORT_OPTIONS } from '@/constants';
+
+export type ViewMode = 'list' | 'grid';
+
 interface HeaderToolbarProps {
-  onTabChange?: (tabKey: string) => void;
-  onVideoOnlyChange?: (checked: boolean) => void;
-  onSortChange?: (sortKey: string) => void;
-  onViewModeChange?: (mode: 'list' | 'grid') => void;
-  viewMode?: 'list' | 'grid';
+  sortKey: string;
+  onSortChange: (sortKey: string) => void;
+  viewMode: ViewMode;
+  onViewModeChange: (mode: ViewMode) => void;
+  /** Nội dung bên trái, vd tổng số tin. */
+  extra?: React.ReactNode;
 }
 
-const sortItems: MenuProps['items'] = [
-  { key: 'newest', label: 'Tin mới nhất' },
-  { key: 'price-asc', label: 'Giá thấp đến cao' },
-  { key: 'price-desc', label: 'Giá cao đến thấp' },
-  { key: 'area-desc', label: 'Diện tích lớn nhất' },
-];
+const sortItems: MenuProps['items'] = SORT_OPTIONS.map(({ key, label }) => ({ key, label }));
 
-const tabOptions = [
-  { key: 'all', label: 'Tất cả' },
-  { key: 'personal', label: 'Cá nhân' },
-  { key: 'broker', label: 'Môi giới' },
-];
-
+/** Thanh công cụ danh sách: sắp xếp + chuyển dạng list/grid. */
 export function HeaderToolbar({
-  onTabChange,
-  onVideoOnlyChange,
+  sortKey,
   onSortChange,
+  viewMode,
   onViewModeChange,
-  viewMode: viewModeProp,
+  extra,
 }: HeaderToolbarProps) {
-  const [activeTab, setActiveTab] = useState('all');
-  const [sortLabel, setSortLabel] = useState('Tin mới nhất');
-  const [internalViewMode, setInternalViewMode] = useState<'list' | 'grid'>('list');
-
-  const viewMode = viewModeProp ?? internalViewMode;
-
-  const handleTabClick = (key: string) => {
-    setActiveTab(key);
-    onTabChange?.(key);
-  };
-
-  const handleSortMenuClick: MenuProps['onClick'] = (e) => {
-    const selectedItem = sortItems?.find((item) => item?.key === e.key);
-    if (selectedItem && 'label' in selectedItem) {
-      setSortLabel(selectedItem.label as string);
-    }
-    onSortChange?.(e.key);
-  };
-
-  const handleViewModeChange = (mode: 'list' | 'grid') => {
-    setInternalViewMode(mode);
-    onViewModeChange?.(mode);
-  };
+  const sortLabel = SORT_OPTIONS.find(({ key }) => key === sortKey)?.label ?? SORT_OPTIONS[0].label;
+  const sortMenu = useMemo<MenuProps>(
+    () => ({
+      items: sortItems,
+      selectedKeys: [sortKey],
+      onClick: ({ key }) => onSortChange(key),
+    }),
+    [onSortChange, sortKey],
+  );
 
   return (
     <div className="bg-white rounded-t-xl border-b border-[#f0f0f0] px-4 py-2 select-none">
       <Flex align="center" justify="space-between" className="flex-wrap gap-y-2">
-        {/* Right options: Video toggle, Sort, View mode toggle */}
+        <div className="text-sm text-[#595959]">{extra}</div>
+
         <Flex align="center" gap={16} className="h-10">
-          {/* Tin có video */}
-          <Flex align="center" gap={8} className="cursor-pointer">
-            <span className="text-xs md:text-sm font-medium text-[#222]">Tin có video</span>
-            <Switch size="small" onChange={onVideoOnlyChange} className="bg-[#d9d9d9]" />
-          </Flex>
-
-          {/* Divider */}
-          <div className="h-4 w-px bg-[#e8e8e8]" />
-
           {/* Sort dropdown */}
-          <Dropdown menu={{ items: sortItems, onClick: handleSortMenuClick }} trigger={['click']}>
+          <Dropdown menu={sortMenu} trigger={['click']}>
             <button
               type="button"
               className="flex items-center gap-1.5 text-xs md:text-sm font-medium text-[#222] hover:text-[#f0325e] transition-colors cursor-pointer bg-transparent border-none p-0"
@@ -88,31 +60,23 @@ export function HeaderToolbar({
 
           {/* View mode toggle (List / Grid) */}
           <div className="flex align-center bg-[#f4f4f4] rounded-full p-1 gap-1">
-            <button
-              type="button"
-              onClick={() => handleViewModeChange('list')}
-              className={clsx(
-                'flex items-center justify-center size-7 rounded-full transition-all cursor-pointer border-none p-0',
-                viewMode === 'list'
-                  ? 'bg-white shadow-sm text-[#222]'
-                  : 'text-[#8c8c8c] hover:text-[#222] bg-transparent',
-              )}
-            >
-              <List size={18} />
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleViewModeChange('grid')}
-              className={clsx(
-                'flex items-center justify-center size-7 rounded-full transition-all cursor-pointer border-none p-0',
-                viewMode === 'grid'
-                  ? 'bg-white shadow-sm text-[#222]'
-                  : 'text-[#8c8c8c] hover:text-[#222] bg-transparent',
-              )}
-            >
-              <LayoutGrid size={18} />
-            </button>
+            {(['list', 'grid'] as const).map((mode) => (
+              <button
+                key={mode}
+                type="button"
+                aria-label={mode === 'list' ? 'Dạng danh sách' : 'Dạng lưới'}
+                aria-pressed={viewMode === mode}
+                onClick={() => onViewModeChange(mode)}
+                className={clsx(
+                  'flex items-center justify-center size-7 rounded-full transition-all cursor-pointer border-none p-0',
+                  viewMode === mode
+                    ? 'bg-white shadow-sm text-[#222]'
+                    : 'text-[#8c8c8c] hover:text-[#222] bg-transparent',
+                )}
+              >
+                {mode === 'list' ? <List size={18} /> : <LayoutGrid size={18} />}
+              </button>
+            ))}
           </div>
         </Flex>
       </Flex>

@@ -17,3 +17,4 @@ export * from './PaginationControl';
 export * from './HeaderToolbar';
 export * from './SearchResultsList';
 export * from './ImageLightbox';
+export * from './AreaPicker';

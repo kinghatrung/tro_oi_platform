@@ -1,3 +1,5 @@
+import { TransactionType } from '@tro-oi/shared';
+
 /** Formats a number using Vietnamese digit grouping. */
 export const formatNumber = (num: number | null | undefined): string => {
   if (num === null || num === undefined) return '0';
@@ -66,4 +68,10 @@ export function formatVietnameseCurrency(value: string | number | null | undefin
     return `${sign}${formatNumber(absValue / 1_000)} nghìn`;
   }
   return `${sign}${formatNumber(absValue)}`;
+}
+
+/** Giá tin đăng: thêm "/tháng" với tin cho thuê. */
+export function formatListingPrice(price: number, transaction: TransactionType): string {
+  const amount = formatVietnameseCurrency(price);
+  return transaction === TransactionType.RENT ? `${amount}/tháng` : amount;
 }

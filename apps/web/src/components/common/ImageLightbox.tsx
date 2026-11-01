@@ -29,28 +29,14 @@ export interface AgentInfo {
 }
 
 export interface SimilarListingItem {
-  id: number;
+  id: string;
   imageUrl?: string;
   title?: string;
-  timeAgo?: string;
-  countMedia?: number;
   propertyType?: string;
-  area?: number;
-  price?: number;
-  pricePerSquareMeter?: number;
+  /** Giá đã format, vd "3,2 triệu/tháng". */
+  priceLabel?: string;
   bedrooms?: number;
-  mainDirection?: string;
   address?: string;
-  location?: string;
-  district?: string;
-  street?: string;
-  floorCount?: number;
-  furnishing?: string;
-  author?: {
-    name?: string;
-    posted?: number;
-    rank?: string;
-  };
 }
 
 export interface ImageLightboxProps {
@@ -482,12 +468,9 @@ export function ImageLightbox({
             <div className="flex flex-col gap-1">
               <div className="flex items-start justify-between gap-3">
                 {propertyTitle && (
-                  <Link
-                    href="/chi-tiet"
-                    className="text-[#222]! text-xl! font-bold! leading-snug line-clamp-2! hover:underline! cursor-pointer"
-                  >
+                  <p className="text-[#222]! text-xl! font-bold! leading-snug line-clamp-2!">
                     {propertyTitle}
-                  </Link>
+                  </p>
                 )}
                 <button
                   onClick={handleLikeClick}
@@ -619,7 +602,7 @@ export function ImageLightbox({
                 <p className="text-primary mb-4 font-bold text-base">Tin đăng tương tự</p>
                 <Flex vertical gap={18} className="pb-8!">
                   {similarListings.map((item) => (
-                    <div key={item.id} className="flex gap-3 cursor-pointer">
+                    <Link key={item.id} href={`/phong-tro/${item.id}`} className="flex gap-3">
                       <div className="relative h-29.5 w-29.5 min-w-29.5 overflow-hidden rounded-lg">
                         <Image
                           src={item.imageUrl || '/images/test.jpg'}
@@ -634,21 +617,15 @@ export function ImageLightbox({
                         <p className="text-default line-clamp-2 leading-snug">{item.title}</p>
                         <p className="text-sm text-[#8c8c8c]">
                           {item.bedrooms ? `${item.bedrooms} PN ` : ''}
-                          {item.propertyType || 'Nhà ngõ, hẻm'}
+                          {item.propertyType}
                         </p>
-                        <p className="text-primary text-[#f0325e]">
-                          {typeof item.price === 'number'
-                            ? `${(item.price / 1000000).toLocaleString('vi-VN')} triệu/tháng`
-                            : item.price || '15 tỷ'}
-                        </p>
+                        <p className="text-primary text-[#f0325e]">{item.priceLabel}</p>
                         <div className="flex items-start gap-1 text-xs text-[#8c8c8c]">
                           <MapPin size={14} className="shrink-0 text-gray-400 mt-0.5" />
-                          <span className="text-sm text-[#8c8c8c]">
-                            {item.address || 'Q. Bắc Từ Liêm'}
-                          </span>
+                          <span className="text-sm text-[#8c8c8c]">{item.address}</span>
                         </div>
                       </div>
-                    </div>
+                    </Link>
                   ))}
                 </Flex>
               </div>

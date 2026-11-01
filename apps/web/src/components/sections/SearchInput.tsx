@@ -1,44 +1,49 @@
 'use client';
 
-import { Flex, Input, Button, Space, Dropdown, type MenuProps } from 'antd';
+import { useCallback, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Flex, Input, Button, Space } from 'antd';
 import { Search, ChevronDown, MapPin } from 'lucide-react';
 
-import { FloatingInput, CardDropdown } from '@/components/common';
+import { AreaPicker } from '@/components/common';
 
-/**
- * Search input component with location dropdown filter.
- * Allows users to search for properties and filter by province, district, and ward.
- */
+/** Ô tìm kiếm trang chủ: từ khoá + khu vực → /tim-kiem. */
 export function SearchInput() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [keyword, setKeyword] = useState(searchParams.get('keyword') ?? '');
+
+  const handleSearch = useCallback(() => {
+    const params = new URLSearchParams();
+    if (keyword.trim()) params.set('keyword', keyword.trim());
+    router.push(`/tim-kiem?${params.toString()}`);
+  }, [keyword, router]);
+
   return (
     <div className="bg-white rounded-2xl shadow-md px-6 py-3 h-18">
       <Flex gap={4} align="center" className="h-full">
         <Search size={24} />
         <Input
-          placeholder="Tìm trọ..."
+          aria-label="Từ khoá tìm kiếm"
+          placeholder="Tìm trọ theo tên đường, khu vực..."
+          value={keyword}
+          onChange={(event) => setKeyword(event.target.value)}
+          onPressEnter={handleSearch}
           className="text-[16px]! outline-0! border-0! flex-1 border-none! shadow-none! focus-visible:outline-none!"
         />
         <Space size={12}>
-          <Dropdown
-            trigger={['click']}
-            placement="bottomLeft"
-            popupRender={() => (
-              <CardDropdown title="Khu vực" footer="both" onClick={(e) => e.stopPropagation()}>
-                <FloatingInput title="Chọn tỉnh thành" className="h-12! px-4!" />
-                <FloatingInput title="Chọn quận huyện" className="h-12! px-4!" />
-                <FloatingInput title="Chọn phường/xã" className="h-12! px-4!" />
-              </CardDropdown>
+          <AreaPicker>
+            {(label) => (
+              <Button className="rounded-md! h-12! text-[16px]! font-medium!">
+                <Space size={8} align="center">
+                  <MapPin size={18} />
+                  {label}
+                  <ChevronDown size={18} />
+                </Space>
+              </Button>
             )}
-          >
-            <Button className="rounded-md! h-12! text-[16px]! font-medium!">
-              <Space size={8} align="center">
-                <MapPin size={18} />
-                Hà Nội
-                <ChevronDown size={18} />
-              </Space>
-            </Button>
-          </Dropdown>
-          <Button type="primary" className="rounded-md! h-12! text-[16px]!">
+          </AreaPicker>
+          <Button type="primary" className="rounded-md! h-12! text-[16px]!" onClick={handleSearch}>
             Tìm trọ
           </Button>
         </Space>

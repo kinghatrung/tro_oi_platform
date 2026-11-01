@@ -1,31 +1,22 @@
+import type { Metadata } from 'next';
 import { Row, Col } from 'antd';
-import { firstQueryValue, parsePriceRange } from '@/lib/searchFilters';
 
-import { SearchFilters } from '@/components/sections';
+import { searchListings } from '@/api/listings';
 import { SearchResultsList } from '@/components/common';
+import { SearchFilters } from '@/components/sections';
+import { toSearchRequest } from '@/lib/searchFilters';
 
+import { PAGE_SIZE } from './const';
 import type { SearchPageProps } from './type';
-import { mockListings, PAGE_SIZE } from './const';
 
+export const metadata: Metadata = {
+  title: 'Tìm phòng trọ, căn hộ, nhà nguyên căn | Trọ ơi',
+};
+
+/** Trang tìm kiếm: filter/sort/page đọc từ URL, dữ liệu lấy từ GET /listings. */
 export default async function SearchPage({ searchParams }: SearchPageProps) {
-  const params = await searchParams;
-  const { minPrice, maxPrice, valid } = parsePriceRange(params.minPrice, params.maxPrice);
-  const transaction = firstQueryValue(params.transaction);
-  const category = firstQueryValue(params.category);
-  const filteredListings = mockListings.filter(
-    (listing) =>
-      valid &&
-      (!transaction || listing.transaction === transaction) &&
-      (!category || listing.category === category) &&
-      (minPrice === undefined || listing.price >= minPrice) &&
-      (maxPrice === undefined || listing.price <= maxPrice),
-  );
-  const totalItems = filteredListings.length;
-  const maxPage = Math.max(1, Math.ceil(totalItems / PAGE_SIZE));
-  const requestedPage = params.page && /^\d+$/.test(params.page) ? Number(params.page) : 1;
-  const currentPage = Math.min(Math.max(requestedPage, 1), maxPage);
-  const pageOffset = (currentPage - 1) * PAGE_SIZE;
-  const listings = filteredListings.slice(pageOffset, pageOffset + PAGE_SIZE);
+  const { request, isPriceValid } = toSearchRequest(await searchParams, PAGE_SIZE);
+  const { items, total, page } = await searchListings(request);
 
   return (
     <Row gutter={[16, 16]}>
@@ -34,17 +25,17 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
       </Col>
 
       <Col lg={18} md={24} xs={24}>
-        {!valid && (
+        {!isPriceValid && (
           <p role="alert" className="mb-4 text-red-600">
             Khoảng giá không hợp lệ. Vui lòng nhập số không âm và giá tối đa không nhỏ hơn giá tối
             thiểu.
           </p>
         )}
         <SearchResultsList
-          items={listings}
-          totalItems={totalItems}
+          items={items}
+          totalItems={total}
           pageSize={PAGE_SIZE}
-          currentPage={currentPage}
+          currentPage={page}
         />
       </Col>
     </Row>

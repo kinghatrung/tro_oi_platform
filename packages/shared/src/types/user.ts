@@ -3,7 +3,7 @@ export enum UserRole {
   RENTER = 'renter',
   LANDLORD = 'landlord',
   AGENT = 'agent',
-  ADMIN = 'admin'
+  ADMIN = 'admin',
 }
 
 /** Nhãn hiển thị tiếng Việt cho UserRole. */
@@ -11,13 +11,14 @@ export const USER_ROLE_LABELS: Record<UserRole, string> = {
   [UserRole.RENTER]: 'Người thuê',
   [UserRole.LANDLORD]: 'Chủ nhà',
   [UserRole.AGENT]: 'Môi giới',
-  [UserRole.ADMIN]: 'Quản trị viên'
+  [UserRole.ADMIN]: 'Quản trị viên',
 };
 
 export interface User {
   id: string;
   name: string;
-  email: string;
+  email?: string;
+  /** Ẩn ở hồ sơ công khai (GET /users/:id). */
   phone?: string;
   bio?: string;
   avatar?: string;
@@ -26,4 +27,12 @@ export interface User {
   createdAt: string;
   /** ISO 8601 — luôn là string, không dùng Date. */
   updatedAt: string;
+}
+
+/** Body PATCH /users/me. */
+export interface UpdateProfileRequest {
+  name?: string;
+  email?: string;
+  bio?: string;
+  avatar?: string;
 }

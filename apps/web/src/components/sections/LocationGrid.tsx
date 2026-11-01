@@ -1,55 +1,40 @@
 import { Col, Row } from 'antd';
+import type { ListingStat, PropertyCategory, TransactionType } from '@tro-oi/shared';
 
 import { LocationCard } from '@/components/common';
+import { CITIES } from '@/constants';
 
-interface Location {
-  name: string;
-  image: string;
-  listingCount: number;
-  featured?: boolean;
+interface LocationGridProps {
+  stats: ListingStat[];
+  category: PropertyCategory;
+  transaction: TransactionType;
 }
 
-const LOCATIONS: Location[] = [
-  {
-    name: 'Tp Hồ Chí Minh',
-    image: '/images/test.jpg',
-    listingCount: 287,
-    featured: true,
-  },
-  {
-    name: 'Hà Nội',
-    image: '/images/test.jpg',
-    listingCount: 54,
-  },
-  {
-    name: 'Đà Nẵng',
-    image: '/images/test.jpg',
-    listingCount: 26,
-  },
-  {
-    name: 'Cần Thơ',
-    image: '/images/test.jpg',
-    listingCount: 9,
-  },
-  {
-    name: 'Bình Dương',
-    image: '/images/test.jpg',
-    listingCount: 70,
-  },
-];
+// shortcut: dùng ảnh chung cho mọi tỉnh, thay khi có ảnh riêng từng thành phố
+const CITY_IMAGE = '/images/test.jpg';
 
-/** Displays featured and secondary locations in a responsive grid. */
-export function LocationGrid() {
-  const [featured, ...locations] = LOCATIONS;
+/** Featured city + 4 thành phố khác, số tin đếm theo category/transaction đang chọn. */
+export function LocationGrid({ stats, category, transaction }: LocationGridProps) {
+  const [featured, ...locations] = CITIES.map((city) => ({
+    name: city,
+    image: CITY_IMAGE,
+    href: `/tim-kiem?${new URLSearchParams({ transaction, category, city })}`,
+    listingCount: stats
+      .filter(
+        (stat) =>
+          stat.city === city && stat.category === category && stat.transaction === transaction,
+      )
+      .reduce((sum, stat) => sum + stat.count, 0),
+  }));
 
   return (
     <Row gutter={[4, 4]} className="rounded-2xl!">
       {/* Featured location */}
       <Col xs={24} md={12}>
         <div className="h-full min-h-64">
-          <LocationCard {...featured} />
+          <LocationCard {...featured} featured />
         </div>
-      </Col>  
+      </Col>
 
       {/* Other locations */}
       <Col xs={24} md={12}>

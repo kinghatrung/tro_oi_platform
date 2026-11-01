@@ -6,7 +6,7 @@ export enum PropertyCategory {
   ROOM = 'phong-tro',
   APARTMENT = 'can-ho',
   WHOLE_HOUSE = 'nguyen-can',
-  ROOMMATE = 'o-ghep'
+  ROOMMATE = 'o-ghep',
 }
 
 /** Nhãn hiển thị tiếng Việt cho PropertyCategory. */
@@ -14,19 +14,19 @@ export const PROPERTY_CATEGORY_LABELS: Record<PropertyCategory, string> = {
   [PropertyCategory.ROOM]: 'Phòng trọ',
   [PropertyCategory.APARTMENT]: 'Căn hộ',
   [PropertyCategory.WHOLE_HOUSE]: 'Nguyên căn',
-  [PropertyCategory.ROOMMATE]: 'Tìm người ở ghép'
+  [PropertyCategory.ROOMMATE]: 'Tìm người ở ghép',
 };
 
 /** Hình thức giao dịch của tin đăng. */
 export enum TransactionType {
   RENT = 'rent-room',
-  BUY = 'buy-room'
+  BUY = 'buy-room',
 }
 
 /** Nhãn hiển thị tiếng Việt cho TransactionType. */
 export const TRANSACTION_TYPE_LABELS: Record<TransactionType, string> = {
   [TransactionType.RENT]: 'Cho thuê',
-  [TransactionType.BUY]: 'Mua bán'
+  [TransactionType.BUY]: 'Mua bán',
 };
 
 /** Trạng thái tin đăng. */
@@ -35,7 +35,7 @@ export enum ListingStatus {
   PENDING = 'pending',
   ACTIVE = 'active',
   EXPIRED = 'expired',
-  CLOSED = 'closed'
+  CLOSED = 'closed',
 }
 
 /** Nhãn hiển thị tiếng Việt cho ListingStatus. */
@@ -44,7 +44,7 @@ export const LISTING_STATUS_LABELS: Record<ListingStatus, string> = {
   [ListingStatus.PENDING]: 'Chờ duyệt',
   [ListingStatus.ACTIVE]: 'Đang hiển thị',
   [ListingStatus.EXPIRED]: 'Hết hạn',
-  [ListingStatus.CLOSED]: 'Đã đóng'
+  [ListingStatus.CLOSED]: 'Đã đóng',
 };
 
 /** Hướng nhà/phòng. */
@@ -56,7 +56,7 @@ export enum Direction {
   NORTH_EAST = 'north-east',
   NORTH_WEST = 'north-west',
   SOUTH_EAST = 'south-east',
-  SOUTH_WEST = 'south-west'
+  SOUTH_WEST = 'south-west',
 }
 
 /** Nhãn hiển thị tiếng Việt cho Direction. */
@@ -68,21 +68,21 @@ export const DIRECTION_LABELS: Record<Direction, string> = {
   [Direction.NORTH_EAST]: 'Đông Bắc',
   [Direction.NORTH_WEST]: 'Tây Bắc',
   [Direction.SOUTH_EAST]: 'Đông Nam',
-  [Direction.SOUTH_WEST]: 'Tây Nam'
+  [Direction.SOUTH_WEST]: 'Tây Nam',
 };
 
 /** Tình trạng nội thất. */
 export enum FurnishingStatus {
   FULL = 'full',
   BASIC = 'basic',
-  EMPTY = 'empty'
+  EMPTY = 'empty',
 }
 
 /** Nhãn hiển thị tiếng Việt cho FurnishingStatus. */
 export const FURNISHING_STATUS_LABELS: Record<FurnishingStatus, string> = {
   [FurnishingStatus.FULL]: 'Nội thất đầy đủ',
   [FurnishingStatus.BASIC]: 'Nội thất cơ bản',
-  [FurnishingStatus.EMPTY]: 'Không nội thất'
+  [FurnishingStatus.EMPTY]: 'Không nội thất',
 };
 
 /** Tiện ích đi kèm tin đăng (điều hòa, nóng lạnh, thang máy...). */
@@ -100,11 +100,10 @@ export interface ListingAuthor {
   role?: UserRole;
   phone?: string;
   email?: string;
-  /** Số tin đã đăng. */
+  /** Số tin đang hiển thị — chỉ có ở GET /listings/:id. */
   listingCount?: number;
-  /** ISO 8601 — thời điểm hoạt động gần nhất, vd để hiển thị "Hoạt động 4 ngày trước". */
-  lastActiveAt?: string;
-  profileUrl?: string;
+  /** ISO 8601 — thời điểm tạo tài khoản. */
+  joinedAt?: string;
 }
 
 /** Tin đăng nhà ở (phòng trọ, căn hộ, nguyên căn, ở ghép). */
@@ -151,6 +150,21 @@ export interface SearchListingRequest extends BaseListRequest {
   minArea?: number;
   maxArea?: number;
   bedrooms?: number;
+  authorId?: string;
+  /** Loại 1 tin khỏi kết quả (dùng cho "tin tương tự"). */
+  excludeId?: string;
+  sortBy?: ListingSortField;
+}
+
+/** Field được phép sắp xếp khi tìm kiếm tin. */
+export type ListingSortField = 'createdAt' | 'price' | 'area';
+
+/** Một dòng thống kê GET /listings/stats. */
+export interface ListingStat {
+  transaction: TransactionType;
+  category: PropertyCategory;
+  city: string;
+  count: number;
 }
 
 /** Payload tạo tin đăng mới. */
@@ -166,10 +180,8 @@ export interface CreateListingRequest {
   floorCount?: number;
   direction?: Direction;
   furnishing?: FurnishingStatus;
-  amenityIds?: string[];
   images: string[];
-  address?: AddressInfo;
-  expiresAt?: string;
+  address: AddressInfo;
 }
 
 /** Payload cập nhật tin đăng. */
