@@ -6,36 +6,57 @@ import {
   HttpStatus,
   Logger,
 } from '@nestjs/common';
+import { STATUS_CODES } from 'node:http';
+
 import type { Response } from 'express';
 
-/** Trả mọi lỗi theo ApiResponse: { success: false, message, statusCode }. */
+/** Message tiếng Việt thay cho message mặc định tiếng Anh của Nest/multer. */
+const DEFAULT_MESSAGES: Record<number, string> = {
+  400: 'Dữ liệu không hợp lệ',
+  401: 'Bạn cần đăng nhập',
+  403: 'Bạn không có quyền thực hiện thao tác này',
+  404: 'Không tìm thấy dữ liệu',
+  413: 'File quá lớn (tối đa 5MB)',
+  429: 'Bạn thao tác quá nhanh, vui lòng thử lại sau',
+  500: 'Lỗi máy chủ, vui lòng thử lại sau',
+};
+
+interface NestErrorBody {
+  message?: string | string[];
+}
+
+/** Trả mọi lỗi theo ApiResponse: { code, message, data: null }. */
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
   private readonly logger = new Logger(HttpExceptionFilter.name);
 
   catch(exception: unknown, host: ArgumentsHost) {
     const response = host.switchToHttp().getResponse<Response>();
+    const code =
+      exception instanceof HttpException
+        ? exception.getStatus()
+        : HttpStatus.INTERNAL_SERVER_ERROR;
+    if (!(exception instanceof HttpException)) this.logger.error(exception);
 
-    if (!(exception instanceof HttpException)) {
-      this.logger.error(exception);
-      response.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
-        success: false,
-        message: 'Lỗi máy chủ, vui lòng thử lại sau',
-        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-      });
-      return;
-    }
+    response.status(code).json({
+      code,
+      message: this.toMessage(exception, code),
+      data: null,
+    });
+  }
 
-    const statusCode = exception.getStatus();
+  private toMessage(exception: unknown, code: number) {
+    const fallback = DEFAULT_MESSAGES[code] ?? DEFAULT_MESSAGES[500];
+    if (!(exception instanceof HttpException) || code === 413) return fallback;
+
     const body = exception.getResponse();
-    const raw =
-      typeof body === 'string'
-        ? body
-        : (body as { message?: string | string[] }).message;
-    const message = Array.isArray(raw)
-      ? raw.join('; ')
-      : (raw ?? exception.message);
+    if (typeof body === 'string') return body;
 
-    response.status(statusCode).json({ success: false, message, statusCode });
+    const { message } = body as NestErrorBody;
+    const text = Array.isArray(message) ? message.join('; ') : message;
+    // Exception ném không kèm message (vd new NotFoundException()) hoặc route không tồn tại
+    const isNestDefault =
+      !text || text === STATUS_CODES[code] || /^Cannot \w+ \//.test(text);
+    return isNestDefault ? fallback : text;
   }
 }

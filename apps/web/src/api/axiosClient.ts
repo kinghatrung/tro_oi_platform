@@ -1,9 +1,10 @@
-import axios, { AxiosError } from 'axios';
+import axios, { AxiosError, type AxiosResponse } from 'axios';
+import type { ApiResponse } from '@tro-oi/shared';
 
 const TOKEN_COOKIE = 'accessToken';
 const TOKEN_MAX_AGE = 7 * 24 * 60 * 60;
 
-/** Lỗi từ API, giữ status để caller phân biệt 404/401... */
+/** Lỗi từ API; `status` = `code` của ApiResponse để caller phân biệt 404/401... */
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -41,17 +42,25 @@ axiosClient.interceptors.request.use((config) => {
   return config;
 });
 
-// Trả thẳng body ApiResponse<T>; lỗi → ApiError với message tiếng Việt từ backend
+/**
+ * Mọi response backend theo ApiResponse { code, message, data } (packages/shared/src/types/api.ts).
+ * Thành công → trả nguyên body ApiResponse<T>; lỗi → ApiError(message, code).
+ */
 axiosClient.interceptors.response.use(
-  (response) => response.data,
-  (error: AxiosError<{ message?: string }>) => {
-    const status = error.response?.status;
-    if (status === 401 && typeof document !== 'undefined') clearAccessToken();
+  (response: AxiosResponse<ApiResponse>) => {
+    const body = response.data;
+    // Phòng backend trả HTTP 2xx nhưng code lỗi trong body
+    if (body.code >= 400) return Promise.reject(new ApiError(body.message, body.code));
+    return body as never;
+  },
+  (error: AxiosError<Partial<ApiResponse>>) => {
+    const code = error.response?.data?.code ?? error.response?.status;
+    if (code === 401 && typeof document !== 'undefined') clearAccessToken();
 
     const message =
       error.response?.data?.message ??
       (error.response ? 'Có lỗi xảy ra, vui lòng thử lại' : 'Không kết nối được máy chủ');
-    return Promise.reject(new ApiError(message, status));
+    return Promise.reject(new ApiError(message, code));
   },
 );
 

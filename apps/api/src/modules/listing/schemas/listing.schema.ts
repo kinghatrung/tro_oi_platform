@@ -125,6 +125,10 @@ export class Listing {
   @Prop({ default: false })
   isFeatured: boolean;
 
+  /** Lượt xem trang chi tiết. */
+  @Prop({ default: 0 })
+  viewCount: number;
+
   createdAt: Date;
   updatedAt: Date;
 }

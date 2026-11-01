@@ -46,6 +46,7 @@ Chạy `npx prettier --write <file>` sau khi sửa file. **Giữ nguyên line en
 - Trang cần đăng nhập (`(private)`) là client page, lấy data qua store/API sau khi mount.
 - Server page fetch data qua `src/api/*` (axios chạy được cả server); bọc hàm lấy chi tiết bằng `React.cache` khi cả `generateMetadata` và page cùng dùng. Lỗi 404 → `notFound()` (kiểm tra `error instanceof ApiError && error.status === 404`).
 - Client component dùng `useSearchParams` trong trang có thể static → bọc `<Suspense>` (xem `Navbar`).
+- **Không** đặt `loading.tsx` ở segment có trang gọi `notFound()` (chi tiết tin, hồ sơ): response sẽ stream sớm với HTTP 200, mất status 404.
 - Filter/sort/page của trang tìm kiếm **lưu trên URL** (searchParams), không lưu state cục bộ.
 
 ### 3.3 Gọi API
@@ -58,7 +59,8 @@ export async function getListing(id: string) {
 }
 ```
 
-- Interceptor `src/api/axiosClient.ts` đã: gắn `Authorization: Bearer <accessToken>` (cookie), trả về `response.data` (là `ApiResponse<T>`), chuyển lỗi thành `Error` với message tiếng Việt từ backend, xoá token khi 401.
+- Mọi response theo contract `ApiResponse<T> = { code, message, data }` (xem mục "Định dạng response" trong [api.md](api.md)).
+- Interceptor `src/api/axiosClient.ts` đã: gắn `Authorization: Bearer <accessToken>` (cookie), trả nguyên `ApiResponse<T>`, `code >= 400` → ném `ApiError(message, code)`, xoá token khi 401.
 - Hàm API trả **kiểu đã unwrap** (`Listing`, `PagedResponse<Listing>`); caller không thấy `ApiResponse`.
 - Không `.catch(() => null)` nuốt lỗi. Ở client: `try/catch` → `message.error(err.message)` với `const { message } = App.useApp()`.
 - Không `import { message } from 'antd'` (static, mất theme).
@@ -102,7 +104,7 @@ export async function getListing(id: string) {
 - **ESM**: import file nội bộ phải có đuôi `.js` (`import { X } from './x.js'`).
 - Controller mỏng: nhận DTO, gọi service. Logic + truy vấn DB ở service.
 - Validate input bằng `class-validator` trong DTO. `ValidationPipe` global: `whitelist + transform`. Query số dùng `@Type(() => Number)`.
-- Response: controller **trả data thô**; `ResponseInterceptor` bọc thành `{ success: true, data }`. Lỗi: ném `HttpException` của Nest với message tiếng Việt; `HttpExceptionFilter` trả `{ success: false, message, statusCode }`.
+- Response **bắt buộc** đúng `ApiResponse<T> = { code, message, data }`: controller **chỉ `return` data thô**; `ResponseInterceptor` bọc thành `{ code: <HTTP status>, message: 'Thành công', data }`. Lỗi: ném `HttpException` của Nest **kèm message tiếng Việt**; `HttpExceptionFilter` trả `{ code, message, data: null }`. Không tự `res.json()`. Đổi format → sửa cả `response-format.spec.ts`, `packages/shared/src/types/api.ts`, `axiosClient.ts`.
 - Không trả document Mongoose trực tiếp: map qua hàm `to<Entity>()` để `id` là string, date là ISO string, đúng shape type trong `@tro-oi/shared`.
 - API **không import runtime** từ `@tro-oi/shared` (package là TS source, Nest build ESM không đọc được). Giá trị enum khai báo lại bằng mảng `as const` cạnh schema, kèm comment "trùng với X bên @tro-oi/shared". Khi đổi enum phải sửa **cả hai** nơi.
 - Route cần đăng nhập: `@UseGuards(JwtAuthGuard)`; lấy user bằng `@CurrentUser()` (`src/common/current-user.decorator.ts`).

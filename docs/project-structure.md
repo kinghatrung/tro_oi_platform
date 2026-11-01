@@ -58,8 +58,9 @@ src/
 ├── app.module.ts               # Config + Mongoose + các module
 ├── seed.ts                     # script tạo dữ liệu mẫu (yarn workspace api seed)
 ├── common/
-│   ├── response.interceptor.ts # bọc { success: true, data }
-│   ├── http-exception.filter.ts# { success: false, message, statusCode }
+│   ├── response.interceptor.ts # thành công → { code, message: 'Thành công', data }
+│   ├── http-exception.filter.ts# lỗi → { code, message (tiếng Việt), data: null }
+│   ├── response-format.spec.ts # test contract ApiResponse
 │   └── current-user.decorator.ts # @CurrentUser() → JwtPayload
 └── modules/
     ├── auth/                   # verify-phone, dev-login, JwtAuthGuard, FirebaseService
@@ -84,17 +85,23 @@ src/
 src/
 ├── app/
 │   ├── layout.tsx, providers.tsx      # font, AntdRegistry, ConfigProvider (viVN, theme)
+│   ├── not-found.tsx, error.tsx       # trang 404 (có header/footer) và trang lỗi (nút Thử lại)
 │   ├── page.tsx                       # Trang chủ (server, fetch listings + stats)
 │   ├── (auth)/dang-nhap/              # Đăng nhập OTP (Firebase) / dev-login
 │   └── (public)/                      # layout: SubHeader + Breadcrumb + Footer
-│       ├── tim-kiem/                  # Tìm kiếm (server, filter qua URL)
+│       ├── tim-kiem/                  # Tìm kiếm (server, filter qua URL) + loading.tsx skeleton
 │       ├── phong-tro/[slug]/          # Chi tiết tin, slug = listing id
 │       ├── nguoi-dung/[id]/           # Hồ sơ công khai người đăng
 │       ├── cho-oi/                    # Chợ đồ cũ — placeholder
 │       └── (private)/                 # cần đăng nhập (chặn ở src/proxy.ts), layout force-dynamic
-│           ├── ca-nhan/               # Hồ sơ của tôi + quản lý tin (ProfileEditModal.tsx)
+│           ├── ca-nhan/               # Hồ sơ của tôi + xem tin (ProfileEditModal.tsx)
 │           ├── yeu-thich/             # Tin đã lưu
-│           └── dang-tin/              # Đăng / sửa tin (?id=), const.tsx = options form
+│           ├── dang-tin/              # Đăng / sửa tin (?id=), const.tsx = options form
+│           └── kenh-nguoi-dang/       # Kênh người đăng: layout sidebar (SellerSidebar)
+│               ├── page.tsx           #   Tổng quan: thống kê tin/lượt xem/lượt lưu, top tin
+│               ├── tin-dang/          #   Quản lý tin: bảng lọc/tìm/sắp xếp, sửa/ẩn/xoá
+│               ├── useMyListings.ts   #   hook dùng chung: GET /listings/mine + ẩn/hiện/xoá
+│               └── const.tsx          #   menu sidebar, màu Tag theo trạng thái
 ├── proxy.ts                           # Next 16 proxy (middleware): thiếu cookie accessToken → /dang-nhap?redirect=
 ├── api/                               # axiosClient (token cookie, ApiError) + 1 file / domain: auth, users, listings, uploads
 ├── stores/useAuthStore.ts             # user, favorites, login/logout/toggleFavorite + hook useRequireUser()
@@ -119,10 +126,14 @@ src/
 | `/phong-tro/[id]`       | Server        | `GET /listings/:id`, tin tương tự, tin khác của người đăng |
 | `/nguoi-dung/[id]`      | Server        | `GET /users/:id`, `GET /listings?authorId=`           |
 | `/dang-nhap`            | Client        | `POST /auth/verify-phone` hoặc `/auth/dev-login`      |
-| `/ca-nhan` 🔒           | Client        | store user, `GET /listings/mine`, `PATCH /users/me`, `PATCH/DELETE /listings/:id` |
+| `/ca-nhan` 🔒           | Client        | store user, `GET /listings/mine`, `PATCH /users/me` |
+| `/kenh-nguoi-dang` 🔒   | Client        | `GET /listings/mine` → thống kê                      |
+| `/kenh-nguoi-dang/tin-dang` 🔒 | Client | `GET /listings/mine`, `PATCH/DELETE /listings/:id` |
 | `/yeu-thich` 🔒         | Client        | store favorites (`GET /users/me/favorites`)           |
 | `/dang-tin` 🔒          | Client        | `POST /uploads`, `POST /listings`, `PATCH /listings/:id` |
 | `/cho-oi`               | Static        | placeholder                                           |
+
+Breadcrumb (`BreadcrumbItem`) tự sinh từ URL theo `ROUTE_LABELS` — thêm route mới thì thêm nhãn vào đó.
 
 `/`, `/tim-kiem`, `/phong-tro/[id]`, `/nguoi-dung/[id]` render động (fetch API mỗi request). `generateMetadata` dùng chung kết quả với page qua `React.cache`. API trả 404 → `notFound()`.
 
@@ -146,7 +157,7 @@ src/
 1. `/dang-nhap`: nhập SĐT → Firebase gửi OTP (reCAPTCHA invisible) → nhập OTP → lấy ID token → `POST /auth/verify-phone`. Không có Firebase config → `POST /auth/dev-login`.
 2. Lưu `accessToken` vào cookie (7 ngày) + `useAuthStore`.
 3. `Navbar` gọi `useAuthStore.loadSession()` khi mount: có cookie → `GET /users/me` + `GET /users/me/favorites`.
-4. `src/proxy.ts` chặn `/ca-nhan`, `/yeu-thich`, `/dang-tin` khi chưa có cookie; layout `(auth)` đẩy về `/` khi đã có cookie.
+4. `src/proxy.ts` chặn `/ca-nhan`, `/yeu-thich`, `/dang-tin`, `/kenh-nguoi-dang` khi chưa có cookie; layout `(auth)` đẩy về `/` khi đã có cookie.
 5. Cookie còn nhưng token hết hạn: `loadSession` lỗi → xoá cookie; trang private dùng `useRequireUser()` tự chuyển sang `/dang-nhap`.
 6. API trả 401 ở bất kỳ request nào → interceptor xoá cookie.
 7. Đăng xuất: `logout()` + `window.location.assign('/')` (reload sạch state).

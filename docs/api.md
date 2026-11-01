@@ -5,24 +5,35 @@
 - CORS cho phép origin trong `WEB_ORIGIN` (mặc định `http://localhost:3001`).
 - Type TS tương ứng nằm trong `packages/shared/src/types/*` (cột "Type").
 
-## Định dạng response
+## Định dạng response (contract FE ↔ BE — bắt buộc)
+
+**Mọi** endpoint (thành công lẫn lỗi) trả đúng shape `ApiResponse<T>` trong `packages/shared/src/types/api.ts`:
 
 ```jsonc
-// Thành công — ResponseInterceptor bọc mọi giá trị controller trả về
-{ "success": true, "data": <T> }
-
-// Lỗi — HttpExceptionFilter
-{ "success": false, "message": "Thông báo tiếng Việt", "statusCode": 400 }
+{ "code": 200, "message": "Thành công", "data": <T> }                // thành công
+{ "code": 404, "message": "Không tìm thấy tin đăng", "data": null }   // lỗi
 ```
 
-Lỗi validate (400) gộp các message thành một chuỗi, ngăn cách `; `.
+| Field     | Kiểu     | Quy ước                                                                 |
+| --------- | -------- | ----------------------------------------------------------------------- |
+| `code`    | number   | Trùng HTTP status của response. `code < 400` = thành công               |
+| `message` | string   | Luôn có, tiếng Việt. Thành công: `"Thành công"`. Lỗi: hiển thị thẳng cho người dùng |
+| `data`    | T / null | Payload; `null` khi lỗi hoặc thao tác không trả dữ liệu (DELETE, PUT favorites) |
 
-| Status | Khi nào                                           |
+- Backend: controller chỉ `return data`; `ResponseInterceptor` bọc thành công, `HttpExceptionFilter` bọc lỗi. **Không** tự `res.json(...)` trong controller.
+- Lỗi validate (400) gộp các message thành một chuỗi, ngăn cách `; `.
+- Message mặc định tiếng Anh của Nest (`Not Found`, `Cannot GET /x`, `File too large`...) được thay bằng tiếng Việt theo `code`. Lỗi không phải `HttpException` → `500` + message chung (không lộ chi tiết).
+- Contract có test: `apps/api/src/common/response-format.spec.ts`.
+- FE: `apps/web/src/api/axiosClient.ts` trả nguyên `ApiResponse<T>`; `code >= 400` (kể cả khi HTTP 2xx) → ném `ApiError(message, code)`.
+
+| Code   | Khi nào                                           |
 | ------ | ------------------------------------------------- |
 | 400    | Body/query sai định dạng                          |
 | 401    | Thiếu/sai/hết hạn access token                    |
 | 403    | Không phải chủ tin đăng (và không phải admin)     |
-| 404    | Không tìm thấy (kể cả id không phải ObjectId)     |
+| 404    | Không tìm thấy (kể cả id không phải ObjectId, route không tồn tại) |
+| 413    | File upload > 5 MB                                |
+| 500    | Lỗi không mong muốn phía server                   |
 | 503    | Firebase chưa cấu hình trên server                |
 
 ## Xác thực
@@ -103,20 +114,23 @@ Type `Listing` (rút gọn):
   "images": ["http://localhost:5000/uploads/abc.jpg"],
   "address": { "street": "...", "ward": "...", "district": "Cầu Giấy", "city": "Hà Nội", "fullAddress": "...", "geo": { "latitude": 21.03, "longitude": 105.8 } },
   "author": { "id": "...", "name": "...", "avatar": "...", "role": "landlord", "phone": "+84...", "joinedAt": "...", "listingCount": 4 },
-  "isFeatured": false, "createdAt": "...", "updatedAt": "..."
+  "isFeatured": false, "viewCount": 128, "favoriteCount": 3,
+  "createdAt": "...", "updatedAt": "..."
 }
 ```
 
 - `pricePerSquareMeter` do server tính (`price / area`, làm tròn) khi có `area`.
 - `address.fullAddress` do server ghép từ `street, ward, district, city` nếu client không gửi.
 - `author.listingCount` chỉ có ở `GET /listings/:id`.
+- `viewCount`: mỗi lần gọi `GET /listings/:id` +1 (không đổi `updatedAt`).
+- `favoriteCount` (số người đã lưu) chỉ có ở `GET /listings/mine` — dùng cho Kênh người đăng.
 
 | Method | Path                 | Mô tả                                               | Response `data`             |
 | ------ | -------------------- | --------------------------------------------------- | --------------------------- |
 | GET    | `/listings`          | Tìm kiếm tin **active**, phân trang                 | `PagedResponse<Listing>`    |
 | GET    | `/listings/stats`    | Đếm tin active theo `transaction × category × city` | `ListingStat[]`             |
-| GET    | `/listings/mine` 🔒  | Mọi tin của tôi (mọi status), mới nhất trước        | `Listing[]`                 |
-| GET    | `/listings/:id`      | Chi tiết tin **active**                             | `Listing`                   |
+| GET    | `/listings/mine` 🔒  | Mọi tin của tôi (mọi status), mới nhất trước, kèm `favoriteCount` | `Listing[]`   |
+| GET    | `/listings/:id`      | Chi tiết tin **active**, tăng `viewCount`           | `Listing`                   |
 | POST   | `/listings` 🔒       | Đăng tin mới (status = `active`)                    | `Listing`                   |
 | PATCH  | `/listings/:id` 🔒   | Sửa tin (chủ tin hoặc admin)                        | `Listing`                   |
 | DELETE | `/listings/:id` 🔒   | Xoá tin (chủ tin hoặc admin)                        | `null`                      |

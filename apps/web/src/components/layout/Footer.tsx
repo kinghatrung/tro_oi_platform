@@ -150,13 +150,7 @@ export default function Footer() {
             </p>
             <p className="text-xs leading-5 text-gray-500">
               Trọ Ơi! là dự án cá nhân, không đại diện cho bất kỳ tổ chức, doanh nghiệp hoặc sàn
-              giao dịch bất động sản nào.{' '}
-              <Link
-                href="/chinh-sach-su-dung"
-                className="text-blue-600! underline! hover:text-blue-700!"
-              >
-                Chính sách sử dụng
-              </Link>
+              giao dịch bất động sản nào.
             </p>
           </div>
         </div>

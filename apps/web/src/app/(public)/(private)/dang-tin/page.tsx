@@ -82,7 +82,11 @@ export default function PostListingPage() {
         const body = { ...values, address, images };
         const saved = editing ? await updateListing(editing.id, body) : await createListing(body);
         message.success(editing ? 'Đã cập nhật tin' : 'Đăng tin thành công');
-        router.push(saved.status === ListingStatus.ACTIVE ? `/phong-tro/${saved.id}` : '/ca-nhan');
+        router.push(
+          saved.status === ListingStatus.ACTIVE
+            ? `/phong-tro/${saved.id}`
+            : '/kenh-nguoi-dang/tin-dang',
+        );
       } catch (error) {
         message.error((error as Error).message);
       } finally {

@@ -111,6 +111,7 @@ async function seed() {
       }),
       author: authors[index % authors.length]._id,
       isFeatured: index % 10 === 0,
+      viewCount: (index * 37) % 500,
       // rải thời gian đăng để sort "mới nhất" có ý nghĩa
       createdAt: new Date(Date.now() - index * 3 * 60 * 60 * 1000),
     };

@@ -12,8 +12,8 @@ interface ProfileListingsProps {
   /** Hồ sơ công khai: chỉ hiện tin đang hiển thị, không có tab. */
   readOnly?: boolean;
   onPostListing?: () => void;
-  /** Nút thao tác dưới mỗi tin (sửa/ẩn/xoá) — chỉ dùng ở hồ sơ của tôi. */
-  renderActions?: (listing: Listing) => ReactNode;
+  /** Nội dung cạnh tiêu đề, vd nút "Quản lý tin". */
+  extra?: ReactNode;
 }
 
 type ListingTab = 'active' | 'hidden';
@@ -23,7 +23,7 @@ export function ProfileListings({
   listings,
   readOnly = false,
   onPostListing,
-  renderActions,
+  extra,
 }: ProfileListingsProps) {
   const [tab, setTab] = useState<ListingTab>('active');
   const activeListings = listings.filter((item) => item.status === ListingStatus.ACTIVE);
@@ -33,7 +33,10 @@ export function ProfileListings({
   return (
     <div className="rounded-lg bg-white py-4 px-5">
       <Flex vertical gap={16}>
-        <p className="text-primary text-xl">Tất cả tin đăng ({listings.length})</p>
+        <Flex justify="space-between" align="center">
+          <p className="text-primary text-xl">Tất cả tin đăng ({listings.length})</p>
+          {extra}
+        </Flex>
 
         {!readOnly && (
           <Space>
@@ -60,11 +63,6 @@ export function ProfileListings({
             {visibleListings.map((listing) => (
               <div key={listing.id} className="border border-[#f0f0f0] rounded-lg overflow-hidden">
                 <CardItem column listing={listing} />
-                {renderActions && (
-                  <Flex gap={8} justify="end" className="px-6! pb-3!">
-                    {renderActions(listing)}
-                  </Flex>
-                )}
               </div>
             ))}
           </Flex>

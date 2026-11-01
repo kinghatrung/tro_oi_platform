@@ -1,0 +1,201 @@
+'use client';
+
+import Link from 'next/link';
+import Image from 'next/image';
+import { useMemo, useState } from 'react';
+import {
+  Button,
+  Card,
+  Flex,
+  Input,
+  Popconfirm,
+  Segmented,
+  Table,
+  Tag,
+  Tooltip,
+  type TableColumnsType,
+} from 'antd';
+import { Eye, EyeOff, Pencil, Plus, Trash2 } from 'lucide-react';
+import { LISTING_STATUS_LABELS, ListingStatus, type Listing } from '@tro-oi/shared';
+
+import { formatListingPrice, formatRelativeTime } from '@/utils/helpers';
+
+import { STATUS_TAG_COLORS } from '../const';
+import { useMyListings } from '../useMyListings';
+
+type StatusFilter = 'all' | 'active' | 'hidden';
+
+const PAGE_SIZE = 10;
+
+const matchesFilter = (listing: Listing, filter: StatusFilter) =>
+  filter === 'all' || (filter === 'active') === (listing.status === ListingStatus.ACTIVE);
+
+/** Quản lý tin: lọc theo trạng thái, tìm theo tiêu đề, sửa / ẩn-hiện / xoá. */
+export default function SellerListingsPage() {
+  const { listings, toggleStatus, remove } = useMyListings();
+  const [filter, setFilter] = useState<StatusFilter>('all');
+  const [keyword, setKeyword] = useState('');
+
+  const counts = useMemo(() => {
+    const items = listings ?? [];
+    return {
+      all: items.length,
+      active: items.filter((item) => matchesFilter(item, 'active')).length,
+      hidden: items.filter((item) => matchesFilter(item, 'hidden')).length,
+    };
+  }, [listings]);
+  const visibleListings = useMemo(() => {
+    const search = keyword.trim().toLowerCase();
+    return (listings ?? []).filter(
+      (item) => matchesFilter(item, filter) && item.title.toLowerCase().includes(search),
+    );
+  }, [filter, keyword, listings]);
+  const filterOptions = useMemo(
+    () => [
+      { value: 'all', label: `Tất cả (${counts.all})` },
+      { value: 'active', label: `Đang hiển thị (${counts.active})` },
+      { value: 'hidden', label: `Đã ẩn (${counts.hidden})` },
+    ],
+    [counts],
+  );
+  const columns = useMemo<TableColumnsType<Listing>>(
+    () => [
+      {
+        title: 'Tin đăng',
+        key: 'listing',
+        render: (_, listing) => (
+          <Flex gap={12} align="center" className="min-w-70">
+            <div className="relative h-16 w-20 shrink-0 overflow-hidden rounded-md">
+              <Image
+                src={listing.images[0] || '/images/test.jpg'}
+                alt={listing.title}
+                fill
+                sizes="80px"
+                className="object-cover"
+              />
+            </div>
+            <div className="min-w-0">
+              {listing.status === ListingStatus.ACTIVE ? (
+                <Link href={`/phong-tro/${listing.id}`} className="line-clamp-2 font-semibold">
+                  {listing.title}
+                </Link>
+              ) : (
+                <p className="line-clamp-2 font-semibold text-[#222]">{listing.title}</p>
+              )}
+              <p className="text-sm text-[#f0325e] font-semibold">
+                {formatListingPrice(listing.price, listing.transaction)}
+              </p>
+              <p className="text-xs text-[#8c8c8c] line-clamp-1">{listing.address?.fullAddress}</p>
+            </div>
+          </Flex>
+        ),
+      },
+      {
+        title: 'Trạng thái',
+        dataIndex: 'status',
+        width: 130,
+        render: (status: ListingStatus) => (
+          <Tag color={STATUS_TAG_COLORS[status]}>{LISTING_STATUS_LABELS[status]}</Tag>
+        ),
+      },
+      {
+        title: 'Lượt xem',
+        dataIndex: 'viewCount',
+        width: 110,
+        align: 'right',
+        sorter: (a, b) => (a.viewCount ?? 0) - (b.viewCount ?? 0),
+        render: (value?: number) => value ?? 0,
+      },
+      {
+        title: 'Lượt lưu',
+        dataIndex: 'favoriteCount',
+        width: 110,
+        align: 'right',
+        sorter: (a, b) => (a.favoriteCount ?? 0) - (b.favoriteCount ?? 0),
+        render: (value?: number) => value ?? 0,
+      },
+      {
+        title: 'Ngày đăng',
+        dataIndex: 'createdAt',
+        width: 130,
+        defaultSortOrder: 'descend',
+        sorter: (a, b) => a.createdAt.localeCompare(b.createdAt),
+        render: (value: string) => formatRelativeTime(value),
+      },
+      {
+        title: 'Thao tác',
+        key: 'actions',
+        width: 140,
+        fixed: 'right',
+        render: (_, listing) => {
+          const isActive = listing.status === ListingStatus.ACTIVE;
+          return (
+            <Flex gap={4}>
+              <Tooltip title="Sửa">
+                <Link href={`/dang-tin?id=${listing.id}`}>
+                  <Button size="small" aria-label="Sửa tin" icon={<Pencil size={14} />} />
+                </Link>
+              </Tooltip>
+              <Tooltip title={isActive ? 'Ẩn tin' : 'Hiện lại'}>
+                <Button
+                  size="small"
+                  aria-label={isActive ? 'Ẩn tin' : 'Hiện lại tin'}
+                  icon={isActive ? <EyeOff size={14} /> : <Eye size={14} />}
+                  onClick={() => toggleStatus(listing)}
+                />
+              </Tooltip>
+              <Popconfirm
+                title="Xoá tin này?"
+                description="Tin đã xoá không thể khôi phục."
+                okText="Xoá"
+                cancelText="Huỷ"
+                okButtonProps={{ danger: true }}
+                onConfirm={() => remove(listing)}
+              >
+                <Button size="small" danger aria-label="Xoá tin" icon={<Trash2 size={14} />} />
+              </Popconfirm>
+            </Flex>
+          );
+        },
+      },
+    ],
+    [remove, toggleStatus],
+  );
+
+  return (
+    <Card variant="borderless">
+      <Flex justify="space-between" align="center" wrap gap={12} className="mb-4!">
+        <h1 className="text-primary text-xl!">Quản lý tin đăng</h1>
+        <Link href="/dang-tin">
+          <Button type="primary" icon={<Plus size={16} />}>
+            Đăng tin mới
+          </Button>
+        </Link>
+      </Flex>
+
+      <Flex justify="space-between" align="center" wrap gap={12} className="mb-4!">
+        <Segmented
+          options={filterOptions}
+          value={filter}
+          onChange={(value) => setFilter(value as StatusFilter)}
+        />
+        <Input.Search
+          allowClear
+          placeholder="Tìm theo tiêu đề"
+          className="max-w-72"
+          onChange={(event) => setKeyword(event.target.value)}
+        />
+      </Flex>
+
+      <Table<Listing>
+        rowKey="id"
+        columns={columns}
+        dataSource={visibleListings}
+        loading={!listings}
+        pagination={{ pageSize: PAGE_SIZE, hideOnSinglePage: true }}
+        scroll={{ x: 900 }}
+        locale={{ emptyText: 'Không có tin đăng' }}
+      />
+    </Card>
+  );
+}

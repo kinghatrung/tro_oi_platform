@@ -19,7 +19,10 @@ export function withFullAddress(address: Address): Address {
 }
 
 /** Document (author đã populate) → Listing (shape của @tro-oi/shared). */
-export function toListing(doc: ListingDocument, listingCount?: number) {
+export function toListing(
+  doc: ListingDocument,
+  extra: { listingCount?: number; favoriteCount?: number } = {},
+) {
   const author = doc.author as unknown as UserDocument | Types.ObjectId;
   const isPopulated = author && 'name' in author;
 
@@ -50,10 +53,12 @@ export function toListing(doc: ListingDocument, listingCount?: number) {
           role: author.role,
           phone: author.phone,
           joinedAt: author.createdAt.toISOString(),
-          listingCount,
+          listingCount: extra.listingCount,
         }
       : undefined,
     isFeatured: doc.isFeatured,
+    viewCount: doc.viewCount ?? 0,
+    favoriteCount: extra.favoriteCount,
     createdAt: doc.createdAt.toISOString(),
     updatedAt: doc.updatedAt.toISOString(),
   };

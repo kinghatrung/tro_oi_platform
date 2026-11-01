@@ -18,6 +18,7 @@ import {
   MapPin,
   ChevronDown,
   FilePlus2,
+  LayoutDashboard,
 } from 'lucide-react';
 import { PropertyCategory, TransactionType } from '@tro-oi/shared';
 
@@ -69,6 +70,11 @@ const USER_MENU: MenuProps['items'] = [
     key: '/ca-nhan',
     label: menuLabel('Trang cá nhân'),
     icon: <UserRound color="#595959" size={20} />,
+  },
+  {
+    key: '/kenh-nguoi-dang',
+    label: menuLabel('Kênh người đăng'),
+    icon: <LayoutDashboard color="#595959" size={20} />,
   },
   {
     key: '/dang-tin',

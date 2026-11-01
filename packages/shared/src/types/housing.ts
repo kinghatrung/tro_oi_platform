@@ -44,7 +44,7 @@ export const LISTING_STATUS_LABELS: Record<ListingStatus, string> = {
   [ListingStatus.PENDING]: 'Chờ duyệt',
   [ListingStatus.ACTIVE]: 'Đang hiển thị',
   [ListingStatus.EXPIRED]: 'Hết hạn',
-  [ListingStatus.CLOSED]: 'Đã đóng',
+  [ListingStatus.CLOSED]: 'Đã ẩn',
 };
 
 /** Hướng nhà/phòng. */
@@ -130,6 +130,10 @@ export interface Listing {
   author?: ListingAuthor;
   tags?: string[];
   isFeatured?: boolean;
+  /** Lượt xem trang chi tiết. */
+  viewCount?: number;
+  /** Số người đã lưu — chỉ có ở GET /listings/mine (Kênh người đăng). */
+  favoriteCount?: number;
   /** ISO 8601 — thời điểm tin tự hết hạn. */
   expiresAt?: string;
   /** ISO 8601. */

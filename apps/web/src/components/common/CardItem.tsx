@@ -131,7 +131,7 @@ export function CardItem({ listing, column }: CardItemProps) {
                       className={isFavorite ? 'fill-[#f0325e] stroke-[#f0325e]' : ''}
                     />
                   }
-                  className="shrink-0 text-sm! text-[#222]! rounded-xl! btn-ghost!"
+                  className="shrink-0 text-sm! text-[#222]! rounded-xl!"
                   onClick={handleToggle}
                 >
                   {isFavorite ? 'Đã lưu' : 'Lưu'}

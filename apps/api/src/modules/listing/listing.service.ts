@@ -14,6 +14,7 @@ import type {
 } from './dto/listing.dto.js';
 import { buildListingQuery } from './listing.filter.js';
 import { AUTHOR_FIELDS, toListing, withFullAddress } from './listing.mapper.js';
+import { User, type UserDocument } from '../auth/schemas/user.schema.js';
 import { Listing, type ListingDocument } from './schemas/listing.schema.js';
 
 @Injectable()
@@ -21,6 +22,7 @@ export class ListingService {
   constructor(
     @InjectModel(Listing.name)
     private readonly listingModel: Model<ListingDocument>,
+    @InjectModel(User.name) private readonly userModel: Model<UserDocument>,
   ) {}
 
   async search(query: SearchListingDto) {
@@ -77,21 +79,46 @@ export class ListingService {
       .exec();
   }
 
+  /** Mọi tin của tôi, kèm số người đã lưu từng tin (cho Kênh người đăng). */
   async findMine(userId: string) {
     const docs = await this.listingModel
       .find({ author: userId })
       .sort({ createdAt: -1 })
       .populate('author', AUTHOR_FIELDS)
       .exec();
-    return docs.map((doc) => toListing(doc));
+
+    const ids = docs.map((doc) => doc._id);
+    const counts = await this.userModel
+      .aggregate<{ _id: unknown; count: number }>([
+        { $match: { favoriteListingIds: { $in: ids } } },
+        { $unwind: '$favoriteListingIds' },
+        { $match: { favoriteListingIds: { $in: ids } } },
+        { $group: { _id: '$favoriteListingIds', count: { $sum: 1 } } },
+      ])
+      .exec();
+    const favoriteCount = new Map(
+      counts.map((row) => [String(row._id), row.count]),
+    );
+
+    return docs.map((doc) =>
+      toListing(doc, {
+        favoriteCount: favoriteCount.get(doc.id as string) ?? 0,
+      }),
+    );
   }
 
   async findActive(id: string) {
     if (!isValidObjectId(id))
       throw new NotFoundException('Không tìm thấy tin đăng');
 
+    // shortcut: mỗi lần mở trang chi tiết +1 view (kể cả F5/bot), cần chống trùng khi có analytics thật
+    // timestamps: false — tăng view không được đổi updatedAt ("Cập nhật x ngày trước")
     const doc = await this.listingModel
-      .findOne({ _id: id, status: 'active' })
+      .findOneAndUpdate(
+        { _id: id, status: 'active' },
+        { $inc: { viewCount: 1 } },
+        { returnDocument: 'after', timestamps: false },
+      )
       .populate('author', AUTHOR_FIELDS)
       .exec();
     if (!doc) throw new NotFoundException('Không tìm thấy tin đăng');
@@ -99,7 +126,7 @@ export class ListingService {
     const listingCount = await this.listingModel
       .countDocuments({ author: doc.author._id, status: 'active' })
       .exec();
-    return toListing(doc, listingCount);
+    return toListing(doc, { listingCount });
   }
 
   async create(user: AuthUser, dto: CreateListingDto) {
