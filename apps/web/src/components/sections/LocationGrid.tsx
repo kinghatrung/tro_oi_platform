@@ -2,7 +2,7 @@ import { Col, Row } from 'antd';
 import type { ListingStat, PropertyCategory, TransactionType } from '@tro-oi/shared';
 
 import { LocationCard } from '@/components/common';
-import { CITIES } from '@/constants';
+import { CITIES, NO_IMAGE } from '@/constants';
 
 interface LocationGridProps {
   stats: ListingStat[];
@@ -10,22 +10,20 @@ interface LocationGridProps {
   transaction: TransactionType;
 }
 
-// shortcut: dùng ảnh chung cho mọi tỉnh, thay khi có ảnh riêng từng thành phố
-const CITY_IMAGE = '/images/test.jpg';
-
-/** Featured city + 4 thành phố khác, số tin đếm theo category/transaction đang chọn. */
+/** Featured city + 4 thành phố khác: số tin và ảnh lấy từ stats theo category/transaction đang chọn. */
 export function LocationGrid({ stats, category, transaction }: LocationGridProps) {
-  const [featured, ...locations] = CITIES.map((city) => ({
-    name: city,
-    image: CITY_IMAGE,
-    href: `/tim-kiem?${new URLSearchParams({ transaction, category, city })}`,
-    listingCount: stats
-      .filter(
-        (stat) =>
-          stat.city === city && stat.category === category && stat.transaction === transaction,
-      )
-      .reduce((sum, stat) => sum + stat.count, 0),
-  }));
+  const [featured, ...locations] = CITIES.map((city) => {
+    const stat = stats.find(
+      (item) =>
+        item.city === city && item.category === category && item.transaction === transaction,
+    );
+    return {
+      name: city,
+      image: stat?.image || NO_IMAGE,
+      href: `/tim-kiem?${new URLSearchParams({ transaction, category, city })}`,
+      listingCount: stat?.count ?? 0,
+    };
+  });
 
   return (
     <Row gutter={[4, 4]} className="rounded-2xl!">

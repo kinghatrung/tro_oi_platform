@@ -18,6 +18,7 @@ import {
 import { Eye, EyeOff, Pencil, Plus, Trash2 } from 'lucide-react';
 import { LISTING_STATUS_LABELS, ListingStatus, type Listing } from '@tro-oi/shared';
 
+import { NO_IMAGE } from '@/constants';
 import { formatListingPrice, formatRelativeTime } from '@/utils/helpers';
 
 import { STATUS_TAG_COLORS } from '../const';
@@ -67,7 +68,7 @@ export default function SellerListingsPage() {
           <Flex gap={12} align="center" className="min-w-70">
             <div className="relative h-16 w-20 shrink-0 overflow-hidden rounded-md">
               <Image
-                src={listing.images[0] || '/images/test.jpg'}
+                src={listing.images[0] || NO_IMAGE}
                 alt={listing.title}
                 fill
                 sizes="80px"

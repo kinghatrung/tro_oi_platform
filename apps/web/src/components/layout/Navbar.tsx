@@ -194,9 +194,9 @@ function Navbar() {
           <Link href="/yeu-thich" aria-label="Tin đã lưu">
             <Button icon={<Heart size={20} />} />
           </Link>
-          <a href="mailto:trogiup@trooi.vn">
-            <Button icon={<MessageCircle size={16} />}>Liên hệ</Button>
-          </a>
+          <Link href="/tin-nhan">
+            <Button icon={<MessageCircle size={16} />}>Tin nhắn</Button>
+          </Link>
           {!user && (
             <Link href="/dang-nhap">
               <Button>Đăng nhập</Button>

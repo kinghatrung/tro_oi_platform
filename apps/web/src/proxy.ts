@@ -11,5 +11,11 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/ca-nhan/:path*', '/yeu-thich/:path*', '/dang-tin/:path*', '/kenh-nguoi-dang/:path*'],
+  matcher: [
+    '/ca-nhan/:path*',
+    '/yeu-thich/:path*',
+    '/dang-tin/:path*',
+    '/kenh-nguoi-dang/:path*',
+    '/tin-nhan/:path*',
+  ],
 };

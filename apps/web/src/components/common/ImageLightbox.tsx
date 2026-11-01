@@ -19,6 +19,7 @@ import {
   SendHorizontal,
 } from 'lucide-react';
 import { ButtonDropdown } from '@/components/common';
+import { NO_IMAGE } from '@/constants';
 
 export interface AgentInfo {
   name: string;
@@ -605,7 +606,7 @@ export function ImageLightbox({
                     <Link key={item.id} href={`/phong-tro/${item.id}`} className="flex gap-3">
                       <div className="relative h-29.5 w-29.5 min-w-29.5 overflow-hidden rounded-lg">
                         <Image
-                          src={item.imageUrl || '/images/test.jpg'}
+                          src={item.imageUrl || NO_IMAGE}
                           alt={item.title || 'Ảnh nhà đất'}
                           fill
                           sizes="118px"

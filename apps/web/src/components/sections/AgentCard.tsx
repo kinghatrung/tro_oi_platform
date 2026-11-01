@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { Space, Avatar, Button, Flex } from 'antd';
-import { List, PhoneCall, UserRound } from 'lucide-react';
+import { List, MessageCircle, PhoneCall, UserRound } from 'lucide-react';
 import { USER_ROLE_LABELS, type ListingAuthor } from '@tro-oi/shared';
 
 import { formatRelativeTime } from '@/utils/helpers';
@@ -11,8 +11,14 @@ import { formatRelativeTime } from '@/utils/helpers';
 /** SĐT dạng +84xxxxxxxxx → 0xxxxxxxxx để hiển thị/gọi. */
 const toLocalPhone = (phone: string) => phone.replace(/^\+84/, '0');
 
+interface AgentCardProps {
+  author: ListingAuthor;
+  /** Tin đang xem — mở chat gắn với tin này. */
+  listingId: string;
+}
+
 /** Displays the listing agent's profile, activity, and contact actions. */
-export function AgentCard({ author }: { author: ListingAuthor }) {
+export function AgentCard({ author, listingId }: AgentCardProps) {
   const [isPhoneVisible, setIsPhoneVisible] = useState(false);
   const phone = author.phone && toLocalPhone(author.phone);
 
@@ -36,6 +42,11 @@ export function AgentCard({ author }: { author: ListingAuthor }) {
           )}
           {author.joinedAt && <span>Tham gia {formatRelativeTime(author.joinedAt)}</span>}
         </Flex>
+        <Link href={`/tin-nhan?listingId=${listingId}`}>
+          <Button block icon={<MessageCircle size={20} />} className="text-[16px]! font-bold!">
+            Chat với người đăng
+          </Button>
+        </Link>
         {phone && (
           <Flex align="center" gap={8}>
             <a

@@ -12,6 +12,7 @@ import type { AuthResponse } from '@tro-oi/shared';
 
 import { devLogin, verifyPhone } from '@/api/auth';
 import { FloatingInput } from '@/components/common';
+import { SUPPORT_EMAIL } from '@/constants';
 import { getFirebaseAuth } from '@/lib/firebase';
 import { useAuthStore } from '@/stores/useAuthStore';
 
@@ -193,7 +194,7 @@ function SignInPage() {
         <div id="recaptcha-container" />
 
         <Flex justify="space-between" align="center" className="mt-10!">
-          <a href="mailto:trogiup@trooi.vn">Liên hệ hỗ trợ</a>
+          <a href={`mailto:${SUPPORT_EMAIL}`}>Liên hệ hỗ trợ</a>
         </Flex>
       </Card>
     </main>

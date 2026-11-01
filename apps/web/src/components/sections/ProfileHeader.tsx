@@ -1,4 +1,3 @@
-import Image from 'next/image';
 import { Button, Avatar, Flex, Space } from 'antd';
 import { Calendar, Settings, UserRound, Info } from 'lucide-react';
 import { USER_ROLE_LABELS, type User } from '@tro-oi/shared';
@@ -11,21 +10,12 @@ interface ProfileHeaderProps {
   onEditProfile?: () => void;
 }
 
-const COVER_IMAGE = '/images/developer.png';
-
 /** Ảnh bìa + avatar + thông tin cơ bản của người dùng. */
 export function ProfileHeader({ user, onEditProfile }: ProfileHeaderProps) {
   return (
     <>
-      <div className="relative h-50 w-full">
-        <Image
-          src={COVER_IMAGE}
-          alt="Ảnh bìa"
-          fill
-          sizes="1200px"
-          className="object-cover rounded-t-lg"
-        />
-      </div>
+      {/* shortcut: ảnh bìa chung theo màu thương hiệu, thêm field coverUrl cho User khi cần ảnh bìa riêng */}
+      <div className="h-40 w-full rounded-t-lg bg-linear-to-r from-[#087f83] via-[#16a6a3] to-[#d9f5f3]" />
 
       <div className="p-5 rounded-b-lg bg-white">
         <Flex gap={20}>

@@ -169,6 +169,8 @@ export interface ListingStat {
   category: PropertyCategory;
   city: string;
   count: number;
+  /** Ảnh đầu tiên của tin mới nhất trong nhóm. */
+  image?: string;
 }
 
 /** Payload tạo tin đăng mới. */

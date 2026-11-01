@@ -35,6 +35,7 @@ const ROUTE_LABELS: Record<string, { title: string; linkable?: boolean }> = {
   'dang-tin': { title: 'Đăng tin' },
   'kenh-nguoi-dang': { title: 'Kênh người đăng' },
   'tin-dang': { title: 'Quản lý tin' },
+  'tin-nhan': { title: 'Tin nhắn' },
 };
 
 /** "/kenh-nguoi-dang/tin-dang" → [Kênh người đăng (link), Quản lý tin]. Segment lạ (id) bị bỏ qua. */

@@ -8,7 +8,7 @@ import { LayoutDashboard } from 'lucide-react';
 import type { Listing } from '@tro-oi/shared';
 
 import { getMyListings } from '@/api/listings';
-import { ProfileHeader, ProfileListings, ProfileReviews } from '@/components/sections';
+import { ProfileHeader, ProfileListings } from '@/components/sections';
 import { useAuthStore, useRequireUser } from '@/stores/useAuthStore';
 
 import { ProfileEditModal } from './ProfileEditModal';
@@ -59,10 +59,6 @@ export default function ProfilePage() {
             <Skeleton active />
           </Card>
         )}
-      </Col>
-
-      <Col span={24}>
-        <ProfileReviews />
       </Col>
 
       <ProfileEditModal

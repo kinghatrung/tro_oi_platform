@@ -6,7 +6,7 @@ import { Row, Col } from 'antd';
 import { ApiError } from '@/api/axiosClient';
 import { searchListings } from '@/api/listings';
 import { getUser } from '@/api/users';
-import { ProfileHeader, ProfileListings, ProfileReviews } from '@/components/sections';
+import { ProfileHeader, ProfileListings } from '@/components/sections';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -43,10 +43,6 @@ export default async function PublicProfilePage({ params }: PageProps) {
 
       <Col span={24}>
         <ProfileListings readOnly listings={listings.items} />
-      </Col>
-
-      <Col span={24}>
-        <ProfileReviews />
       </Col>
     </Row>
   );

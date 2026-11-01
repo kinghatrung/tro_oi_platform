@@ -12,4 +12,3 @@ export * from './PropertyOverview';
 export * from './SearchFilters';
 export * from './ProfileHeader';
 export * from './ProfileListings';
-export * from './ProfileReviews';

@@ -8,3 +8,4 @@ export * from './types/survey';
 export * from './types/news';
 export * from './types/jobs';
 export * from './types/upload';
+export * from './types/chat';

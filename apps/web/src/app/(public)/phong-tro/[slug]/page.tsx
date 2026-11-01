@@ -65,7 +65,7 @@ export default async function DetailPage({ params }: PageProps) {
       </Col>
 
       <Col lg={9} md={24} xs={24}>
-        {listing.author && <AgentCard author={listing.author} />}
+        {listing.author && <AgentCard author={listing.author} listingId={listing.id} />}
       </Col>
 
       <Col span={24}>

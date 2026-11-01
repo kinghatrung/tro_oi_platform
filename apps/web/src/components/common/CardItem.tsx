@@ -15,6 +15,7 @@ import {
   type Listing,
 } from '@tro-oi/shared';
 
+import { NO_IMAGE } from '@/constants';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { formatListingPrice, formatRelativeTime, formatVietnameseCurrency } from '@/utils/helpers';
 
@@ -23,8 +24,6 @@ interface CardItemProps {
   /** Dạng hàng ngang (trang tìm kiếm/danh sách); mặc định dạng thẻ dọc. */
   column?: boolean;
 }
-
-const FALLBACK_IMAGE = '/images/test.jpg';
 
 /** Nút Lưu tin: chưa đăng nhập → chuyển tới trang đăng nhập. */
 function useFavoriteToggle(listing: Listing) {
@@ -63,7 +62,7 @@ export function CardItem({ listing, column }: CardItemProps) {
   const { id, title, images, area, price, pricePerSquareMeter, bedrooms, address, author } =
     listing;
   const href = `/phong-tro/${id}`;
-  const imageUrl = images[0] || FALLBACK_IMAGE;
+  const imageUrl = images[0] || NO_IMAGE;
   const propertyType = PROPERTY_CATEGORY_LABELS[listing.category];
   const direction = listing.direction && DIRECTION_LABELS[listing.direction];
   const locationLabel = address?.district ? `${address.district}, ${address.city}` : address?.city;

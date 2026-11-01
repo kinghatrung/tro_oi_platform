@@ -31,6 +31,12 @@ export const CATEGORIES = [
   },
 ] as const;
 
+/** Ảnh hiển thị khi tin không có ảnh. */
+export const NO_IMAGE = '/images/no-image.svg';
+
+// shortcut: email hỗ trợ cố định, chuyển sang env khi có domain chính thức
+export const SUPPORT_EMAIL = 'trogiup@trooi.vn';
+
 /** Tỉnh/thành hỗ trợ. Giá trị lưu nguyên văn vào address.city (khớp seed bên API). */
 export const CITIES = ['Hà Nội', 'Hồ Chí Minh', 'Đà Nẵng', 'Cần Thơ', 'Bình Dương'] as const;
 

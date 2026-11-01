@@ -33,6 +33,7 @@ import type { CarouselRef } from 'antd/es/carousel';
 import { PROPERTY_CATEGORY_LABELS, USER_ROLE_LABELS, type Listing } from '@tro-oi/shared';
 
 import { LocationMap, ButtonDropdown, ImageLightbox } from '@/components/common';
+import { NO_IMAGE, SUPPORT_EMAIL } from '@/constants';
 import { buildPropertyFeatures, SAMPLE_QUESTIONS } from '@/lib/constants/constantsRoom';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { formatListingPrice, formatRelativeTime } from '@/utils/helpers';
@@ -41,8 +42,6 @@ interface PropertyOverviewProps {
   listing: Listing;
   similarListings?: Listing[];
 }
-
-const SUPPORT_EMAIL = 'trogiup@trooi.vn';
 
 const moreItems: MenuProps['items'] = [
   {
@@ -77,7 +76,7 @@ export function PropertyOverview({ listing, similarListings = [] }: PropertyOver
   );
   const toggleFavorite = useAuthStore((state) => state.toggleFavorite);
 
-  const images = listing.images.length > 0 ? listing.images : ['/images/test.jpg'];
+  const images = listing.images.length > 0 ? listing.images : [NO_IMAGE];
   const priceLabel = formatListingPrice(listing.price, listing.transaction);
   const geo = listing.address?.geo;
   const features = useMemo(() => buildPropertyFeatures(listing), [listing]);
@@ -128,6 +127,14 @@ export function PropertyOverview({ listing, similarListings = [] }: PropertyOver
       message.error((error as Error).message);
     }
   }, [isLoggedIn, listing, message, pathname, router, toggleFavorite]);
+
+  // Câu hỏi từ lightbox → mở trang chat với nội dung điền sẵn
+  const handleSendMessage = useCallback(
+    (content: string) => {
+      router.push(`/tin-nhan?${new URLSearchParams({ listingId: listing.id, text: content })}`);
+    },
+    [listing.id, router],
+  );
 
   const handleCopyLink = useCallback(async () => {
     try {
@@ -419,6 +426,7 @@ export function PropertyOverview({ listing, similarListings = [] }: PropertyOver
         isLiked={isFavorite}
         onLikeToggle={handleToggleFavorite}
         onShare={handleCopyLink}
+        onSendMessage={handleSendMessage}
       />
     </Flex>
   );

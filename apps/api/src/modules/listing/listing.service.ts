@@ -46,7 +46,7 @@ export class ListingService {
     };
   }
 
-  /** Số tin active theo transaction × category × city. */
+  /** Số tin active theo transaction × category × city, kèm ảnh đầu của tin mới nhất mỗi nhóm. */
   stats() {
     return this.listingModel
       .aggregate<{
@@ -54,8 +54,10 @@ export class ListingService {
         category: string;
         city: string;
         count: number;
+        image?: string;
       }>([
         { $match: { status: 'active' } },
+        { $sort: { createdAt: -1 } },
         {
           $group: {
             _id: {
@@ -64,6 +66,7 @@ export class ListingService {
               city: '$address.city',
             },
             count: { $sum: 1 },
+            image: { $first: { $arrayElemAt: ['$images', 0] } },
           },
         },
         {
@@ -73,6 +76,7 @@ export class ListingService {
             category: '$_id.category',
             city: '$_id.city',
             count: 1,
+            image: 1,
           },
         },
       ])

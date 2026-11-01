@@ -96,7 +96,8 @@ src/
 │       └── (private)/                 # cần đăng nhập (chặn ở src/proxy.ts), layout force-dynamic
 │           ├── ca-nhan/               # Hồ sơ của tôi + xem tin (ProfileEditModal.tsx)
 │           ├── yeu-thich/             # Tin đã lưu
-│           ├── dang-tin/              # Đăng / sửa tin (?id=), const.tsx = options form
+│           ├── dang-tin/              # Đăng / sửa tin (?id=): 6 bước + PostSidebar (xem trước, checklist), CategoryPicker
+│           ├── tin-nhan/              # Chat (UI): page + useChat.ts (điểm nối backend, xem chat-plan.md)
 │           └── kenh-nguoi-dang/       # Kênh người đăng: layout sidebar (SellerSidebar)
 │               ├── page.tsx           #   Tổng quan: thống kê tin/lượt xem/lượt lưu, top tin
 │               ├── tin-dang/          #   Quản lý tin: bảng lọc/tìm/sắp xếp, sửa/ẩn/xoá
@@ -108,8 +109,9 @@ src/
 ├── components/
 │   ├── layout/                        # Header (trang chủ), SubHeader, Navbar, Container, Footer
 │   ├── common/                        # UI thuần dùng lại (xem bảng dưới)
+│   ├── chat/                          # UI chat thuần: ConversationList, ChatWindow, MessageBubble, ChatComposer
 │   └── sections/                      # Khối giao diện theo trang
-├── constants/index.ts                 # CATEGORIES, CITIES, SORT_OPTIONS
+├── constants/index.ts                 # CATEGORIES, CITIES, SORT_OPTIONS, NO_IMAGE (ảnh dự phòng), SUPPORT_EMAIL
 ├── lib/searchFilters.ts               # toSearchRequest(): searchParams → SearchListingRequest (bỏ giá trị sai)
 ├── lib/constants/constantsRoom.tsx    # buildPropertyFeatures(listing), câu hỏi mẫu
 ├── utils/helpers.ts                   # formatNumber, formatRelativeTime, formatVietnameseCurrency, formatListingPrice
@@ -128,6 +130,7 @@ src/
 | `/dang-nhap`            | Client        | `POST /auth/verify-phone` hoặc `/auth/dev-login`      |
 | `/ca-nhan` 🔒           | Client        | store user, `GET /listings/mine`, `PATCH /users/me` |
 | `/kenh-nguoi-dang` 🔒   | Client        | `GET /listings/mine` → thống kê                      |
+| `/tin-nhan` 🔒          | Client        | `GET /listings/:id` (mở chat theo `?listingId=`); tin nhắn **chỉ lưu cục bộ** cho tới khi làm backend chat |
 | `/kenh-nguoi-dang/tin-dang` 🔒 | Client | `GET /listings/mine`, `PATCH/DELETE /listings/:id` |
 | `/yeu-thich` 🔒         | Client        | store favorites (`GET /users/me/favorites`)           |
 | `/dang-tin` 🔒          | Client        | `POST /uploads`, `POST /listings`, `PATCH /listings/:id` |
@@ -157,7 +160,7 @@ Breadcrumb (`BreadcrumbItem`) tự sinh từ URL theo `ROUTE_LABELS` — thêm r
 1. `/dang-nhap`: nhập SĐT → Firebase gửi OTP (reCAPTCHA invisible) → nhập OTP → lấy ID token → `POST /auth/verify-phone`. Không có Firebase config → `POST /auth/dev-login`.
 2. Lưu `accessToken` vào cookie (7 ngày) + `useAuthStore`.
 3. `Navbar` gọi `useAuthStore.loadSession()` khi mount: có cookie → `GET /users/me` + `GET /users/me/favorites`.
-4. `src/proxy.ts` chặn `/ca-nhan`, `/yeu-thich`, `/dang-tin`, `/kenh-nguoi-dang` khi chưa có cookie; layout `(auth)` đẩy về `/` khi đã có cookie.
+4. `src/proxy.ts` chặn `/ca-nhan`, `/yeu-thich`, `/dang-tin`, `/kenh-nguoi-dang`, `/tin-nhan` khi chưa có cookie; layout `(auth)` đẩy về `/` khi đã có cookie.
 5. Cookie còn nhưng token hết hạn: `loadSession` lỗi → xoá cookie; trang private dùng `useRequireUser()` tự chuyển sang `/dang-nhap`.
 6. API trả 401 ở bất kỳ request nào → interceptor xoá cookie.
 7. Đăng xuất: `logout()` + `window.location.assign('/')` (reload sạch state).
@@ -181,11 +184,12 @@ Web dùng qua `transpilePackages: ['@tro-oi/shared']`; package trỏ thẳng `sr
 ## Chưa làm (backlog)
 
 - Chợ đồ cũ (`/cho-oi`), tin tức, việc làm, khảo sát: mới có type ở shared.
-- Chat, thông báo, đánh giá người dùng (UI đánh giá đang hiển thị trạng thái rỗng).
+- Chat realtime: **UI xong**, backend + WebSocket theo [chat-plan.md](chat-plan.md).
+- Thông báo, đánh giá người dùng (đã gỡ UI đánh giá vì chưa có backend).
+- Ảnh bìa hồ sơ riêng (đang dùng dải màu chung), ứng dụng mobile / link tải app.
 - Đăng nhập Google/Facebook (nút hiển thị nhưng chưa nối).
 - Duyệt tin (tin đăng mới `active` ngay), hết hạn tin tự động, tiện ích (amenities), video.
 - Lưu tìm kiếm (hiện chỉ nhớ trong phiên), lịch sử xem tin.
-- Khung chat trong `ImageLightbox` chưa gửi được tin nhắn.
 - Bộ lọc diện tích / số phòng ngủ: API đã hỗ trợ, UI tìm kiếm chưa có.
 - Dữ liệu tỉnh/thành cố định trong `CITIES` (`apps/web/src/constants`), quận/huyện nhập tay.
 - Geocoding: bản đồ chỉ hiện khi tin có `address.geo`.

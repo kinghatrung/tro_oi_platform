@@ -1,17 +1,18 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   App,
-  Button,
   Card,
   Col,
+  Flex,
   Form,
   Input,
   InputNumber,
   Radio,
   Row,
+  Segmented,
   Select,
   Skeleton,
   Upload,
@@ -28,10 +29,11 @@ import {
 import { createListing, getMyListings, updateListing } from '@/api/listings';
 import { antdUploadRequest } from '@/api/uploads';
 import { useRequireUser } from '@/stores/useAuthStore';
-import { formatNumber } from '@/utils/helpers';
+import { formatListingPrice, formatNumber } from '@/utils/helpers';
 
+import { CategoryPicker } from './CategoryPicker';
+import { PostSidebar, type PostPreview } from './PostSidebar';
 import {
-  CATEGORY_OPTIONS,
   CITY_OPTIONS,
   DIRECTION_OPTIONS,
   FURNISHING_OPTIONS,
@@ -44,8 +46,41 @@ type ListingFormValues = Omit<CreateListingRequest, 'images'>;
 const toFileList = (images: string[]): UploadFile[] =>
   images.map((url, index) => ({ uid: `${index}-${url}`, name: url, status: 'done', url }));
 
+const fileUrl = (file: UploadFile) => (file.response as string | undefined) ?? file.url;
+
 const formatPrice = (value?: number | string) => (value ? formatNumber(Number(value)) : '');
 const parsePrice = (value?: string) => Number(value?.replace(/\D/g, '') || 0);
+
+const DESCRIPTION_PLACEHOLDER = `VD:
+- Phòng 25m², khép kín, có gác xép, cửa sổ thoáng.
+- Đầy đủ điều hoà, nóng lạnh, giường tủ.
+- Điện 3.500đ/số, nước 100.000đ/người, internet miễn phí.
+- Giờ giấc tự do, khoá vân tay, có chỗ để xe.`;
+
+interface FormSectionProps {
+  step: number;
+  title: string;
+  description?: string;
+  children: ReactNode;
+}
+
+/** Khối form có số thứ tự + tiêu đề + mô tả ngắn. */
+function FormSection({ step, title, description, children }: FormSectionProps) {
+  return (
+    <Card variant="borderless">
+      <Flex gap={12} className="mb-4!">
+        <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-[#16a6a3] text-sm font-bold text-white">
+          {step}
+        </span>
+        <div>
+          <h2 className="text-[16px] font-bold text-[#222]">{title}</h2>
+          {description && <p className="text-sm text-[#8c8c8c]">{description}</p>}
+        </div>
+      </Flex>
+      {children}
+    </Card>
+  );
+}
 
 /** Đăng tin mới, hoặc sửa tin của tôi khi có ?id=. */
 export default function PostListingPage() {
@@ -54,18 +89,35 @@ export default function PostListingPage() {
   const { message } = App.useApp();
   const user = useRequireUser();
   const [form] = Form.useForm<ListingFormValues>();
+  const values = Form.useWatch([], form);
   const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [editing, setEditing] = useState<Listing>();
   const [isLoading, setIsLoading] = useState(Boolean(editId));
   const [isSubmitting, setIsSubmitting] = useState(false);
   const isUploading = fileList.some((file) => file.status === 'uploading');
 
+  const doneImages = useMemo(
+    () => fileList.filter((file) => file.status === 'done' && fileUrl(file)),
+    [fileList],
+  );
+  const preview = useMemo<PostPreview>(
+    () => ({
+      title: values?.title,
+      price: values?.price,
+      area: values?.area,
+      transaction: values?.transaction,
+      category: values?.category,
+      city: values?.address?.city,
+      district: values?.address?.district,
+      coverUrl: doneImages[0] && fileUrl(doneImages[0]),
+      imageCount: doneImages.length,
+    }),
+    [doneImages, values],
+  );
+
   const handleSubmit = useCallback(
-    async (values: ListingFormValues) => {
-      const images = fileList
-        .filter((file) => file.status === 'done')
-        .map((file) => (file.response as string | undefined) ?? file.url)
-        .filter((url): url is string => Boolean(url));
+    async (formValues: ListingFormValues) => {
+      const images = doneImages.map(fileUrl).filter((url): url is string => Boolean(url));
       if (images.length === 0) {
         message.error('Cần ít nhất 1 ảnh');
         return;
@@ -76,10 +128,10 @@ export default function PostListingPage() {
         // Form không có field toạ độ: giữ geo cũ nếu không đổi khu vực, tránh mất bản đồ
         const oldAddress = editing?.address;
         const isSameArea =
-          oldAddress?.city === values.address.city &&
-          oldAddress?.district === values.address.district;
-        const address = { ...values.address, geo: isSameArea ? oldAddress?.geo : undefined };
-        const body = { ...values, address, images };
+          oldAddress?.city === formValues.address.city &&
+          oldAddress?.district === formValues.address.district;
+        const address = { ...formValues.address, geo: isSameArea ? oldAddress?.geo : undefined };
+        const body = { ...formValues, address, images };
         const saved = editing ? await updateListing(editing.id, body) : await createListing(body);
         message.success(editing ? 'Đã cập nhật tin' : 'Đăng tin thành công');
         router.push(
@@ -93,8 +145,10 @@ export default function PostListingPage() {
         setIsSubmitting(false);
       }
     },
-    [editing, fileList, message, router],
+    [doneImages, editing, message, router],
   );
+
+  const handleCancel = useCallback(() => router.back(), [router]);
 
   // Tin cần sửa lấy từ danh sách của tôi (GET /listings/:id chỉ trả tin active)
   useEffect(() => {
@@ -124,163 +178,233 @@ export default function PostListingPage() {
   }
 
   return (
-    <Card variant="borderless">
-      <h1 className="text-primary text-xl! mb-4">{editing ? 'Sửa tin đăng' : 'Đăng tin mới'}</h1>
+    <Form
+      form={form}
+      layout="vertical"
+      requiredMark="optional"
+      initialValues={{ transaction: TransactionType.RENT }}
+      onFinish={handleSubmit}
+      scrollToFirstError={{ behavior: 'smooth', block: 'center' }}
+    >
+      <Card variant="borderless" className="mb-4!">
+        <h1 className="text-primary text-xl!">{editing ? 'Sửa tin đăng' : 'Đăng tin mới'}</h1>
+        <p className="text-sm text-[#8c8c8c]">
+          Điền đủ 6 bước bên dưới. Trường có nhãn &quot;(optional)&quot; có thể bỏ trống.
+        </p>
+      </Card>
 
-      <Form
-        form={form}
-        layout="vertical"
-        requiredMark="optional"
-        initialValues={{ transaction: TransactionType.RENT }}
-        onFinish={handleSubmit}
-        scrollToFirstError
-      >
-        <Form.Item label={`Hình ảnh (tối đa ${MAX_IMAGES})`} required>
-          <Upload
-            listType="picture-card"
-            accept="image/jpeg,image/png,image/webp,image/gif"
-            multiple
-            maxCount={MAX_IMAGES}
-            fileList={fileList}
-            customRequest={antdUploadRequest}
-            onChange={({ fileList: next, file }) => {
-              setFileList(next);
-              if (file.status === 'error') message.error(file.error?.message ?? 'Tải ảnh thất bại');
-            }}
-          >
-            {fileList.length < MAX_IMAGES && (
-              <div className="flex flex-col items-center gap-1">
-                <ImagePlus size={20} />
-                <span className="text-xs">Thêm ảnh</span>
-              </div>
-            )}
-          </Upload>
-        </Form.Item>
+      <Row gutter={[16, 16]}>
+        <Col xs={24} lg={16}>
+          <Flex vertical gap={16}>
+            <FormSection step={1} title="Loại tin" description="Bạn muốn cho thuê hay bán?">
+              <Form.Item name="transaction" rules={[{ required: true }]}>
+                <Segmented block size="large" options={TRANSACTION_OPTIONS} />
+              </Form.Item>
+              <Form.Item
+                name="category"
+                label="Loại hình"
+                className="mb-0!"
+                rules={[{ required: true, message: 'Chọn loại hình' }]}
+              >
+                <CategoryPicker />
+              </Form.Item>
+            </FormSection>
 
-        <Row gutter={16}>
-          <Col xs={24} md={12}>
-            <Form.Item name="transaction" label="Hình thức" rules={[{ required: true }]}>
-              <Radio.Group options={TRANSACTION_OPTIONS} optionType="button" />
-            </Form.Item>
-          </Col>
-          <Col xs={24} md={12}>
-            <Form.Item
-              name="category"
-              label="Loại hình"
-              rules={[{ required: true, message: 'Chọn loại hình' }]}
+            <FormSection
+              step={2}
+              title="Hình ảnh"
+              description={`Tối đa ${MAX_IMAGES} ảnh JPG/PNG/WEBP, mỗi ảnh ≤ 5MB. Ảnh đầu tiên là ảnh bìa.`}
             >
-              <Select options={CATEGORY_OPTIONS} placeholder="Chọn loại hình" />
-            </Form.Item>
-          </Col>
-        </Row>
+              <Upload
+                listType="picture-card"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                multiple
+                maxCount={MAX_IMAGES}
+                fileList={fileList}
+                customRequest={antdUploadRequest}
+                onChange={({ fileList: next, file }) => {
+                  setFileList(next);
+                  if (file.status === 'error') {
+                    message.error(file.error?.message ?? 'Tải ảnh thất bại');
+                  }
+                }}
+              >
+                {fileList.length < MAX_IMAGES && (
+                  <div className="flex flex-col items-center gap-1 text-[#595959]">
+                    <ImagePlus size={22} />
+                    <span className="text-xs">Thêm ảnh</span>
+                  </div>
+                )}
+              </Upload>
+            </FormSection>
 
-        <Form.Item
-          name="title"
-          label="Tiêu đề"
-          rules={[{ required: true, min: 10, max: 150, message: 'Tiêu đề từ 10 đến 150 ký tự' }]}
-        >
-          <Input
-            showCount
-            maxLength={150}
-            placeholder="VD: Phòng trọ khép kín 25m² gần ĐH Quốc gia"
+            <FormSection
+              step={3}
+              title="Vị trí"
+              description="Địa chỉ giúp người thuê tìm thấy tin."
+            >
+              <Row gutter={16}>
+                <Col xs={24} md={12}>
+                  <Form.Item
+                    name={['address', 'city']}
+                    label="Tỉnh/thành phố"
+                    rules={[{ required: true, message: 'Chọn tỉnh/thành phố' }]}
+                  >
+                    <Select showSearch options={CITY_OPTIONS} placeholder="Chọn tỉnh/thành" />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} md={12}>
+                  <Form.Item
+                    name={['address', 'district']}
+                    label="Quận/huyện"
+                    rules={[{ required: true, whitespace: true, message: 'Nhập quận/huyện' }]}
+                  >
+                    <Input placeholder="VD: Cầu Giấy" />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} md={12}>
+                  <Form.Item
+                    name={['address', 'ward']}
+                    label="Phường/xã"
+                    className="mb-0! md:mb-6!"
+                  >
+                    <Input placeholder="VD: Dịch Vọng" />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} md={12}>
+                  <Form.Item
+                    name={['address', 'street']}
+                    label="Số nhà, tên đường"
+                    className="mb-0!"
+                  >
+                    <Input placeholder="VD: Số 12 ngõ 165 Xuân Thuỷ" />
+                  </Form.Item>
+                </Col>
+              </Row>
+            </FormSection>
+
+            <FormSection step={4} title="Giá & diện tích">
+              <Row gutter={16}>
+                <Col xs={24} md={12}>
+                  <Form.Item
+                    name="price"
+                    label={
+                      values?.transaction === TransactionType.BUY ? 'Giá bán' : 'Giá thuê / tháng'
+                    }
+                    rules={[{ required: true, message: 'Nhập giá' }]}
+                    extra={
+                      values?.price && values.transaction
+                        ? `= ${formatListingPrice(values.price, values.transaction)}`
+                        : undefined
+                    }
+                    className="mb-0!"
+                  >
+                    <InputNumber<number>
+                      min={0}
+                      step={100_000}
+                      className="w-full!"
+                      size="large"
+                      formatter={formatPrice}
+                      parser={parsePrice}
+                      suffix="đ"
+                      placeholder="VD: 3.500.000"
+                    />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} md={12}>
+                  <Form.Item name="area" label="Diện tích" className="mb-0!">
+                    <InputNumber
+                      min={1}
+                      className="w-full!"
+                      size="large"
+                      suffix="m²"
+                      placeholder="VD: 25"
+                    />
+                  </Form.Item>
+                </Col>
+              </Row>
+            </FormSection>
+
+            <FormSection
+              step={5}
+              title="Đặc điểm"
+              description="Thông tin chi tiết về căn phòng/nhà."
+            >
+              <Row gutter={16}>
+                <Col xs={8}>
+                  <Form.Item name="bedrooms" label="Phòng ngủ">
+                    <InputNumber min={0} precision={0} className="w-full!" />
+                  </Form.Item>
+                </Col>
+                <Col xs={8}>
+                  <Form.Item name="bathrooms" label="Phòng vệ sinh">
+                    <InputNumber min={0} precision={0} className="w-full!" />
+                  </Form.Item>
+                </Col>
+                <Col xs={8}>
+                  <Form.Item name="floorCount" label="Số tầng">
+                    <InputNumber min={0} precision={0} className="w-full!" />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} md={12}>
+                  <Form.Item name="furnishing" label="Nội thất" className="mb-0! md:mb-6!">
+                    <Radio.Group
+                      options={FURNISHING_OPTIONS}
+                      optionType="button"
+                      buttonStyle="solid"
+                    />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} md={12}>
+                  <Form.Item name="direction" label="Hướng" className="mb-0!">
+                    <Select allowClear options={DIRECTION_OPTIONS} placeholder="Chọn hướng" />
+                  </Form.Item>
+                </Col>
+              </Row>
+            </FormSection>
+
+            <FormSection
+              step={6}
+              title="Tiêu đề & mô tả"
+              description="Tiêu đề ngắn gọn, nêu điểm nổi bật: loại phòng, diện tích, vị trí."
+            >
+              <Form.Item
+                name="title"
+                label="Tiêu đề"
+                rules={[
+                  { required: true, whitespace: true, message: 'Nhập tiêu đề' },
+                  { min: 10, max: 150, message: 'Tiêu đề từ 10 đến 150 ký tự' },
+                ]}
+              >
+                <Input
+                  size="large"
+                  showCount
+                  maxLength={150}
+                  placeholder="VD: Phòng trọ khép kín 25m² full đồ gần ĐH Quốc gia"
+                />
+              </Form.Item>
+              <Form.Item name="description" label="Mô tả chi tiết" className="mb-0!">
+                <Input.TextArea
+                  autoSize={{ minRows: 6, maxRows: 16 }}
+                  showCount
+                  maxLength={5000}
+                  placeholder={DESCRIPTION_PLACEHOLDER}
+                />
+              </Form.Item>
+            </FormSection>
+          </Flex>
+        </Col>
+
+        <Col xs={24} lg={8}>
+          <PostSidebar
+            preview={preview}
+            isEditing={Boolean(editing)}
+            isSubmitting={isSubmitting}
+            isUploading={isUploading}
+            onCancel={handleCancel}
           />
-        </Form.Item>
-
-        <Form.Item name="description" label="Mô tả chi tiết">
-          <Input.TextArea rows={6} showCount maxLength={5000} />
-        </Form.Item>
-
-        <Row gutter={16}>
-          <Col xs={24} md={8}>
-            <Form.Item
-              name="price"
-              label="Giá (VNĐ)"
-              rules={[{ required: true, message: 'Nhập giá' }]}
-            >
-              <InputNumber<number>
-                min={0}
-                className="w-full!"
-                formatter={formatPrice}
-                parser={parsePrice}
-                addonAfter="đ"
-              />
-            </Form.Item>
-          </Col>
-          <Col xs={12} md={8}>
-            <Form.Item name="area" label="Diện tích">
-              <InputNumber min={1} className="w-full!" addonAfter="m²" />
-            </Form.Item>
-          </Col>
-          <Col xs={12} md={8}>
-            <Form.Item name="bedrooms" label="Phòng ngủ">
-              <InputNumber min={0} precision={0} className="w-full!" />
-            </Form.Item>
-          </Col>
-          <Col xs={12} md={8}>
-            <Form.Item name="bathrooms" label="Phòng vệ sinh">
-              <InputNumber min={0} precision={0} className="w-full!" />
-            </Form.Item>
-          </Col>
-          <Col xs={12} md={8}>
-            <Form.Item name="floorCount" label="Số tầng">
-              <InputNumber min={0} precision={0} className="w-full!" />
-            </Form.Item>
-          </Col>
-          <Col xs={12} md={8}>
-            <Form.Item name="direction" label="Hướng">
-              <Select allowClear options={DIRECTION_OPTIONS} />
-            </Form.Item>
-          </Col>
-          <Col xs={12} md={8}>
-            <Form.Item name="furnishing" label="Nội thất">
-              <Select allowClear options={FURNISHING_OPTIONS} />
-            </Form.Item>
-          </Col>
-        </Row>
-
-        <p className="text-primary mb-2">Địa chỉ</p>
-        <Row gutter={16}>
-          <Col xs={24} md={8}>
-            <Form.Item
-              name={['address', 'city']}
-              label="Tỉnh/thành phố"
-              rules={[{ required: true, message: 'Chọn tỉnh/thành phố' }]}
-            >
-              <Select showSearch options={CITY_OPTIONS} placeholder="Chọn tỉnh/thành" />
-            </Form.Item>
-          </Col>
-          <Col xs={24} md={8}>
-            <Form.Item
-              name={['address', 'district']}
-              label="Quận/huyện"
-              rules={[{ required: true, whitespace: true, message: 'Nhập quận/huyện' }]}
-            >
-              <Input />
-            </Form.Item>
-          </Col>
-          <Col xs={24} md={8}>
-            <Form.Item name={['address', 'ward']} label="Phường/xã">
-              <Input />
-            </Form.Item>
-          </Col>
-          <Col span={24}>
-            <Form.Item name={['address', 'street']} label="Số nhà, tên đường">
-              <Input />
-            </Form.Item>
-          </Col>
-        </Row>
-
-        <Button
-          type="primary"
-          htmlType="submit"
-          size="large"
-          loading={isSubmitting}
-          disabled={isUploading}
-          className="w-full md:w-60"
-        >
-          {editing ? 'Lưu thay đổi' : 'Đăng tin'}
-        </Button>
-      </Form>
-    </Card>
+        </Col>
+      </Row>
+    </Form>
   );
 }

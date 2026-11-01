@@ -159,8 +159,10 @@ Response: `{ "items": Listing[], "total": 120, "page": 1, "pageSize": 10 }`.
 ### `GET /listings/stats`
 
 ```json
-[{ "transaction": "rent-room", "category": "phong-tro", "city": "Hà Nội", "count": 12 }]
+[{ "transaction": "rent-room", "category": "phong-tro", "city": "Hà Nội", "count": 12, "image": "http://..." }]
 ```
+
+`image` = ảnh đầu tiên của tin mới nhất trong nhóm (dùng cho thẻ khu vực trang chủ).
 
 ### `POST /listings` body — Type `CreateListingRequest`
 

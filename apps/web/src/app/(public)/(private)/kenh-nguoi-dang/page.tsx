@@ -7,6 +7,7 @@ import { Button, Card, Col, Empty, Flex, Row, Skeleton, Statistic } from 'antd';
 import { Eye, EyeOff, FileText, Heart, Plus, TrendingUp } from 'lucide-react';
 import { ListingStatus } from '@tro-oi/shared';
 
+import { NO_IMAGE } from '@/constants';
 import { formatListingPrice } from '@/utils/helpers';
 
 import { SELLER_BASE } from './const';
@@ -104,7 +105,7 @@ export default function SellerOverviewPage() {
                 <span className="w-6 text-center font-bold text-[#8c8c8c]">{index + 1}</span>
                 <div className="relative h-14 w-18 shrink-0 overflow-hidden rounded-md">
                   <Image
-                    src={listing.images[0] || '/images/test.jpg'}
+                    src={listing.images[0] || NO_IMAGE}
                     alt={listing.title}
                     fill
                     sizes="72px"
