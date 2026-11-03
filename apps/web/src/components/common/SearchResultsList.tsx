@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { Row, Col, Flex, Empty } from 'antd';
+import { Row, Col, Flex } from 'antd';
 import type { Listing } from '@tro-oi/shared';
 
 import { DEFAULT_SORT } from '@/constants';
@@ -10,6 +10,7 @@ import { formatNumber } from '@/utils/helpers';
 
 import { HeaderToolbar, type ViewMode } from './HeaderToolbar';
 import { CardItem } from './CardItem';
+import { EmptyState, EmptyVariant } from './EmptyState';
 import { PaginationControl } from './PaginationControl';
 
 interface SearchResultsListProps {
@@ -55,8 +56,11 @@ export function SearchResultsList({
       />
 
       {items.length === 0 ? (
-        <div className="bg-white py-12">
-          <Empty description="Không có tin phù hợp" />
+        <div className="bg-surface py-12">
+          <EmptyState
+            variant={EmptyVariant.SEARCH}
+            description="Không có tin phù hợp. Thử bỏ bớt bộ lọc hoặc đổi khu vực."
+          />
         </div>
       ) : viewMode === 'list' ? (
         <Flex vertical gap={4}>

@@ -17,5 +17,7 @@ export const config = {
     '/dang-tin/:path*',
     '/kenh-nguoi-dang/:path*',
     '/tin-nhan/:path*',
+    '/cho-oi/dang-ban',
+    '/quan-tri/:path*',
   ],
 };

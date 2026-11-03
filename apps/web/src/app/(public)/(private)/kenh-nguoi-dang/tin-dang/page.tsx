@@ -18,18 +18,23 @@ import {
 import { Eye, EyeOff, Pencil, Plus, Trash2 } from 'lucide-react';
 import { LISTING_STATUS_LABELS, ListingStatus, type Listing } from '@tro-oi/shared';
 
+import { EmptyState, EmptyVariant } from '@/components/common';
 import { NO_IMAGE } from '@/constants';
 import { formatListingPrice, formatRelativeTime } from '@/utils/helpers';
 
 import { STATUS_TAG_COLORS } from '../const';
 import { useMyListings } from '../useMyListings';
 
-type StatusFilter = 'all' | 'active' | 'hidden';
+type StatusFilter = 'all' | 'active' | 'pending' | 'hidden';
 
 const PAGE_SIZE = 10;
 
-const matchesFilter = (listing: Listing, filter: StatusFilter) =>
-  filter === 'all' || (filter === 'active') === (listing.status === ListingStatus.ACTIVE);
+const matchesFilter = (listing: Listing, filter: StatusFilter) => {
+  if (filter === 'all') return true;
+  if (filter === 'active') return listing.status === ListingStatus.ACTIVE;
+  if (filter === 'pending') return listing.status === ListingStatus.PENDING;
+  return listing.status !== ListingStatus.ACTIVE && listing.status !== ListingStatus.PENDING;
+};
 
 /** Quản lý tin: lọc theo trạng thái, tìm theo tiêu đề, sửa / ẩn-hiện / xoá. */
 export default function SellerListingsPage() {
@@ -42,6 +47,7 @@ export default function SellerListingsPage() {
     return {
       all: items.length,
       active: items.filter((item) => matchesFilter(item, 'active')).length,
+      pending: items.filter((item) => matchesFilter(item, 'pending')).length,
       hidden: items.filter((item) => matchesFilter(item, 'hidden')).length,
     };
   }, [listings]);
@@ -55,6 +61,7 @@ export default function SellerListingsPage() {
     () => [
       { value: 'all', label: `Tất cả (${counts.all})` },
       { value: 'active', label: `Đang hiển thị (${counts.active})` },
+      { value: 'pending', label: `Chờ duyệt (${counts.pending})` },
       { value: 'hidden', label: `Đã ẩn (${counts.hidden})` },
     ],
     [counts],
@@ -81,12 +88,12 @@ export default function SellerListingsPage() {
                   {listing.title}
                 </Link>
               ) : (
-                <p className="line-clamp-2 font-semibold text-[#222]">{listing.title}</p>
+                <p className="line-clamp-2 font-semibold text-ink">{listing.title}</p>
               )}
-              <p className="text-sm text-[#f0325e] font-semibold">
+              <p className="text-sm text-price font-semibold">
                 {formatListingPrice(listing.price, listing.transaction)}
               </p>
-              <p className="text-xs text-[#8c8c8c] line-clamp-1">{listing.address?.fullAddress}</p>
+              <p className="text-xs text-subtle line-clamp-1">{listing.address?.fullAddress}</p>
             </div>
           </Flex>
         ),
@@ -137,14 +144,17 @@ export default function SellerListingsPage() {
                   <Button size="small" aria-label="Sửa tin" icon={<Pencil size={14} />} />
                 </Link>
               </Tooltip>
-              <Tooltip title={isActive ? 'Ẩn tin' : 'Hiện lại'}>
-                <Button
-                  size="small"
-                  aria-label={isActive ? 'Ẩn tin' : 'Hiện lại tin'}
-                  icon={isActive ? <EyeOff size={14} /> : <Eye size={14} />}
-                  onClick={() => toggleStatus(listing)}
-                />
-              </Tooltip>
+              {/* Tin chờ duyệt: chỉ admin đổi được trạng thái */}
+              {listing.status !== ListingStatus.PENDING && (
+                <Tooltip title={isActive ? 'Ẩn tin' : 'Hiện lại'}>
+                  <Button
+                    size="small"
+                    aria-label={isActive ? 'Ẩn tin' : 'Hiện lại tin'}
+                    icon={isActive ? <EyeOff size={14} /> : <Eye size={14} />}
+                    onClick={() => toggleStatus(listing)}
+                  />
+                </Tooltip>
+              )}
               <Popconfirm
                 title="Xoá tin này?"
                 description="Tin đã xoá không thể khôi phục."
@@ -195,7 +205,15 @@ export default function SellerListingsPage() {
         loading={!listings}
         pagination={{ pageSize: PAGE_SIZE, hideOnSinglePage: true }}
         scroll={{ x: 900 }}
-        locale={{ emptyText: 'Không có tin đăng' }}
+        locale={{
+          emptyText: (
+            <EmptyState
+              size="small"
+              variant={EmptyVariant.LISTING}
+              description="Không có tin đăng"
+            />
+          ),
+        }}
       />
     </Card>
   );

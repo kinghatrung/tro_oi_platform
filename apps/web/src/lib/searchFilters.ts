@@ -1,6 +1,15 @@
-import { PropertyCategory, TransactionType, type SearchListingRequest } from '@tro-oi/shared';
+import {
+  ProductCategory,
+  ProductCondition,
+  PropertyCategory,
+  TransactionType,
+  type SearchListingRequest,
+  type SearchProductRequest,
+  type SortDirection,
+} from '@tro-oi/shared';
 
-import { SORT_OPTIONS } from '@/constants';
+import { CITIES, SORT_OPTIONS } from '@/constants';
+import { PRODUCT_PRICE_RANGES, PRODUCT_SORT_OPTIONS } from '@/lib/constants/constantsProduct';
 
 type QueryValue = string | string[] | undefined;
 
@@ -15,6 +24,13 @@ function parsePrice(value: QueryValue): number | undefined {
     return NaN;
   }
   return Number(value) * 1_000_000;
+}
+
+/** Số không âm từ query; sai định dạng → bỏ qua (undefined). */
+function parseNonNegative(value: QueryValue): number | undefined {
+  const text = firstQueryValue(value)?.trim();
+  if (!text || !/^\d+(?:\.\d+)?$/.test(text)) return undefined;
+  return Number(text);
 }
 
 export function parsePriceRange(minValue: QueryValue, maxValue: QueryValue) {
@@ -66,10 +82,42 @@ export function toSearchRequest(
       category: isEnumValue(PropertyCategory, category) ? category : undefined,
       minPrice: valid ? minPrice : undefined,
       maxPrice: valid ? maxPrice : undefined,
+      minArea: parseNonNegative(params.minArea),
+      maxArea: parseNonNegative(params.maxArea),
+      bedrooms: parseNonNegative(params.bedrooms),
       sortBy: sort.sortBy,
       sortDirection: sort.sortDirection,
       page: Number.isInteger(page) && page > 0 ? page : 1,
       pageSize,
     },
+  };
+}
+
+/** searchParams của /cho-oi → request GET /products. Giá trị không hợp lệ bị bỏ qua. */
+export function toProductSearchRequest(
+  params: Record<string, QueryValue>,
+  pageSize: number,
+): SearchProductRequest {
+  const category = firstQueryValue(params.category);
+  const condition = firstQueryValue(params.condition);
+  const city = firstQueryValue(params.city);
+  const price = PRODUCT_PRICE_RANGES.find(({ key }) => key === firstQueryValue(params.price));
+  const sort =
+    PRODUCT_SORT_OPTIONS.find(({ value }) => value === firstQueryValue(params.sort)) ??
+    PRODUCT_SORT_OPTIONS[0];
+  const page = Number(firstQueryValue(params.page));
+
+  return {
+    keyword: firstQueryValue(params.keyword)?.trim() || undefined,
+    category: isEnumValue(ProductCategory, category) ? category : undefined,
+    condition: isEnumValue(ProductCondition, condition) ? condition : undefined,
+    city: CITIES.find((item) => item === city),
+    district: firstQueryValue(params.district)?.trim() || undefined,
+    minPrice: price && 'min' in price ? price.min : undefined,
+    maxPrice: price && 'max' in price ? price.max : undefined,
+    sortBy: sort.sortBy,
+    sortDirection: sort.sortDirection as SortDirection,
+    page: Number.isInteger(page) && page > 0 ? page : 1,
+    pageSize,
   };
 }

@@ -46,7 +46,7 @@ export function SectionNews({
   );
 
   return (
-    <div className={clsx('bg-white rounded-lg p-5 mb-4', className)}>
+    <div className={clsx('bg-surface rounded-lg p-5 mb-4', className)}>
       {title && (
         <Flex gap={16} align="center" className="mb-4!">
           <p className="text-primary">{title}</p>

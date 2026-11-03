@@ -15,7 +15,7 @@
 | --- | --- | --- |
 | Type dùng chung | `packages/shared/src/types/chat.ts` | `Conversation`, `ChatMessage`, `ChatParticipant`, `MessageStatus` — backend trả **đúng** các shape này |
 | UI thuần | `apps/web/src/components/chat/*` | `ConversationList`, `ChatWindow`, `MessageBubble`, `ChatComposer` — không cần sửa |
-| Trang | `apps/web/src/app/(public)/(private)/tin-nhan/page.tsx` | `/tin-nhan?listingId=&text=` |
+| Trang | `apps/web/src/app/(chat)/tin-nhan/page.tsx` | `/tin-nhan?listingId=&text=` |
 | **Điểm nối** | `.../tin-nhan/useChat.ts` | Hiện chỉ giữ state cục bộ. **Bạn chỉ cần viết lại ruột hook này** (giữ nguyên giá trị trả về) |
 | Lối vào | `AgentCard` (nút "Chat với người đăng"), lightbox ảnh (câu hỏi nhanh), Navbar ("Tin nhắn") | |
 

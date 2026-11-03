@@ -3,10 +3,11 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { Fragment, useEffect, useRef } from 'react';
-import { Alert, Avatar, Button, Divider, Empty, Flex } from 'antd';
+import { Alert, Avatar, Button, Divider, Flex } from 'antd';
 import { ChevronLeft, UserRound } from 'lucide-react';
 import { USER_ROLE_LABELS, type ChatMessage, type Conversation } from '@tro-oi/shared';
 
+import { EmptyState, EmptyVariant } from '@/components/common';
 import { NO_IMAGE } from '@/constants';
 import { formatListingPrice } from '@/utils/helpers';
 
@@ -51,7 +52,10 @@ export function ChatWindow({
   if (!conversation) {
     return (
       <Flex align="center" justify="center" className="h-full">
-        <Empty description="Chọn một cuộc trò chuyện, hoặc bấm “Chat” ở trang tin đăng để bắt đầu." />
+        <EmptyState
+          variant={EmptyVariant.CHAT}
+          description="Chọn một cuộc trò chuyện, hoặc bấm “Chat” ở trang tin đăng để bắt đầu."
+        />
       </Flex>
     );
   }
@@ -61,7 +65,7 @@ export function ChatWindow({
   return (
     <Flex vertical className="h-full">
       {/* Người nhận */}
-      <Flex align="center" gap={12} className="border-b border-[#f0f0f0] px-3 py-2">
+      <Flex align="center" gap={12} className="border-b border-line px-3 py-2">
         {onBack && (
           <Button
             type="text"
@@ -74,9 +78,9 @@ export function ChatWindow({
         <Link href={`/nguoi-dung/${otherUser.id}`} className="flex items-center gap-3">
           <Avatar size={40} src={otherUser.avatar} icon={<UserRound size={20} />} />
           <div>
-            <p className="font-semibold text-[#222]">{otherUser.name}</p>
+            <p className="font-semibold text-ink">{otherUser.name}</p>
             {otherUser.role && (
-              <p className="text-xs text-[#8c8c8c]">{USER_ROLE_LABELS[otherUser.role]}</p>
+              <p className="text-xs text-subtle">{USER_ROLE_LABELS[otherUser.role]}</p>
             )}
           </div>
         </Link>
@@ -85,7 +89,7 @@ export function ChatWindow({
       {/* Tin đăng đang trao đổi */}
       <Link
         href={`/phong-tro/${listing.id}`}
-        className="flex items-center gap-3 border-b border-[#f0f0f0] bg-[#fafafa] px-3 py-2"
+        className="flex items-center gap-3 border-b border-line bg-soft px-3 py-2"
       >
         <div className="relative h-10 w-12 shrink-0 overflow-hidden rounded">
           <Image
@@ -97,8 +101,8 @@ export function ChatWindow({
           />
         </div>
         <div className="min-w-0">
-          <p className="truncate text-sm text-[#222]">{listing.title}</p>
-          <p className="text-sm font-semibold text-[#f0325e]">
+          <p className="truncate text-sm text-ink">{listing.title}</p>
+          <p className="text-sm font-semibold text-price">
             {formatListingPrice(listing.price, listing.transaction)}
           </p>
         </div>
@@ -116,7 +120,7 @@ export function ChatWindow({
       <div className="flex-1 overflow-y-auto px-3 py-4">
         {messages.length === 0 ? (
           <Flex vertical align="center" gap={12} className="mt-6">
-            <p className="text-sm text-[#8c8c8c]">Gửi câu hỏi cho {otherUser.name}</p>
+            <p className="text-sm text-subtle">Gửi câu hỏi cho {otherUser.name}</p>
             <Flex wrap gap={8} justify="center">
               {quickQuestions.map((question) => (
                 <Button key={question} shape="round" onClick={() => onSend(question)}>
@@ -134,7 +138,7 @@ export function ChatWindow({
               return (
                 <Fragment key={message.id}>
                   {isNewDay && (
-                    <Divider plain className="my-2! text-xs! text-[#8c8c8c]!">
+                    <Divider plain className="my-2! text-xs! text-subtle!">
                       {dayLabel(message.createdAt)}
                     </Divider>
                   )}

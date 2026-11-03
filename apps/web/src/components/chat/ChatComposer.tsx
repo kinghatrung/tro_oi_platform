@@ -36,7 +36,7 @@ export function ChatComposer({ onSend, initialValue = '', disabled }: ChatCompos
   );
 
   return (
-    <Flex gap={8} align="end" className="border-t border-[#f0f0f0] p-3">
+    <Flex gap={8} align="end" className="border-t border-line p-3">
       <Input.TextArea
         aria-label="Nội dung tin nhắn"
         value={value}

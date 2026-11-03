@@ -61,7 +61,7 @@ export function PostSidebar({
   return (
     <Flex vertical gap={16} className="lg:sticky lg:top-4">
       <Card variant="borderless" title="Xem trước tin">
-        <div className="overflow-hidden rounded-lg border border-[#f0f0f0]">
+        <div className="overflow-hidden rounded-lg border border-line">
           <div className="relative aspect-video">
             <Image
               src={preview.coverUrl || NO_IMAGE}
@@ -80,20 +80,18 @@ export function PostSidebar({
             <p className="text-default line-clamp-2 font-semibold">
               {preview.title?.trim() || 'Tiêu đề tin đăng'}
             </p>
-            <p className="mt-1 font-bold text-[#f0325e]">
+            <p className="mt-1 font-bold text-price">
               {preview.price != null && preview.transaction
                 ? formatListingPrice(preview.price, preview.transaction)
                 : 'Giá'}
               {preview.area ? ` · ${preview.area} m²` : ''}
             </p>
-            <Flex align="center" gap={4} className="mt-1 text-sm text-[#8c8c8c]">
+            <Flex align="center" gap={4} className="mt-1 text-sm text-subtle">
               <MapPin size={14} />
               <span className="line-clamp-1">{location || 'Khu vực'}</span>
             </Flex>
             {preview.category && (
-              <p className="mt-1 text-xs text-[#595959]">
-                {PROPERTY_CATEGORY_LABELS[preview.category]}
-              </p>
+              <p className="mt-1 text-xs text-body">{PROPERTY_CATEGORY_LABELS[preview.category]}</p>
             )}
           </div>
         </div>
@@ -101,8 +99,8 @@ export function PostSidebar({
         <Divider className="my-4!" />
 
         <Flex justify="space-between" className="mb-2">
-          <span className="text-sm font-semibold text-[#222]">Mức hoàn thiện</span>
-          <span className="text-sm text-[#595959]">{percent}%</span>
+          <span className="text-sm font-semibold text-ink">Mức hoàn thiện</span>
+          <span className="text-sm text-body">{percent}%</span>
         </Flex>
         <Progress percent={percent} showInfo={false} size="small" />
         <Flex vertical gap={6} className="mt-3!">
@@ -111,9 +109,9 @@ export function PostSidebar({
               {item.isDone ? (
                 <CircleCheck size={16} className="text-[#22c55e]" />
               ) : (
-                <Circle size={16} className="text-[#bfbfbf]" />
+                <Circle size={16} className="text-subtle" />
               )}
-              <span className={item.isDone ? 'text-[#222]' : 'text-[#8c8c8c]'}>{item.label}</span>
+              <span className={item.isDone ? 'text-ink' : 'text-subtle'}>{item.label}</span>
             </Flex>
           ))}
         </Flex>
@@ -136,11 +134,11 @@ export function PostSidebar({
       </Card>
 
       <Card variant="borderless" size="small">
-        <Flex align="center" gap={8} className="mb-2 font-semibold text-[#222]">
+        <Flex align="center" gap={8} className="mb-2 font-semibold text-ink">
           <Lightbulb size={16} className="text-[#f59e0b]" />
           Mẹo đăng tin hiệu quả
         </Flex>
-        <ul className="list-disc space-y-1 pl-5 text-sm text-[#595959]">
+        <ul className="list-disc space-y-1 pl-5 text-sm text-body">
           {TIPS.map((tip) => (
             <li key={tip}>{tip}</li>
           ))}

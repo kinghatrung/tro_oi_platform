@@ -36,6 +36,8 @@ const ROUTE_LABELS: Record<string, { title: string; linkable?: boolean }> = {
   'kenh-nguoi-dang': { title: 'Kênh người đăng' },
   'tin-dang': { title: 'Quản lý tin' },
   'tin-nhan': { title: 'Tin nhắn' },
+  'dang-ban': { title: 'Đăng bán' },
+  'do-ban': { title: 'Đồ đang bán' },
 };
 
 /** "/kenh-nguoi-dang/tin-dang" → [Kênh người đăng (link), Quản lý tin]. Segment lạ (id) bị bỏ qua. */
@@ -81,7 +83,7 @@ export function BreadcrumbItem({
 
   return (
     <section
-      className={`w-full bg-white h-11.5 border-t border-[#e8e8e8] flex items-center ${className}`}
+      className={`w-full bg-surface h-11.5 border-t border-line flex items-center ${className}`}
     >
       {jsonLd && (
         <script

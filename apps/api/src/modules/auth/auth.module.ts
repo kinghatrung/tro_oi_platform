@@ -10,6 +10,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { AuthController } from './auth.controller.js';
 import { AuthService } from './auth.service.js';
 import { FirebaseService } from './firebase.service.js';
+import { AdminGuard } from './admin.guard.js';
 import { JwtAuthGuard } from './jwt-auth.guard.js';
 import { User, UserSchema } from './schemas/user.schema.js';
 
@@ -30,9 +31,16 @@ import { User, UserSchema } from './schemas/user.schema.js';
       }),
     }),
   ],
-  providers: [AuthService, FirebaseService, JwtAuthGuard],
+  providers: [AuthService, FirebaseService, JwtAuthGuard, AdminGuard],
   controllers: [AuthController],
-  // JwtModule export để module khác dùng được JwtAuthGuard
-  exports: [AuthService, FirebaseService, JwtAuthGuard, JwtModule],
+  // JwtModule + MongooseModule (User model) export để module khác dùng được JwtAuthGuard
+  exports: [
+    AuthService,
+    FirebaseService,
+    JwtAuthGuard,
+    AdminGuard,
+    JwtModule,
+    MongooseModule,
+  ],
 })
 export class AuthModule {}

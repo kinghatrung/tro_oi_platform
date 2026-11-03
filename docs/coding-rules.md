@@ -23,6 +23,8 @@
 | api      | Prettier `apps/api/.prettierrc`: single quote, `trailingComma all` (printWidth 80) | `yarn workspace api test`, `yarn workspace api build`        |
 | shared   | Prettier root                                   | được typecheck khi build web                                 |
 
+Khi `yarn dev:api` đang chạy, kiểm tra API bằng `npx tsc --noEmit -p tsconfig.build.json`, **không** chạy `nest build` / `yarn seed`: chúng xoá `dist` làm app đang watch chết (chạm 1 file trong `src` để watch chạy lại).
+
 Chạy `npx prettier --write <file>` sau khi sửa file. **Giữ nguyên line ending của file** (repo lẫn CRLF/LF, `core.autocrlf=true`) để diff không đổi cả file.
 
 > `yarn workspace web lint` hiện hỏng do môi trường (eslint-config-next không tìm thấy `next` ở root `node_modules`) — dùng `tsc` + `build` để kiểm tra.
@@ -93,8 +95,21 @@ export async function getListing(id: string) {
 ### 3.6 Styling
 
 - Layout/spacing bằng Tailwind; component tương tác bằng AntD. Override AntD bằng class `!` (Tailwind 4 important) như code hiện có.
-- Màu: dùng token trong `src/app/globals.css` (`text-primary`, `bg-background`...) và theme AntD `src/theme/antTheme.ts`. Màu giá tiền: `text-[#f0325e]` (đang dùng xuyên suốt). Không chế mã màu mới khi đã có token.
+- **Màu: chỉ dùng token theo theme** (tự đổi khi dark mode / admin đổi màu chủ đạo):
+
+  | Class | Dùng cho |
+  | --- | --- |
+  | `bg-surface` / `bg-page` / `bg-soft` | nền thẻ / nền trang / nền phụ (thay `bg-white`, `#f4f4f4`) |
+  | `text-ink` / `text-body` / `text-subtle` | chữ đậm / chữ thường / chữ phụ (thay `#222`, `#595959`, `#8c8c8c`) |
+  | `border-line` | viền (thay `#f0f0f0`, `#e8e8e8`) |
+  | `text-brand` `bg-brand` `bg-brand-soft` `text-brand-dark` | màu chủ đạo (thay `#16a6a3`) |
+  | `text-price` `fill-price` | giá tiền, tim đã lưu (thay `#f0325e`) |
+
+  **Không** viết `text-[#hex]`, `bg-white`, `color="#hex"` cho icon (để icon kế thừa `currentColor`). Ngoại lệ: màu thương hiệu bên ngoài (Facebook...), overlay tối trên ảnh, màu trạng thái. Thêm token mới → khai báo ở `:root`, `:root[data-theme='dark']` và `@theme inline` trong `globals.css`.
+- Thông tin website (tên, logo, email hỗ trợ, bật/tắt tính năng) **không hard-code**: Server Component dùng `loadSiteSettings()`, Client Component dùng `useSiteSettings()`. Tiêu đề trang chỉ đặt phần riêng (`title: 'Tìm kiếm'`), layout tự ghép tên site.
 - Không inline style cho giá trị tĩnh.
+- Đặt nền lên `<Link>`/`<a>` phải dùng `bg-*!`: reset của AntD (`.ant-app a { background-color: transparent }`) thắng class Tailwind thường.
+- Trạng thái rỗng: dùng `EmptyState` (`components/common`), không dùng `<Empty>` mặc định của AntD. Cần ngữ cảnh mới → vẽ SVG cùng phong cách vào `public/images/empty/` và thêm vào `EmptyVariant`.
 - Ảnh: `next/image`. Ảnh từ API (`/uploads/**`) đã được whitelist trong `next.config.ts`.
 - Text từ người dùng render dạng text (`whitespace-pre-line`), **không** `dangerouslySetInnerHTML` (nếu bắt buộc → sanitize).
 
@@ -107,7 +122,10 @@ export async function getListing(id: string) {
 - Response **bắt buộc** đúng `ApiResponse<T> = { code, message, data }`: controller **chỉ `return` data thô**; `ResponseInterceptor` bọc thành `{ code: <HTTP status>, message: 'Thành công', data }`. Lỗi: ném `HttpException` của Nest **kèm message tiếng Việt**; `HttpExceptionFilter` trả `{ code, message, data: null }`. Không tự `res.json()`. Đổi format → sửa cả `response-format.spec.ts`, `packages/shared/src/types/api.ts`, `axiosClient.ts`.
 - Không trả document Mongoose trực tiếp: map qua hàm `to<Entity>()` để `id` là string, date là ISO string, đúng shape type trong `@tro-oi/shared`.
 - API **không import runtime** từ `@tro-oi/shared` (package là TS source, Nest build ESM không đọc được). Giá trị enum khai báo lại bằng mảng `as const` cạnh schema, kèm comment "trùng với X bên @tro-oi/shared". Khi đổi enum phải sửa **cả hai** nơi.
-- Route cần đăng nhập: `@UseGuards(JwtAuthGuard)`; lấy user bằng `@CurrentUser()` (`src/common/current-user.decorator.ts`).
+- Route cần đăng nhập: `@UseGuards(JwtAuthGuard)`; lấy user bằng `@CurrentUser()` (`src/common/current-user.decorator.ts`). `role` trong `@CurrentUser()` lấy từ DB (không tin role trong token).
+- Route chỉ admin: đặt dưới `/admin/*` trong `AdminController` (`@UseGuards(JwtAuthGuard, AdminGuard)` ở cấp controller). Module dùng guard phải import `AuthModule`.
+- Đổi trạng thái tin của chủ tin: luôn qua `assertOwnerStatusChange()` (`common/status-rules.ts`) để không tự duyệt tin chờ.
+- `tsconfig` đặt `useDefineForClassFields: false` — **không bỏ**: nếu bật, mọi DTO có sẵn field `undefined`, `doc.set(dto)` / `{...current, ...dto}` sẽ ghi đè dữ liệu cũ.
 - Kiểm tra quyền sở hữu (author/admin) trong service, ném `ForbiddenException`.
 - id không hợp lệ (`!isValidObjectId`) → `NotFoundException`, không để Mongoose CastError thành 500.
 - Secret/config chỉ đọc qua `ConfigService`; thêm biến mới → cập nhật `.env.example` + `project-structure.md`.

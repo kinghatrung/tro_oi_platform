@@ -9,3 +9,6 @@ export * from './types/news';
 export * from './types/jobs';
 export * from './types/upload';
 export * from './types/chat';
+export * from './types/settings';
+export * from './types/report';
+export * from './types/admin';

@@ -7,7 +7,7 @@ export enum ProductCategory {
   APPLIANCE = 'appliance',
   VEHICLE = 'vehicle',
   STUDY = 'study',
-  OTHER = 'other'
+  OTHER = 'other',
 }
 
 /** Nhãn hiển thị tiếng Việt cho ProductCategory. */
@@ -17,7 +17,7 @@ export const PRODUCT_CATEGORY_LABELS: Record<ProductCategory, string> = {
   [ProductCategory.APPLIANCE]: 'Đồ gia dụng',
   [ProductCategory.VEHICLE]: 'Xe cộ',
   [ProductCategory.STUDY]: 'Sách & đồ dùng học tập',
-  [ProductCategory.OTHER]: 'Khác'
+  [ProductCategory.OTHER]: 'Khác',
 };
 
 /** Tình trạng món đồ. */
@@ -25,7 +25,7 @@ export enum ProductCondition {
   NEW = 'new',
   LIKE_NEW = 'like-new',
   GOOD = 'good',
-  FAIR = 'fair'
+  FAIR = 'fair',
 }
 
 /** Nhãn hiển thị tiếng Việt cho ProductCondition. */
@@ -33,15 +33,25 @@ export const PRODUCT_CONDITION_LABELS: Record<ProductCondition, string> = {
   [ProductCondition.NEW]: 'Mới',
   [ProductCondition.LIKE_NEW]: 'Như mới',
   [ProductCondition.GOOD]: 'Tốt',
-  [ProductCondition.FAIR]: 'Trung bình'
+  [ProductCondition.FAIR]: 'Trung bình',
 };
 
 /** Trạng thái món đồ trên chợ. */
 export enum ProductStatus {
+  /** Chờ admin duyệt (khi bật requireProductApproval). */
+  PENDING = 'pending',
   ACTIVE = 'active',
   SOLD = 'sold',
-  CLOSED = 'closed'
+  CLOSED = 'closed',
 }
+
+/** Nhãn hiển thị tiếng Việt cho ProductStatus. */
+export const PRODUCT_STATUS_LABELS: Record<ProductStatus, string> = {
+  [ProductStatus.PENDING]: 'Chờ duyệt',
+  [ProductStatus.ACTIVE]: 'Đang bán',
+  [ProductStatus.SOLD]: 'Đã bán',
+  [ProductStatus.CLOSED]: 'Đã ẩn',
+};
 
 /** Người bán trên chợ đồ cũ. */
 export interface ProductSeller {
@@ -49,7 +59,8 @@ export interface ProductSeller {
   name: string;
   avatar?: string;
   phone?: string;
-  profileUrl?: string;
+  /** ISO 8601 — thời điểm tạo tài khoản. */
+  joinedAt?: string;
 }
 
 /** Món đồ được đăng bán/pass. */
@@ -66,6 +77,8 @@ export interface ProductItem {
   images: string[];
   address?: AddressInfo;
   seller?: ProductSeller;
+  /** Lượt xem trang chi tiết. */
+  viewCount?: number;
   /** ISO 8601. */
   createdAt: string;
   /** ISO 8601. */
@@ -81,6 +94,10 @@ export interface SearchProductRequest extends BaseListRequest {
   district?: string;
   minPrice?: number;
   maxPrice?: number;
+  sellerId?: string;
+  /** Loại 1 món khỏi kết quả (dùng cho "đồ tương tự"). */
+  excludeId?: string;
+  sortBy?: 'createdAt' | 'price';
 }
 
 /** Payload đăng món đồ mới. */

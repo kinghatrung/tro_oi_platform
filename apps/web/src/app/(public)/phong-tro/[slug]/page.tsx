@@ -30,7 +30,7 @@ const getListingOrNotFound = cache(async (id: string) => {
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const listing = await getListingOrNotFound((await params).slug);
   return {
-    title: `${listing.title} | Trọ ơi`,
+    title: `${listing.title}`,
     description: `${formatListingPrice(listing.price, listing.transaction)} - ${listing.address?.fullAddress ?? ''}`,
     openGraph: { images: listing.images.slice(0, 1) },
   };
@@ -65,7 +65,9 @@ export default async function DetailPage({ params }: PageProps) {
       </Col>
 
       <Col lg={9} md={24} xs={24}>
-        {listing.author && <AgentCard author={listing.author} listingId={listing.id} />}
+        {listing.author && (
+          <AgentCard author={listing.author} chatHref={`/tin-nhan?listingId=${listing.id}`} />
+        )}
       </Col>
 
       <Col span={24}>

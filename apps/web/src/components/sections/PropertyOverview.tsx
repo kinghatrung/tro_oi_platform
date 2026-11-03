@@ -30,10 +30,16 @@ import {
 } from 'lucide-react';
 import { FaFacebookF, FaLink } from 'react-icons/fa';
 import type { CarouselRef } from 'antd/es/carousel';
-import { PROPERTY_CATEGORY_LABELS, USER_ROLE_LABELS, type Listing } from '@tro-oi/shared';
+import {
+  PROPERTY_CATEGORY_LABELS,
+  ReportTargetType,
+  USER_ROLE_LABELS,
+  type Listing,
+} from '@tro-oi/shared';
 
-import { LocationMap, ButtonDropdown, ImageLightbox } from '@/components/common';
-import { NO_IMAGE, SUPPORT_EMAIL } from '@/constants';
+import { useSiteSettings } from '@/app/providers';
+import { LocationMap, ButtonDropdown, ImageLightbox, ReportModal } from '@/components/common';
+import { NO_IMAGE } from '@/constants';
 import { buildPropertyFeatures, SAMPLE_QUESTIONS } from '@/lib/constants/constantsRoom';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { formatListingPrice, formatRelativeTime } from '@/utils/helpers';
@@ -69,6 +75,8 @@ export function PropertyOverview({ listing, similarListings = [] }: PropertyOver
   const [atEnd, setAtEnd] = useState(false);
   const [isMapOpen, setIsMapOpen] = useState(false);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+  const [isReportOpen, setIsReportOpen] = useState(false);
+  const { contactEmail } = useSiteSettings();
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const isLoggedIn = useAuthStore((state) => Boolean(state.user));
   const isFavorite = useAuthStore((state) =>
@@ -153,12 +161,24 @@ export function PropertyOverview({ listing, similarListings = [] }: PropertyOver
     );
   }, []);
 
+  /** Báo cáo cần đăng nhập. */
+  const openReport = useCallback(() => {
+    if (!isLoggedIn) {
+      router.push(`/dang-nhap?redirect=${encodeURIComponent(pathname)}`);
+      return;
+    }
+    setIsReportOpen(true);
+  }, [isLoggedIn, pathname, router]);
+
   const handleMoreClick = useCallback<NonNullable<MenuProps['onClick']>>(
     ({ key }) => {
-      const subject = key === 'report' ? `Báo cáo tin đăng ${listing.id}` : 'Cần trợ giúp';
-      window.location.href = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(subject)}`;
+      if (key === 'help') {
+        window.location.href = `mailto:${contactEmail}?subject=${encodeURIComponent(`Cần trợ giúp về tin ${listing.id}`)}`;
+        return;
+      }
+      openReport();
     },
-    [listing.id],
+    [contactEmail, listing.id, openReport],
   );
 
   useEffect(() => {
@@ -223,7 +243,7 @@ export function PropertyOverview({ listing, similarListings = [] }: PropertyOver
               iconButton={<Share size={18} />}
               className="w-9! h-9!"
               popupRender={() => (
-                <div className="bg-white rounded-lg shadow-md w-full px-5 py-4">
+                <div className="bg-surface rounded-lg shadow-md w-full px-5 py-4">
                   <div className="font-bold text-[16px] text-center mb-4">Chia sẻ qua:</div>
                   <Space size={16} align="center">
                     <Button
@@ -283,7 +303,7 @@ export function PropertyOverview({ listing, similarListings = [] }: PropertyOver
                 }}
                 onClick={() => carouselRef.current?.goTo(i)}
                 className={`relative shrink-0 w-22 h-22 rounded-md overflow-hidden border-2 cursor-pointer ${
-                  current === i ? 'border-[#16a6a3]' : 'border-[#efefef]'
+                  current === i ? 'border-brand' : 'border-line'
                 }`}
               >
                 <Image
@@ -313,10 +333,8 @@ export function PropertyOverview({ listing, similarListings = [] }: PropertyOver
             <h1 className="text-primary text-2xl!">{listing.title}</h1>
             <Button
               aria-pressed={isFavorite}
-              icon={
-                <Heart size={24} className={isFavorite ? 'fill-[#f0325e] stroke-[#f0325e]' : ''} />
-              }
-              className="text-[16px]! text-[#222]! font-bold!"
+              icon={<Heart size={24} className={isFavorite ? 'fill-price stroke-price' : ''} />}
+              className="text-[16px]! text-ink! font-bold!"
               onClick={handleToggleFavorite}
             >
               {isFavorite ? 'Đã lưu' : 'Lưu'}
@@ -324,13 +342,13 @@ export function PropertyOverview({ listing, similarListings = [] }: PropertyOver
           </Flex>
 
           <Flex gap={16} align="center" className="mt-2!">
-            <p className="text-primary text-[#f0325e] text-2xl!">{priceLabel}</p>
+            <p className="text-primary text-price text-2xl!">{priceLabel}</p>
             {listing.area != null && <p className="text-default font-bold">{listing.area} m²</p>}
           </Flex>
 
           <Space align="center" size={8} className="mt-3">
             <Clock size={20} />
-            <p className="text-[#222]">Cập nhật {formatRelativeTime(listing.updatedAt)}</p>
+            <p className="text-ink">Cập nhật {formatRelativeTime(listing.updatedAt)}</p>
           </Space>
         </div>
       </Card>
@@ -340,7 +358,7 @@ export function PropertyOverview({ listing, similarListings = [] }: PropertyOver
         <Flex justify="space-between" align="center" gap={12}>
           <Flex gap={8} align="start">
             <MapPin size={18} className="mt-0.5 shrink-0" />
-            <p className="text-[#222] text-sm">{listing.address?.fullAddress}</p>
+            <p className="text-ink text-sm">{listing.address?.fullAddress}</p>
           </Flex>
 
           {geo && (
@@ -359,7 +377,7 @@ export function PropertyOverview({ listing, similarListings = [] }: PropertyOver
             <div key={item.label}>
               <Row align="middle" className="min-h-10">
                 <Col xs={12} md={8} lg={8}>
-                  <Flex align="center" gap={12} className="text-[#333]!">
+                  <Flex align="center" gap={12} className="text-ink!">
                     <span className="flex shrink-0 items-center">{item.icon}</span>
                     <p className="text-default">{item.label}</p>
                   </Flex>
@@ -389,7 +407,7 @@ export function PropertyOverview({ listing, similarListings = [] }: PropertyOver
           title={
             <Flex gap={8}>
               <MapPin />
-              <p className="text-[#222] text-sm">{listing.address?.fullAddress}</p>
+              <p className="text-ink text-sm">{listing.address?.fullAddress}</p>
             </Flex>
           }
           footer={false}
@@ -406,6 +424,13 @@ export function PropertyOverview({ listing, similarListings = [] }: PropertyOver
           </div>
         </Modal>
       )}
+
+      <ReportModal
+        open={isReportOpen}
+        onClose={() => setIsReportOpen(false)}
+        targetType={ReportTargetType.LISTING}
+        targetId={listing.id}
+      />
 
       {/* Image Lightbox Overlay */}
       <ImageLightbox
@@ -427,6 +452,7 @@ export function PropertyOverview({ listing, similarListings = [] }: PropertyOver
         onLikeToggle={handleToggleFavorite}
         onShare={handleCopyLink}
         onSendMessage={handleSendMessage}
+        onReport={openReport}
       />
     </Flex>
   );

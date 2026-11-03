@@ -1,11 +1,10 @@
 'use client';
 
-import Image from 'next/image';
 import { useState, type ReactNode } from 'react';
 import { Button, Flex, Space } from 'antd';
 import { ListingStatus, type Listing } from '@tro-oi/shared';
 
-import { CardItem } from '@/components/common';
+import { CardItem, EmptyState, EmptyVariant } from '@/components/common';
 
 interface ProfileListingsProps {
   listings: Listing[];
@@ -31,7 +30,7 @@ export function ProfileListings({
   const visibleListings = readOnly || tab === 'active' ? activeListings : hiddenListings;
 
   return (
-    <div className="rounded-lg bg-white py-4 px-5">
+    <div className="rounded-lg bg-surface py-4 px-5">
       <Flex vertical gap={16}>
         <Flex justify="space-between" align="center">
           <p className="text-primary text-xl">Tất cả tin đăng ({listings.length})</p>
@@ -42,7 +41,7 @@ export function ProfileListings({
           <Space>
             <Button
               type={tab === 'active' ? 'primary' : 'default'}
-              className={`h-8! ${tab === 'hidden' ? 'btn-gray text-[#222]!' : ''}`}
+              className={`h-8! ${tab === 'hidden' ? 'btn-gray text-ink!' : ''}`}
               onClick={() => setTab('active')}
             >
               Đang hiển thị ({activeListings.length})
@@ -50,7 +49,7 @@ export function ProfileListings({
 
             <Button
               type={tab === 'hidden' ? 'primary' : 'default'}
-              className={`h-8! ${tab === 'active' ? 'btn-gray text-[#222]!' : ''}`}
+              className={`h-8! ${tab === 'active' ? 'btn-gray text-ink!' : ''}`}
               onClick={() => setTab('hidden')}
             >
               Đã ẩn ({hiddenListings.length})
@@ -61,31 +60,23 @@ export function ProfileListings({
         {visibleListings.length > 0 ? (
           <Flex vertical gap={8}>
             {visibleListings.map((listing) => (
-              <div key={listing.id} className="border border-[#f0f0f0] rounded-lg overflow-hidden">
+              <div key={listing.id} className="border border-line rounded-lg overflow-hidden">
                 <CardItem column listing={listing} />
               </div>
             ))}
           </Flex>
         ) : (
-          <Space vertical align="center" className="pb-5">
-            <div className="relative w-50 h-50">
-              <Image
-                alt="Ảnh logo"
-                sizes="200px"
-                fill
-                src="/images/tro-oi-banner-no-logo.svg"
-                className="object-contain"
-              />
-            </div>
-
-            <p className="text-[#595959] text-sm">Chưa có tin đăng</p>
-
+          <EmptyState
+            variant={EmptyVariant.LISTING}
+            description="Chưa có tin đăng"
+            className="pb-5!"
+          >
             {onPostListing && (
               <Button type="primary" onClick={onPostListing}>
                 Đăng tin ngay
               </Button>
             )}
-          </Space>
+          </EmptyState>
         )}
       </Flex>
     </div>

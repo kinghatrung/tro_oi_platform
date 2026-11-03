@@ -87,18 +87,14 @@ export function CardDropdown({
   const footerVariant: FooterVariant | false =
     footer === true ? 'both' : footer === false || footer == null ? false : footer;
 
-  const showClear = Boolean(
-    onClear && (footerVariant === 'both' || footerVariant === 'clear'),
-  );
-  const showApply = Boolean(
-    onApply && (footerVariant === 'both' || footerVariant === 'apply'),
-  );
+  const showClear = Boolean(onClear && (footerVariant === 'both' || footerVariant === 'clear'));
+  const showApply = Boolean(onApply && (footerVariant === 'both' || footerVariant === 'apply'));
   const hasBody = Boolean(menu || children);
   const hasFooter = showClear || showApply;
 
   return (
     <div
-      className={`bg-white rounded-lg shadow-lg overflow-hidden ${className ?? ''}`}
+      className={`bg-surface rounded-lg shadow-lg overflow-hidden ${className ?? ''}`}
       style={{ width }}
       onClick={onClick}
     >
@@ -123,7 +119,7 @@ export function CardDropdown({
 
       {/* Footer */}
       {hasFooter && (
-        <div className="p-3 bg-white">
+        <div className="p-3 bg-surface">
           {footerVariant === 'both' ? (
             <Flex gap={12}>
               {showClear && (

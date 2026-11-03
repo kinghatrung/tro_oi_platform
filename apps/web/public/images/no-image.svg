@@ -1,9 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300" role="img" aria-label="Chưa có ảnh">
-  <rect width="400" height="300" fill="#edf7f6"/>
-  <g fill="none" stroke="#6b8586" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+  <rect width="400" height="300" fill="#f0f0f0"/>
+  <g fill="none" stroke="#8c8c8c" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
     <rect x="140" y="95" width="120" height="90" rx="10"/>
     <circle cx="172" cy="125" r="10"/>
     <path d="M148 178l38-38 26 26 14-14 26 26"/>
   </g>
-  <text x="200" y="225" text-anchor="middle" font-family="sans-serif" font-size="18" fill="#6b8586">Chưa có ảnh</text>
+  <text x="200" y="225" text-anchor="middle" font-family="sans-serif" font-size="18" fill="#8c8c8c">Chưa có ảnh</text>
 </svg>

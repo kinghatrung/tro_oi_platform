@@ -30,7 +30,8 @@
 | ------ | ------------------------------------------------- |
 | 400    | Body/query sai định dạng                          |
 | 401    | Thiếu/sai/hết hạn access token                    |
-| 403    | Không phải chủ tin đăng (và không phải admin)     |
+| 403    | Không phải chủ tin / không phải admin / tài khoản bị khoá / tự đổi trạng thái tin chờ duyệt |
+| 409    | Báo cáo trùng (đã báo cáo tin này, đang chờ xử lý) |
 | 404    | Không tìm thấy (kể cả id không phải ObjectId, route không tồn tại) |
 | 413    | File upload > 5 MB                                |
 | 500    | Lỗi không mong muốn phía server                   |
@@ -39,7 +40,8 @@
 ## Xác thực
 
 - Header `Authorization: Bearer <accessToken>` (JWT HS256, hạn `JWT_EXPIRES_IN`, mặc định 7d).
-- Payload: `{ sub: userId, phone, role }`.
+- Payload: `{ sub: userId, phone, role }`. Guard **đọc lại role/isBlocked từ DB** mỗi request: tài khoản bị khoá → 403 `"Tài khoản đã bị khoá. Liên hệ hỗ trợ."` (kể cả khi đăng nhập).
+- 🛡 = chỉ admin (`role: admin`).
 - Endpoint đánh dấu 🔒 bắt buộc token.
 - Web lưu token ở cookie `accessToken` (không httpOnly, để client gắn header).
 
@@ -75,7 +77,7 @@ Response giống `verify-phone`.
 
 ## Users — `/users`
 
-Type `User`: `{ id, name, phone?, email?, bio?, avatar?, role, createdAt, updatedAt }`. `role` ∈ `renter | landlord | agent | admin`.
+Type `User`: `{ id, name, phone?, email?, bio?, avatar?, role, isBlocked, createdAt, updatedAt }`. `role` ∈ `renter | landlord | agent | admin`.
 
 | Method | Path                               | Mô tả                                   | Response `data`         |
 | ------ | ---------------------------------- | --------------------------------------- | ----------------------- |
@@ -131,7 +133,7 @@ Type `Listing` (rút gọn):
 | GET    | `/listings/stats`    | Đếm tin active theo `transaction × category × city` | `ListingStat[]`             |
 | GET    | `/listings/mine` 🔒  | Mọi tin của tôi (mọi status), mới nhất trước, kèm `favoriteCount` | `Listing[]`   |
 | GET    | `/listings/:id`      | Chi tiết tin **active**, tăng `viewCount`           | `Listing`                   |
-| POST   | `/listings` 🔒       | Đăng tin mới (status = `active`)                    | `Listing`                   |
+| POST   | `/listings` 🔒       | Đăng tin mới: `active`, hoặc `pending` nếu bật `requireListingApproval` | `Listing`   |
 | PATCH  | `/listings/:id` 🔒   | Sửa tin (chủ tin hoặc admin)                        | `Listing`                   |
 | DELETE | `/listings/:id` 🔒   | Xoá tin (chủ tin hoặc admin)                        | `null`                      |
 
@@ -180,7 +182,7 @@ Response: `{ "items": Listing[], "total": 120, "page": 1, "pageSize": 10 }`.
 | `images`      | string[]      | ✔        | 1–20 URL (lấy từ `/uploads`) |
 | `address`     | object        | ✔        | `city`, `district` bắt buộc; `street`, `ward`, `fullAddress`, `geo` tuỳ chọn |
 
-`PATCH /listings/:id`: mọi field của create đều tuỳ chọn, thêm `status` (`active` / `closed`...).
+`PATCH /listings/:id`: mọi field của create đều tuỳ chọn, thêm `status`. Chủ tin chỉ chuyển `active ↔ closed` và **không** đổi được tin `pending` (403); admin đổi mọi trạng thái (duyệt = `pending → active`).
 
 ---
 
@@ -197,6 +199,65 @@ URL tuyệt đối dựa trên env `API_PUBLIC_URL`. Đuôi file lấy theo MIME
 ### `GET /uploads/<file>`
 
 File tĩnh từ thư mục `apps/api/uploads/` (không commit vào git).
+
+---
+
+## Products (Chợ ơi) — `/products`
+
+Type `ProductItem`: `{ id, title, description, category, condition, status, price, isNegotiable, images, address: { city, district? }, seller: { id, name, avatar, phone, joinedAt }, viewCount, createdAt, updatedAt }`.
+
+- `category` ∈ `furniture | electronics | appliance | vehicle | study | other`; `condition` ∈ `new | like-new | good | fair`; `status` ∈ `pending | active | sold | closed`. `price = 0` = cho tặng.
+
+| Method | Path | Mô tả | `data` |
+| --- | --- | --- | --- |
+| GET | `/products` | Tìm món **active**: `keyword, category, condition, city, district, minPrice, maxPrice, sellerId, excludeId, page, pageSize (≤50, mặc định 12), sortBy (createdAt/price), sortDirection` | `PagedResponse<ProductItem>` |
+| GET | `/products/mine` 🔒 | Mọi món của tôi | `ProductItem[]` |
+| GET | `/products/:id` | Chi tiết món active, +1 `viewCount` | `ProductItem` |
+| POST | `/products` 🔒 | Đăng bán: `title (5–120), description?, category, condition, price ≥0, isNegotiable?, images (1–10), address.city`. `pending` nếu bật `requireProductApproval`; 403 nếu Chợ ơi đang tắt | `ProductItem` |
+| PATCH | `/products/:id` 🔒 | Sửa (người bán/admin). Người bán chuyển được `active / sold / closed`, không đổi tin `pending` | `ProductItem` |
+| DELETE | `/products/:id` 🔒 | Xoá (người bán/admin) | `null` |
+
+---
+
+## Reports — `/reports`
+
+### `POST /reports` 🔒
+
+| Body | Kiểu | Ghi chú |
+| --- | --- | --- |
+| `targetType` | `listing` / `product` | |
+| `targetId` | string | id tin, 404 nếu không tồn tại |
+| `reason` | `scam / wrong-info / duplicate / unavailable / inappropriate / other` | |
+| `note` | string? | ≤ 500 ký tự |
+
+Mỗi người chỉ có 1 báo cáo **đang mở** cho 1 tin (trùng → 409). Admin xử lý ở `/admin/reports`.
+
+---
+
+## Settings — `/settings`
+
+### `GET /settings` (công khai)
+
+Type `SiteSettings`: `siteName, tagline, description, logoUrl, faviconUrl, heroTitle, primaryColor (#RRGGBB), marketplaceColor (#RRGGBB), defaultTheme (light/dark), allowThemeToggle, banners[], announcementEnabled, announcementText, announcementType (info/warning/success), contactEmail, contactPhone, footerText, enableMarketplace, requireListingApproval, requireProductApproval, updatedAt`.
+
+Field admin chưa từng sửa lấy theo `DEFAULT_SETTINGS` (`apps/api/src/modules/settings/settings.schema.ts`).
+
+---
+
+## Admin — `/admin` 🛡
+
+Mọi route: `JwtAuthGuard` + `AdminGuard` (không phải admin → 403). Sửa/xoá từng tin dùng chung `PATCH/DELETE /listings/:id`, `/products/:id`.
+
+| Method | Path | Mô tả | `data` |
+| --- | --- | --- | --- |
+| GET | `/admin/stats` | Số người dùng (tổng, bị khoá, mới 7 ngày), tin theo trạng thái, báo cáo đang mở | `AdminStats` |
+| GET | `/admin/users` | `keyword` (tên / SĐT — gõ `09…` được / email), `role`, `isBlocked`, `page`, `pageSize` | `PagedResponse<AdminUser>` (kèm `listingCount`, `productCount`) |
+| PATCH | `/admin/users/:id` | `{ role?, isBlocked? }` — không tự sửa chính mình (400) | `User` |
+| GET | `/admin/listings` | Như `GET /listings` + `status` (bỏ trống = mọi trạng thái) | `PagedResponse<Listing>` |
+| GET | `/admin/products` | Như `GET /products` + `status` | `PagedResponse<ProductItem>` |
+| GET | `/admin/reports` | `status`, `targetType`, `page`, `pageSize` | `PagedResponse<Report>` (kèm `targetTitle`, `reporter`) |
+| PATCH | `/admin/reports/:id` | `{ status: open / resolved / dismissed }` | `null` |
+| PUT | `/admin/settings` | Mọi field `SiteSettings` (trừ `updatedAt`) đều tuỳ chọn, chỉ field gửi lên bị ghi | `SiteSettings` |
 
 ---
 

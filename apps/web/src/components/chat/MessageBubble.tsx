@@ -32,16 +32,14 @@ export function MessageBubble({ message, isMine }: MessageBubbleProps) {
       <div
         className={clsx(
           'max-w-[75%] rounded-2xl px-3 py-2',
-          isMine
-            ? 'rounded-br-sm bg-[#16a6a3] text-white'
-            : 'rounded-bl-sm bg-[#f4f4f4] text-[#222]',
+          isMine ? 'rounded-br-sm bg-brand text-white' : 'rounded-bl-sm bg-soft text-ink',
         )}
       >
         <p className="whitespace-pre-line break-words text-[15px] leading-5">{message.content}</p>
         <div
           className={clsx(
             'mt-1 flex items-center justify-end gap-1 text-[11px]',
-            isMine ? 'text-white/80' : 'text-[#8c8c8c]',
+            isMine ? 'text-white/80' : 'text-subtle',
           )}
         >
           {formatTime(message.createdAt)}

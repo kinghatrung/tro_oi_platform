@@ -403,7 +403,7 @@ export function ImageLightbox({
                 onClick={() => setCurrentIndex(idx)}
                 className={`relative shrink-0 w-16 h-16 rounded-lg overflow-hidden cursor-pointer border-2 transition-all duration-200 ${
                   currentIndex === idx
-                    ? 'border-[#16A6A3] scale-105 shadow-md opacity-100 ring-2 ring-[#16A6A3]/30'
+                    ? 'border-brand scale-105 shadow-md opacity-100 ring-2 ring-brand/30'
                     : 'border-transparent opacity-50 hover:opacity-100'
                 }`}
               >
@@ -421,7 +421,7 @@ export function ImageLightbox({
       </div>
 
       {/* RIGHT SECTION: SIDEBAR INFO PANEL */}
-      <div className="w-full lg:w-[470px] xl:w-[470px] bg-white rounded-none lg:rounded-xl shadow-2xl shrink-0 max-h-full overflow-hidden">
+      <div className="w-full lg:w-[470px] xl:w-[470px] bg-surface rounded-none lg:rounded-xl shadow-2xl shrink-0 max-h-full overflow-hidden">
         <div className="relative h-full overflow-y-auto px-6 pt-6">
           {/* SELLER / AGENT HEADER */}
           {agent && (
@@ -440,7 +440,7 @@ export function ImageLightbox({
                 <div className="flex flex-col gap-1">
                   <span className="text-primary text-[16px] font-semibold">{agent.name}</span>
                   {agent.statusText && (
-                    <span className="text-sm text-[#595959] flex items-center gap-1">
+                    <span className="text-sm text-body flex items-center gap-1">
                       <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>
                       {agent.statusText}
                     </span>
@@ -449,7 +449,7 @@ export function ImageLightbox({
               </div>
               {(agent.profileUrl || onViewAgentProfile) && (
                 <Button
-                  className="h-8! btn-gray font-bold! text-[#222]"
+                  className="h-8! btn-gray font-bold! text-ink"
                   onClick={() => {
                     if (onViewAgentProfile) {
                       onViewAgentProfile();
@@ -469,18 +469,18 @@ export function ImageLightbox({
             <div className="flex flex-col gap-1">
               <div className="flex items-start justify-between gap-3">
                 {propertyTitle && (
-                  <p className="text-[#222]! text-xl! font-bold! leading-snug line-clamp-2!">
+                  <p className="text-ink! text-xl! font-bold! leading-snug line-clamp-2!">
                     {propertyTitle}
                   </p>
                 )}
                 <button
                   onClick={handleLikeClick}
                   aria-label="Yêu thích"
-                  className="p-2 rounded-full hover:bg-gray-100 text-gray-400 transition-colors shrink-0 cursor-pointer"
+                  className="p-2 rounded-full hover:bg-gray-100 text-subtle transition-colors shrink-0 cursor-pointer"
                 >
                   <Heart
                     size={22}
-                    className={isLiked ? 'fill-red-500 text-red-500' : 'text-gray-400'}
+                    className={isLiked ? 'fill-red-500 text-red-500' : 'text-subtle'}
                   />
                 </button>
               </div>
@@ -491,7 +491,7 @@ export function ImageLightbox({
                   {tags.map((tag, i) => (
                     <Tag
                       key={i}
-                      className="bg-gray-100! text-[#222]! border-none! text-xs font-medium px-3 py-1 rounded-none!"
+                      className="bg-gray-100! text-ink! border-none! text-xs font-medium px-3 py-1 rounded-none!"
                     >
                       {tag}
                     </Tag>
@@ -503,7 +503,7 @@ export function ImageLightbox({
 
           {/* PRICE */}
           {price && (
-            <div className="text-2xl font-bold text-[#f0325e] tracking-tight mb-2">{price}</div>
+            <div className="text-2xl font-bold text-price tracking-tight mb-2">{price}</div>
           )}
 
           {/* DESCRIPTION */}
@@ -524,7 +524,7 @@ export function ImageLightbox({
             <div className="sticky bottom-0 z-30 -mx-6 px-6 py-3 bg-white/95 backdrop-blur-sm flex items-center gap-2 mb-2 justify-end">
               {agent.phone && (
                 <Button
-                  className="bg-gray-100! hover:bg-gray-200! border-none! text-[#073B3D]! font-semibold text-xs h-10 rounded-xl"
+                  className="bg-gray-100! hover:bg-gray-200! border-none! text-ink! font-semibold text-xs h-10 rounded-xl"
                   onClick={() => setShowPhone(!showPhone)}
                 >
                   {showPhone ? agent.phone : `Hiện số ${agent.phone}`}
@@ -532,7 +532,7 @@ export function ImageLightbox({
               )}
               <Button
                 type="primary"
-                className="bg-[#16A6A3]! hover:bg-[#0F8F8C]! font-semibold text-xs h-10 rounded-xl shadow-md"
+                className="bg-brand! hover:bg-[#0F8F8C]! font-semibold text-xs h-10 rounded-xl shadow-md"
                 onClick={() => handleSendMessage('Xin chào, tôi muốn hỏi thông tin về phòng này.')}
               >
                 Chat
@@ -541,20 +541,20 @@ export function ImageLightbox({
           )}
 
           {/* QUICK MESSAGE INPUT */}
-          <div className="relative flex items-center text-[#222] bg-[#f7f8f8] rounded-full px-4 py-1 border border-gray-200 focus-within:border-[#16A6A3] transition-all">
+          <div className="relative flex items-center text-ink bg-[#f7f8f8] rounded-full px-4 py-1 border border-line focus-within:border-brand transition-all">
             <Input
               variant="borderless"
               placeholder="Nhắn tin hỏi mua hàng..."
               value={messageInput}
               onChange={(e) => setMessageInput(e.target.value)}
               onPressEnter={() => handleSendMessage()}
-              className="text-sm! text-[#222]! p-0 outline-none!"
+              className="text-sm! text-ink! p-0 outline-none!"
             />
             <button
               type="button"
               onClick={() => handleSendMessage()}
               aria-label="Gửi tin nhắn"
-              className="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full text-[#16A6A3] transition-all hover:bg-[#16A6A3]/10 hover:text-[#0F8F8C] active:scale-95"
+              className="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full text-brand transition-all hover:bg-brand/10 hover:text-brand-dark active:scale-95"
             >
               <SendHorizontal size={18} strokeWidth={2} />
             </button>
@@ -562,11 +562,11 @@ export function ImageLightbox({
 
           {/* QUICK QUESTION SUGGESTION CHIPS */}
           {questions.length > 0 && (
-            <div className="relative flex items-center gap-1 mt-2 text-[#222]">
+            <div className="relative flex items-center gap-1 mt-2 text-ink">
               <button
                 onClick={() => scrollQuestions('left')}
                 aria-label="Xem thêm câu hỏi"
-                className="w-10 h-10 rounded-full bg-white shadow-md border border-gray-200 flex items-center justify-center shrink-0 text-gray-500 hover:text-[#16A6A3] cursor-pointer z-10"
+                className="w-10 h-10 rounded-full bg-surface shadow-md border border-line flex items-center justify-center shrink-0 text-subtle hover:text-brand cursor-pointer z-10"
               >
                 <ChevronLeft size={24} />
               </button>
@@ -579,7 +579,7 @@ export function ImageLightbox({
                   <span
                     key={idx}
                     onClick={() => handleSendMessage(q)}
-                    className="shrink-0 text-sm font-medium bg-gray-100 hover:bg-[#e8e8e8] text-[#222] px-3 py-1.5 rounded-full border-none transition-colors cursor-pointer whitespace-nowrap"
+                    className="shrink-0 text-sm font-medium bg-gray-100 hover:bg-line text-ink px-3 py-1.5 rounded-full border-none transition-colors cursor-pointer whitespace-nowrap"
                   >
                     {q}
                   </span>
@@ -588,7 +588,7 @@ export function ImageLightbox({
               <button
                 onClick={() => scrollQuestions('right')}
                 aria-label="Xem thêm câu hỏi"
-                className="w-10 h-10 rounded-full bg-white shadow-md border border-gray-200 flex items-center justify-center shrink-0 text-gray-500 hover:text-[#16A6A3] cursor-pointer z-10"
+                className="w-10 h-10 rounded-full bg-surface shadow-md border border-line flex items-center justify-center shrink-0 text-subtle hover:text-brand cursor-pointer z-10"
               >
                 <ChevronRight size={24} />
               </button>
@@ -616,14 +616,14 @@ export function ImageLightbox({
 
                       <div className="flex flex-col justify-between">
                         <p className="text-default line-clamp-2 leading-snug">{item.title}</p>
-                        <p className="text-sm text-[#8c8c8c]">
+                        <p className="text-sm text-subtle">
                           {item.bedrooms ? `${item.bedrooms} PN ` : ''}
                           {item.propertyType}
                         </p>
-                        <p className="text-primary text-[#f0325e]">{item.priceLabel}</p>
-                        <div className="flex items-start gap-1 text-xs text-[#8c8c8c]">
-                          <MapPin size={14} className="shrink-0 text-gray-400 mt-0.5" />
-                          <span className="text-sm text-[#8c8c8c]">{item.address}</span>
+                        <p className="text-primary text-price">{item.priceLabel}</p>
+                        <div className="flex items-start gap-1 text-xs text-subtle">
+                          <MapPin size={14} className="shrink-0 text-subtle mt-0.5" />
+                          <span className="text-sm text-subtle">{item.address}</span>
                         </div>
                       </div>
                     </Link>

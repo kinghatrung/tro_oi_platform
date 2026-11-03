@@ -1,5 +1,85 @@
 @import 'tailwindcss';
 
+/* ========================================
+   Token màu theo theme — dùng qua class Tailwind: bg-surface, text-ink, border-line...
+   [data-theme='dark'] trên <html> đổi toàn bộ giá trị. --brand lấy từ thiết lập admin (layout.tsx).
+   ======================================== */
+:root {
+  --brand: #16a6a3;
+  /* Sắc phụ sinh từ --brand để màu chủ đạo admin chọn lan ra toàn bộ */
+  --brand-soft: color-mix(in srgb, var(--brand) 10%, var(--surface));
+  --brand-dark: color-mix(in srgb, var(--brand) 80%, black);
+  --surface: #ffffff;
+  --page: #f4f4f4;
+  --soft: #f4f4f4;
+  --soft-hover: #e5e5e5;
+  --ink: #222222;
+  --body: #595959;
+  --subtle: #8c8c8c;
+  --line: #f0f0f0;
+  --line-strong: #e0e0e0;
+  --price: #f0325e;
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  --brand-soft: color-mix(in srgb, var(--brand) 18%, var(--surface));
+  --brand-dark: color-mix(in srgb, var(--brand) 70%, white);
+  --surface: #161d1e;
+  --page: #0c1112;
+  --soft: #1f2829;
+  --soft-hover: #2a3536;
+  --ink: #e6eeee;
+  --body: #b4c2c2;
+  --subtle: #8a9a9a;
+  --line: #263233;
+  --line-strong: #344243;
+  --price: #ff5c80;
+  color-scheme: dark;
+}
+
+/* Theme riêng khu Chợ ơi (providers.tsx gắn data-section trên /cho-oi/*) */
+body:has([data-section='market']) {
+  --brand: var(--market-brand);
+  --brand-soft: color-mix(in srgb, var(--brand) 10%, var(--surface));
+  --brand-dark: color-mix(in srgb, var(--brand) 80%, black);
+  --page: #fff7ed;
+  --soft: #fff1e4;
+  --soft-hover: #ffe6cf;
+  --line: #fbe8d7;
+  --line-strong: #f5d6bb;
+}
+
+:root[data-theme='dark'] body:has([data-section='market']) {
+  --brand-soft: color-mix(in srgb, var(--brand) 18%, var(--surface));
+  --brand-dark: color-mix(in srgb, var(--brand) 70%, white);
+  --surface: #1e1813;
+  --page: #120e0a;
+  --soft: #2a221b;
+  --soft-hover: #362c23;
+  --line: #352a20;
+  --line-strong: #46382b;
+}
+
+/* shortcut: logo/hình minh hoạ vẽ màu teal, xoay sắc để hợp màu cam mặc định; đổi marketplaceColor khác xa thì cần bộ ảnh riêng */
+[data-section='market'] .brand-art {
+  filter: hue-rotate(-153deg) saturate(1.3);
+}
+
+@theme inline {
+  --color-brand: var(--brand);
+  --color-brand-soft: var(--brand-soft);
+  --color-brand-dark: var(--brand-dark);
+  --color-surface: var(--surface);
+  --color-page: var(--page);
+  --color-soft: var(--soft);
+  --color-ink: var(--ink);
+  --color-body: var(--body);
+  --color-subtle: var(--subtle);
+  --color-line: var(--line);
+  --color-price: var(--price);
+}
+
 :root {
   /* ========================================
      Colors
@@ -90,15 +170,15 @@
 
 @layer components {
   .text-default {
-    @apply text-[#222] text-[16px];
+    @apply text-ink text-[16px];
   }
 
   .text-primary {
-    @apply text-[#222] text-lg font-bold;
+    @apply text-ink text-lg font-bold;
   }
 
   .text-secondary {
-    @apply text-[#8c8c8c] text-sm font-medium;
+    @apply text-subtle text-sm font-medium;
   }
 
   .text-muted {
@@ -106,7 +186,7 @@
   }
 
   .text-large {
-    @apply text-[32px] font-bold text-[#16a6a3];
+    @apply text-[32px] font-bold text-brand;
   }
 
   .btn {
@@ -156,8 +236,8 @@ html {
 
 body {
   font-family: var(--font-sans);
-  color: var(--color-foreground);
-  background-color: var(--color-background);
+  color: var(--ink);
+  background-color: var(--page);
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -168,12 +248,12 @@ body {
    ======================================== */
 
 a {
-  color: var(--color-primary);
+  color: var(--brand);
   text-decoration: none;
 }
 
 a:hover {
-  color: var(--color-primary-hover);
+  color: var(--brand-dark);
 }
 
 img,
@@ -196,9 +276,9 @@ select {
 .ant-carousel .slick-arrow {
   width: 44px !important;
   height: 44px !important;
-  border: 1px solid #0f8f8c !important;
+  border: 1px solid var(--brand) !important;
   border-radius: 50%;
-  background: #fff !important;
+  background: var(--surface) !important;
   z-index: 10;
   display: flex !important;
   align-items: center;
@@ -255,10 +335,10 @@ select {
 .ant-btn-gray,
 .ant-btn-muted,
 .ant-btn-secondary {
-  background-color: #f4f4f4 !important;
-  background: #f4f4f4 !important;
+  background-color: var(--soft) !important;
+  background: var(--soft) !important;
   border-color: transparent !important;
-  color: #073b3d !important;
+  color: var(--ink) !important;
   box-shadow: none !important;
 }
 
@@ -268,10 +348,10 @@ select {
 .ant-btn-gray:hover,
 .ant-btn-muted:hover,
 .ant-btn-secondary:hover {
-  background-color: #e5e5e5 !important;
-  background: #e5e5e5 !important;
+  background-color: var(--soft-hover) !important;
+  background: var(--soft-hover) !important;
   border-color: transparent !important;
-  color: #073b3d !important;
+  color: var(--ink) !important;
 }
 
 /* ========================================
@@ -305,18 +385,18 @@ select {
 /* Regular page number buttons */
 .pagination-circle .ant-pagination-item {
   border-radius: 50% !important;
-  border: 1.5px solid #e0e0e0 !important;
-  background: #fff !important;
+  border: 1.5px solid var(--line-strong) !important;
+  background: var(--surface) !important;
   font-size: 14px !important;
   font-weight: 500 !important;
-  color: #222 !important;
+  color: var(--ink) !important;
   transition: all 0.2s !important;
   box-shadow: none !important;
   line-height: 1 !important;
 }
 
 .pagination-circle .ant-pagination-item a {
-  color: #222 !important;
+  color: var(--ink) !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
@@ -326,16 +406,16 @@ select {
 }
 
 .pagination-circle .ant-pagination-item:hover {
-  border-color: #16a6a3 !important;
+  border-color: var(--brand) !important;
 }
 
 .pagination-circle .ant-pagination-item:hover a {
-  color: #16a6a3 !important;
+  color: var(--brand) !important;
 }
 
 .pagination-circle .ant-pagination-item-active {
-  background: #16a6a3 !important;
-  border-color: #16a6a3 !important;
+  background: var(--brand) !important;
+  border-color: var(--brand) !important;
 }
 
 .pagination-circle .ant-pagination-item-active a {
@@ -344,8 +424,8 @@ select {
 }
 
 .pagination-circle .ant-pagination-item-active:hover {
-  background: #16a6a3 !important;
-  border-color: #16a6a3 !important;
+  background: var(--brand) !important;
+  border-color: var(--brand) !important;
 }
 
 .pagination-circle .ant-pagination-item-active:hover a {
@@ -358,9 +438,9 @@ select {
   width: 40px !important;
   height: 40px !important;
   border-radius: 50% !important;
-  border: 1.5px solid #e0e0e0 !important;
-  background: #fff !important;
-  color: #222 !important;
+  border: 1.5px solid var(--line-strong) !important;
+  background: var(--surface) !important;
+  color: var(--ink) !important;
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
@@ -370,8 +450,8 @@ select {
 
 .pagination-circle .ant-pagination-prev:hover .ant-pagination-item-link,
 .pagination-circle .ant-pagination-next:hover .ant-pagination-item-link {
-  border-color: #16a6a3 !important;
-  color: #16a6a3 !important;
+  border-color: var(--brand) !important;
+  color: var(--brand) !important;
 }
 
 /* Ellipsis jump buttons */
@@ -380,9 +460,9 @@ select {
   width: 40px !important;
   height: 40px !important;
   border-radius: 50% !important;
-  border: 1.5px solid #e0e0e0 !important;
-  background: #fff !important;
-  color: #8c8c8c !important;
+  border: 1.5px solid var(--line-strong) !important;
+  background: var(--surface) !important;
+  color: var(--subtle) !important;
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
@@ -391,12 +471,12 @@ select {
 
 .pagination-circle .ant-pagination-jump-prev:hover .ant-pagination-item-link,
 .pagination-circle .ant-pagination-jump-next:hover .ant-pagination-item-link {
-  border-color: #16a6a3 !important;
-  color: #16a6a3 !important;
+  border-color: var(--brand) !important;
+  color: var(--brand) !important;
 }
 
 .pagination-circle .ant-pagination-total-text {
-  color: #8c8c8c;
+  color: var(--subtle);
   font-size: 13px;
   margin-right: 8px;
 }

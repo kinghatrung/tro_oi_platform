@@ -3,7 +3,7 @@
 import clsx from 'clsx';
 import { useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { App, Card, Skeleton } from 'antd';
+import { App, Skeleton } from 'antd';
 
 import { getListing } from '@/api/listings';
 import { ChatWindow, ConversationList } from '@/components/chat';
@@ -43,44 +43,42 @@ export default function MessagesPage() {
 
   if (!user) {
     return (
-      <Card variant="borderless">
+      <div className="p-6">
         <Skeleton avatar active paragraph={{ rows: 6 }} />
-      </Card>
+      </div>
     );
   }
 
   const hasActive = Boolean(chat.activeConversation);
 
   return (
-    <Card variant="borderless" classNames={{ body: 'p-0!' }} className="overflow-hidden">
-      <div className="flex h-[calc(100vh-180px)] min-h-120">
-        {/* Mobile: đang mở cuộc trò chuyện thì ẩn danh sách */}
-        <aside
-          className={clsx(
-            'w-full border-r border-[#f0f0f0] md:block md:w-80 md:shrink-0',
-            hasActive ? 'hidden' : 'block',
-          )}
-        >
-          <ConversationList
-            conversations={chat.conversations}
-            activeId={chat.activeConversation?.id}
-            currentUserId={user.id}
-            onSelect={chat.selectConversation}
-          />
-        </aside>
-        <section className={clsx('min-w-0 flex-1 md:block', hasActive ? 'block' : 'hidden')}>
-          <ChatWindow
-            conversation={chat.activeConversation}
-            messages={chat.messages}
-            currentUserId={user.id}
-            isConnected={chat.isConnected}
-            onSend={chat.sendMessage}
-            onBack={() => chat.selectConversation(undefined)}
-            quickQuestions={SAMPLE_QUESTIONS}
-            draft={draft}
-          />
-        </section>
-      </div>
-    </Card>
+    <div className="flex h-full">
+      {/* Mobile: đang mở cuộc trò chuyện thì ẩn danh sách */}
+      <aside
+        className={clsx(
+          'w-full border-r border-line md:block md:w-80 md:shrink-0',
+          hasActive ? 'hidden' : 'block',
+        )}
+      >
+        <ConversationList
+          conversations={chat.conversations}
+          activeId={chat.activeConversation?.id}
+          currentUserId={user.id}
+          onSelect={chat.selectConversation}
+        />
+      </aside>
+      <section className={clsx('min-w-0 flex-1 md:block', hasActive ? 'block' : 'hidden')}>
+        <ChatWindow
+          conversation={chat.activeConversation}
+          messages={chat.messages}
+          currentUserId={user.id}
+          isConnected={chat.isConnected}
+          onSend={chat.sendMessage}
+          onBack={() => chat.selectConversation(undefined)}
+          quickQuestions={SAMPLE_QUESTIONS}
+          draft={draft}
+        />
+      </section>
+    </div>
   );
 }

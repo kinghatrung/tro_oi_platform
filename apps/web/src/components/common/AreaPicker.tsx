@@ -14,12 +14,18 @@ interface AreaPickerProps {
   children: (label: string) => ReactNode;
   /** Giữ các filter khác trên URL hiện tại (dùng ở trang tìm kiếm). */
   keepParams?: boolean;
+  /** Trang nhận kết quả. */
+  basePath?: string;
 }
 
 const CITY_OPTIONS = CITIES.map((city) => ({ value: city, label: city }));
 
-/** Popup chọn tỉnh/thành + quận → điều hướng /tim-kiem?city=&district=. */
-export function AreaPicker({ children, keepParams = false }: AreaPickerProps) {
+/** Popup chọn tỉnh/thành + quận → điều hướng basePath?city=&district=. */
+export function AreaPicker({
+  children,
+  keepParams = false,
+  basePath = '/tim-kiem',
+}: AreaPickerProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isOpen, setIsOpen] = useState(false);
@@ -38,8 +44,8 @@ export function AreaPicker({ children, keepParams = false }: AreaPickerProps) {
     else params.delete('district');
     params.delete('page');
     setIsOpen(false);
-    router.push(`/tim-kiem?${params.toString()}`);
-  }, [city, district, keepParams, router, searchParams]);
+    router.push(`${basePath}?${params.toString()}`);
+  }, [basePath, city, district, keepParams, router, searchParams]);
 
   const handleClear = useCallback(() => {
     setCity(undefined);
@@ -68,7 +74,6 @@ export function AreaPicker({ children, keepParams = false }: AreaPickerProps) {
             options={CITY_OPTIONS}
             value={city}
             onChange={setCity}
-            getPopupContainer={(node) => node.parentElement ?? document.body}
           />
           {city && (
             <FloatingInput

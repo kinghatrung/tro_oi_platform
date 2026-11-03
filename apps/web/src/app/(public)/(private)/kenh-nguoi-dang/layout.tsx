@@ -4,7 +4,7 @@ import { Col, Row } from 'antd';
 import { SellerSidebar } from './SellerSidebar';
 
 export const metadata: Metadata = {
-  title: 'Kênh người đăng | Trọ ơi',
+  title: 'Kênh người đăng',
 };
 
 /** Khung Kênh người đăng: sidebar trái + nội dung. */

@@ -12,9 +12,9 @@ import type { AuthResponse } from '@tro-oi/shared';
 
 import { devLogin, verifyPhone } from '@/api/auth';
 import { FloatingInput } from '@/components/common';
-import { SUPPORT_EMAIL } from '@/constants';
 import { getFirebaseAuth } from '@/lib/firebase';
 import { useAuthStore } from '@/stores/useAuthStore';
+import { useSiteSettings } from '@/app/providers';
 
 type LoginStep = 'phone' | 'otp';
 
@@ -46,6 +46,7 @@ function SignInPage() {
   const redirectTo = safeRedirect(useSearchParams().get('redirect'));
   const { message } = App.useApp();
   const login = useAuthStore((state) => state.login);
+  const { contactEmail } = useSiteSettings();
   const [form] = Form.useForm<{ phone: string; otp?: string }>();
   const [step, setStep] = useState<LoginStep>('phone');
   const [isLoading, setIsLoading] = useState(false);
@@ -139,7 +140,7 @@ function SignInPage() {
           </Button>
         </Flex>
         <Divider>
-          <span className="text-[#8c8c8c] text-sm font-medium">Hoặc</span>
+          <span className="text-subtle text-sm font-medium">Hoặc</span>
         </Divider>
 
         <Form
@@ -185,7 +186,7 @@ function SignInPage() {
               </Button>
             )}
             {!isFirebaseEnabled && (
-              <p className="text-xs text-[#8c8c8c] text-center">
+              <p className="text-xs text-subtle text-center">
                 Chế độ dev: đăng nhập không cần OTP (Firebase chưa cấu hình).
               </p>
             )}
@@ -194,7 +195,7 @@ function SignInPage() {
         <div id="recaptcha-container" />
 
         <Flex justify="space-between" align="center" className="mt-10!">
-          <a href={`mailto:${SUPPORT_EMAIL}`}>Liên hệ hỗ trợ</a>
+          <a href={`mailto:${contactEmail}`}>Liên hệ hỗ trợ</a>
         </Flex>
       </Card>
     </main>

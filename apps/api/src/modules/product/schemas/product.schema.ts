@@ -1,0 +1,86 @@
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+import {
+  Schema as MongooseSchema,
+  Types,
+  type HydratedDocument,
+} from 'mongoose';
+
+// Các mảng dưới trùng enum tương ứng bên @tro-oi/shared (marketplace.ts).
+export const PRODUCT_CATEGORIES = [
+  'furniture',
+  'electronics',
+  'appliance',
+  'vehicle',
+  'study',
+  'other',
+] as const;
+export const PRODUCT_CONDITIONS = ['new', 'like-new', 'good', 'fair'] as const;
+export const PRODUCT_STATUSES = [
+  'pending',
+  'active',
+  'sold',
+  'closed',
+] as const;
+
+export type ProductCategory = (typeof PRODUCT_CATEGORIES)[number];
+export type ProductCondition = (typeof PRODUCT_CONDITIONS)[number];
+export type ProductStatus = (typeof PRODUCT_STATUSES)[number];
+
+@Schema({ _id: false })
+export class ProductAddress {
+  @Prop()
+  district?: string;
+
+  @Prop({ required: true, index: true })
+  city: string;
+}
+
+/** Món đồ đăng bán/pass trên Chợ ơi. */
+@Schema({ timestamps: true, collection: 'products' })
+export class Product {
+  @Prop({ required: true })
+  title: string;
+
+  @Prop()
+  description?: string;
+
+  @Prop({ type: String, enum: PRODUCT_CATEGORIES, required: true })
+  category: ProductCategory;
+
+  @Prop({ type: String, enum: PRODUCT_CONDITIONS, required: true })
+  condition: ProductCondition;
+
+  @Prop({ type: String, enum: PRODUCT_STATUSES, default: 'active' })
+  status: ProductStatus;
+
+  /** VND. */
+  @Prop({ required: true, min: 0 })
+  price: number;
+
+  @Prop({ default: false })
+  isNegotiable: boolean;
+
+  @Prop({ type: [String], default: [] })
+  images: string[];
+
+  @Prop({ type: SchemaFactory.createForClass(ProductAddress), required: true })
+  address: ProductAddress;
+
+  @Prop({
+    type: MongooseSchema.Types.ObjectId,
+    ref: 'User',
+    required: true,
+    index: true,
+  })
+  seller: Types.ObjectId;
+
+  @Prop({ default: 0 })
+  viewCount: number;
+
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export type ProductDocument = HydratedDocument<Product>;
+export const ProductSchema = SchemaFactory.createForClass(Product);
+ProductSchema.index({ status: 1, createdAt: -1 });

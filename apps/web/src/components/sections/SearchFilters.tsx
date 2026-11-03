@@ -38,21 +38,28 @@ const propertyTypeItems: MenuProps['items'] = CATEGORIES.map(({ category, title 
   label: title,
 }));
 
-interface FilterState {
-  transaction: string;
-  category: string;
-  minPrice: string;
-  maxPrice: string;
-}
+const BEDROOM_ITEMS: MenuProps['items'] = [1, 2, 3, 4].map((count) => ({
+  key: String(count),
+  label: `Từ ${count} phòng ngủ`,
+}));
 
-const EMPTY_FILTERS: FilterState = { transaction: '', category: '', minPrice: '', maxPrice: '' };
+const FILTER_KEYS = [
+  'transaction',
+  'category',
+  'minPrice',
+  'maxPrice',
+  'minArea',
+  'maxArea',
+  'bedrooms',
+] as const;
 
-const readFilters = (params: URLSearchParams): FilterState => ({
-  transaction: params.get('transaction') ?? '',
-  category: params.get('category') ?? '',
-  minPrice: params.get('minPrice') ?? '',
-  maxPrice: params.get('maxPrice') ?? '',
-});
+/** Giá trị bộ lọc dạng chuỗi, đồng bộ 1-1 với query string. */
+type FilterState = Record<(typeof FILTER_KEYS)[number], string>;
+
+const EMPTY_FILTERS = Object.fromEntries(FILTER_KEYS.map((key) => [key, ''])) as FilterState;
+
+const readFilters = (params: URLSearchParams) =>
+  Object.fromEntries(FILTER_KEYS.map((key) => [key, params.get(key) ?? ''])) as FilterState;
 
 /** Tiêu đề trang theo bộ lọc, vd "Cho thuê Phòng trọ Hà Nội tháng 11/2026". */
 function buildTitle(params: URLSearchParams) {
@@ -240,12 +247,69 @@ function SearchFiltersForm({ serializedParams, saved, onSavedChange }: SearchFil
                 </CardDropdown>
               )}
             />
+
+            <ButtonDropdown
+              size="small"
+              dropdown
+              label={
+                filters.minArea || filters.maxArea
+                  ? `${filters.minArea || 0} - ${filters.maxArea || '∞'} m²`
+                  : 'Diện tích'
+              }
+              className="rounded-2xl! btn-gray"
+              popupRender={() => (
+                <CardDropdown
+                  title="Diện tích (m²)"
+                  footer="both"
+                  onClear={() =>
+                    setFilters((current) => ({ ...current, minArea: '', maxArea: '' }))
+                  }
+                  onApply={() => navigateWithFilters(filters)}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="flex items-center gap-2">
+                    <FloatingInput
+                      title="Từ (m²)"
+                      className="h-10! px-3!"
+                      value={filters.minArea}
+                      onChange={(event) =>
+                        setFilters((current) => ({ ...current, minArea: event.target.value }))
+                      }
+                    />
+                    <span>-</span>
+                    <FloatingInput
+                      title="Đến (m²)"
+                      className="h-10! px-3!"
+                      value={filters.maxArea}
+                      onChange={(event) =>
+                        setFilters((current) => ({ ...current, maxArea: event.target.value }))
+                      }
+                    />
+                  </div>
+                </CardDropdown>
+              )}
+            />
+
+            <ButtonDropdown
+              size="small"
+              dropdown
+              label={filters.bedrooms ? `${filters.bedrooms}+ PN` : 'Phòng ngủ'}
+              className="rounded-2xl! btn-gray"
+              menus={BEDROOM_ITEMS}
+              selectedKeys={filters.bedrooms ? [filters.bedrooms] : []}
+              onMenuClick={({ key }) => navigateWithFilters({ ...filters, bedrooms: key })}
+              popupRender={(menu) => (
+                <CardDropdown
+                  title="Số phòng ngủ"
+                  menu={menu}
+                  footer="clear"
+                  onClear={() => navigateWithFilters({ ...filters, bedrooms: '' })}
+                  width={220}
+                />
+              )}
+            />
           </Space>
-          <Button
-            type="link"
-            className="text-sm! text-[#222]! font-bold!"
-            onClick={clearAllFilters}
-          >
+          <Button type="link" className="text-sm! text-ink! font-bold!" onClick={clearAllFilters}>
             Xóa lọc
           </Button>
         </Flex>
@@ -258,12 +322,12 @@ function SearchFiltersForm({ serializedParams, saved, onSavedChange }: SearchFil
               aria-pressed={filters.category === item.category}
               onClick={() => navigateWithFilters({ ...filters, category: item.category })}
               className={`cursor-pointer max-w-21! rounded-lg border-0 bg-transparent p-1 ${
-                filters.category === item.category ? 'ring-2 ring-[#16a6a3]' : ''
+                filters.category === item.category ? 'ring-2 ring-brand' : ''
               }`}
             >
               <Space vertical align="center">
                 <Image width={64} height={64} alt={item.title} src={item.icon} />
-                <p className="text-[#595959] text-sm font-bold text-center">{item.title}</p>
+                <p className="text-body text-sm font-bold text-center">{item.title}</p>
               </Space>
             </button>
           ))}

@@ -2,10 +2,11 @@
 
 import clsx from 'clsx';
 import { useMemo, useState } from 'react';
-import { Avatar, Badge, Empty, Flex, Input } from 'antd';
+import { Avatar, Badge, Flex, Input } from 'antd';
 import { Search, UserRound } from 'lucide-react';
 import type { Conversation } from '@tro-oi/shared';
 
+import { EmptyState, EmptyVariant } from '@/components/common';
 import { formatRelativeTime } from '@/utils/helpers';
 
 interface ConversationListProps {
@@ -34,11 +35,11 @@ export function ConversationList({
 
   return (
     <Flex vertical className="h-full">
-      <div className="border-b border-[#f0f0f0] p-3">
-        <p className="mb-2 text-lg font-bold text-[#222]">Tin nhắn</p>
+      <div className="border-b border-line p-3">
+        <p className="mb-2 text-lg font-bold text-ink">Tin nhắn</p>
         <Input
           allowClear
-          prefix={<Search size={16} className="text-[#8c8c8c]" />}
+          prefix={<Search size={16} className="text-subtle" />}
           placeholder="Tìm theo tên, tin đăng"
           onChange={(event) => setKeyword(event.target.value)}
         />
@@ -46,9 +47,10 @@ export function ConversationList({
 
       <div className="flex-1 overflow-y-auto">
         {visible.length === 0 ? (
-          <Empty
+          <EmptyState
+            size="small"
             className="mt-10!"
-            image={Empty.PRESENTED_IMAGE_SIMPLE}
+            variant={keyword ? EmptyVariant.SEARCH : EmptyVariant.CHAT}
             description={keyword ? 'Không tìm thấy' : 'Chưa có cuộc trò chuyện'}
           />
         ) : (
@@ -62,7 +64,7 @@ export function ConversationList({
                 onClick={() => onSelect(item.id)}
                 className={clsx(
                   'flex w-full cursor-pointer items-center gap-3 border-0 px-3 py-3 text-left transition-colors',
-                  item.id === activeId ? 'bg-[#eafbf9]' : 'bg-white hover:bg-[#f7f7f7]',
+                  item.id === activeId ? 'bg-brand-soft' : 'bg-surface hover:bg-soft',
                 )}
               >
                 <Badge count={item.unreadCount} size="small">
@@ -70,18 +72,16 @@ export function ConversationList({
                 </Badge>
                 <div className="min-w-0 flex-1">
                   <Flex justify="space-between" gap={8}>
-                    <span className="truncate font-semibold text-[#222]">
-                      {item.otherUser.name}
-                    </span>
-                    <span className="shrink-0 text-xs text-[#8c8c8c]">
+                    <span className="truncate font-semibold text-ink">{item.otherUser.name}</span>
+                    <span className="shrink-0 text-xs text-subtle">
                       {formatRelativeTime(item.updatedAt)}
                     </span>
                   </Flex>
-                  <p className="truncate text-xs text-[#16a6a3]">{item.listing.title}</p>
+                  <p className="truncate text-xs text-brand">{item.listing.title}</p>
                   <p
                     className={clsx(
                       'truncate text-sm',
-                      item.unreadCount > 0 ? 'font-semibold text-[#222]' : 'text-[#8c8c8c]',
+                      item.unreadCount > 0 ? 'font-semibold text-ink' : 'text-subtle',
                     )}
                   >
                     {last ? `${isMine ? 'Bạn: ' : ''}${last.content}` : 'Bắt đầu trò chuyện'}

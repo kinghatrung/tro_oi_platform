@@ -1,10 +1,11 @@
 'use client';
 
-import { Carousel, Empty } from 'antd';
+import { Carousel } from 'antd';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { Listing } from '@tro-oi/shared';
 
 import { CardItem } from './CardItem';
+import { EmptyState, EmptyVariant } from './EmptyState';
 
 interface ArrowProps {
   currentSlide?: number;
@@ -22,7 +23,7 @@ const ITEMS_PER_SLIDE = 5;
 function PrevArrow({ currentSlide, slideCount, ...props }: ArrowProps) {
   return (
     <button type="button" aria-label="Trang trước" {...props}>
-      <ChevronLeft size={24} color="#16a6a3" />
+      <ChevronLeft size={24} className="text-brand" />
     </button>
   );
 }
@@ -31,7 +32,7 @@ function PrevArrow({ currentSlide, slideCount, ...props }: ArrowProps) {
 function NextArrow({ currentSlide, slideCount, ...props }: ArrowProps) {
   return (
     <button type="button" aria-label="Trang sau" {...props}>
-      <ChevronRight size={24} color="#16a6a3" />
+      <ChevronRight size={24} className="text-brand" />
     </button>
   );
 }
@@ -39,7 +40,9 @@ function NextArrow({ currentSlide, slideCount, ...props }: ArrowProps) {
 /** Displays property cards in a navigable carousel, 5 cards per slide. */
 export function CarouselItem({ items }: CarouselItemProps) {
   if (items.length === 0) {
-    return <Empty description="Chưa có tin đăng" className="mb-4!" />;
+    return (
+      <EmptyState variant={EmptyVariant.LISTING} description="Chưa có tin đăng" className="mb-4!" />
+    );
   }
 
   const slides = Array.from({ length: Math.ceil(items.length / ITEMS_PER_SLIDE) }, (_, index) =>

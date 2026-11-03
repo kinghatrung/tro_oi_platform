@@ -10,7 +10,7 @@ import { formatNumber } from '@/utils/helpers';
 /** Thẻ các loại hình nhà ở kèm tổng số tin đang hiển thị, dẫn tới trang tìm kiếm. */
 export function Property({ stats }: { stats: ListingStat[] }) {
   return (
-    <div className="bg-white rounded-lg p-2 mb-4">
+    <div className="bg-surface rounded-lg p-2 mb-4">
       <Flex gap={16} justify="space-between" wrap>
         {CATEGORIES.map((item) => {
           const count = stats

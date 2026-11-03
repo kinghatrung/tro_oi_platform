@@ -25,14 +25,14 @@ export function CategoryPicker({ value, onChange }: CategoryPickerProps) {
             aria-checked={isSelected}
             onClick={() => onChange?.(item.category)}
             className={clsx(
-              'flex cursor-pointer flex-col items-center gap-2 rounded-xl border-2 bg-white p-3 transition-all',
+              'flex cursor-pointer flex-col items-center gap-2 rounded-xl border-2 bg-surface p-3 transition-all',
               isSelected
-                ? 'border-[#16a6a3] bg-[#eafbf9] shadow-sm'
-                : 'border-[#efefef] hover:border-[#b8d9d7]',
+                ? 'border-brand bg-brand-soft shadow-sm'
+                : 'border-line hover:border-[#b8d9d7]',
             )}
           >
             <Image src={item.icon} alt="" width={48} height={48} />
-            <span className="text-sm font-semibold text-[#222]">{item.title}</span>
+            <span className="text-sm font-semibold text-ink">{item.title}</span>
           </button>
         );
       })}

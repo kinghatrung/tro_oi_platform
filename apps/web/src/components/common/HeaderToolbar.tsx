@@ -39,27 +39,27 @@ export function HeaderToolbar({
   );
 
   return (
-    <div className="bg-white rounded-t-xl border-b border-[#f0f0f0] px-4 py-2 select-none">
+    <div className="bg-surface rounded-t-xl border-b border-line px-4 py-2 select-none">
       <Flex align="center" justify="space-between" className="flex-wrap gap-y-2">
-        <div className="text-sm text-[#595959]">{extra}</div>
+        <div className="text-sm text-body">{extra}</div>
 
         <Flex align="center" gap={16} className="h-10">
           {/* Sort dropdown */}
           <Dropdown menu={sortMenu} trigger={['click']}>
             <button
               type="button"
-              className="flex items-center gap-1.5 text-xs md:text-sm font-medium text-[#222] hover:text-[#f0325e] transition-colors cursor-pointer bg-transparent border-none p-0"
+              className="flex items-center gap-1.5 text-xs md:text-sm font-medium text-ink hover:text-price transition-colors cursor-pointer bg-transparent border-none p-0"
             >
               <span>{sortLabel}</span>
-              <ChevronDown size={16} className="text-[#595959]" />
+              <ChevronDown size={16} className="text-body" />
             </button>
           </Dropdown>
 
           {/* Divider */}
-          <div className="h-4 w-px bg-[#e8e8e8]" />
+          <div className="h-4 w-px bg-line" />
 
           {/* View mode toggle (List / Grid) */}
-          <div className="flex align-center bg-[#f4f4f4] rounded-full p-1 gap-1">
+          <div className="flex align-center bg-soft rounded-full p-1 gap-1">
             {(['list', 'grid'] as const).map((mode) => (
               <button
                 key={mode}
@@ -70,8 +70,8 @@ export function HeaderToolbar({
                 className={clsx(
                   'flex items-center justify-center size-7 rounded-full transition-all cursor-pointer border-none p-0',
                   viewMode === mode
-                    ? 'bg-white shadow-sm text-[#222]'
-                    : 'text-[#8c8c8c] hover:text-[#222] bg-transparent',
+                    ? 'bg-surface shadow-sm text-ink'
+                    : 'text-subtle hover:text-ink bg-transparent',
                 )}
               >
                 {mode === 'list' ? <List size={18} /> : <LayoutGrid size={18} />}

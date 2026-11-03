@@ -29,6 +29,10 @@ export class User {
   @Prop({ type: String, enum: USER_ROLES, default: 'renter' })
   role: UserRole;
 
+  /** Bị admin khoá: không đăng nhập, mọi request có token bị từ chối. */
+  @Prop({ default: false, index: true })
+  isBlocked: boolean;
+
   /** Tin đã lưu, thứ tự thêm vào (cũ → mới). */
   @Prop({
     type: [{ type: MongooseSchema.Types.ObjectId, ref: 'Listing' }],
@@ -53,6 +57,7 @@ export function toUser(user: UserDocument) {
     bio: user.bio,
     avatar: user.avatar,
     role: user.role,
+    isBlocked: user.isBlocked ?? false,
     createdAt: user.createdAt.toISOString(),
     updatedAt: user.updatedAt.toISOString(),
   };

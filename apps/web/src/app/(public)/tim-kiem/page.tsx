@@ -10,7 +10,7 @@ import { PAGE_SIZE } from './const';
 import type { SearchPageProps } from './type';
 
 export const metadata: Metadata = {
-  title: 'Tìm phòng trọ, căn hộ, nhà nguyên căn | Trọ ơi',
+  title: 'Tìm phòng trọ, căn hộ, nhà nguyên căn',
 };
 
 /** Trang tìm kiếm: filter/sort/page đọc từ URL, dữ liệu lấy từ GET /listings. */

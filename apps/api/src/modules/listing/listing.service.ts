@@ -7,6 +7,8 @@ import { InjectModel } from '@nestjs/mongoose';
 import { isValidObjectId, type Model } from 'mongoose';
 
 import type { AuthUser } from '../../common/current-user.decorator.js';
+import { assertOwnerStatusChange } from '../../common/status-rules.js';
+import { SettingsService } from '../settings/settings.service.js';
 import type {
   CreateListingDto,
   SearchListingDto,
@@ -17,12 +19,16 @@ import { AUTHOR_FIELDS, toListing, withFullAddress } from './listing.mapper.js';
 import { User, type UserDocument } from '../auth/schemas/user.schema.js';
 import { Listing, type ListingDocument } from './schemas/listing.schema.js';
 
+/** Trạng thái chủ tin tự chuyển được: hiển thị ↔ ẩn. */
+const OWNER_STATUSES = ['active', 'closed'] as const;
+
 @Injectable()
 export class ListingService {
   constructor(
     @InjectModel(Listing.name)
     private readonly listingModel: Model<ListingDocument>,
     @InjectModel(User.name) private readonly userModel: Model<UserDocument>,
+    private readonly settingsService: SettingsService,
   ) {}
 
   async search(query: SearchListingDto) {
@@ -133,12 +139,14 @@ export class ListingService {
     return toListing(doc, { listingCount });
   }
 
+  /** Tin mới: chờ duyệt nếu admin bật requireListingApproval, ngược lại hiển thị ngay. */
   async create(user: AuthUser, dto: CreateListingDto) {
+    const { requireListingApproval } = await this.settingsService.get();
     const doc = await this.listingModel.create({
       ...dto,
       address: withFullAddress(dto.address),
       author: user.sub,
-      status: 'active',
+      status: requireListingApproval ? 'pending' : 'active',
     });
     await doc.populate('author', AUTHOR_FIELDS);
     return toListing(doc);
@@ -146,6 +154,12 @@ export class ListingService {
 
   async update(user: AuthUser, id: string, dto: UpdateListingDto) {
     const doc = await this.findOwned(user, id);
+    assertOwnerStatusChange(
+      doc.status,
+      dto.status,
+      OWNER_STATUSES,
+      user.role === 'admin',
+    );
     doc.set({
       ...dto,
       ...(dto.address && { address: withFullAddress(dto.address) }),

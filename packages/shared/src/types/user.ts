@@ -23,6 +23,8 @@ export interface User {
   bio?: string;
   avatar?: string;
   role: UserRole;
+  /** Bị admin khoá: không đăng nhập/thao tác được. */
+  isBlocked?: boolean;
   /** ISO 8601 — luôn là string, không dùng Date. */
   createdAt: string;
   /** ISO 8601 — luôn là string, không dùng Date. */

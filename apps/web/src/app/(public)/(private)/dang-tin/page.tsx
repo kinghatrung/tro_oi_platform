@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   App,
@@ -28,6 +28,7 @@ import {
 
 import { createListing, getMyListings, updateListing } from '@/api/listings';
 import { antdUploadRequest } from '@/api/uploads';
+import { FormSection } from '@/components/common';
 import { useRequireUser } from '@/stores/useAuthStore';
 import { formatListingPrice, formatNumber } from '@/utils/helpers';
 
@@ -56,31 +57,6 @@ const DESCRIPTION_PLACEHOLDER = `VD:
 - Đầy đủ điều hoà, nóng lạnh, giường tủ.
 - Điện 3.500đ/số, nước 100.000đ/người, internet miễn phí.
 - Giờ giấc tự do, khoá vân tay, có chỗ để xe.`;
-
-interface FormSectionProps {
-  step: number;
-  title: string;
-  description?: string;
-  children: ReactNode;
-}
-
-/** Khối form có số thứ tự + tiêu đề + mô tả ngắn. */
-function FormSection({ step, title, description, children }: FormSectionProps) {
-  return (
-    <Card variant="borderless">
-      <Flex gap={12} className="mb-4!">
-        <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-[#16a6a3] text-sm font-bold text-white">
-          {step}
-        </span>
-        <div>
-          <h2 className="text-[16px] font-bold text-[#222]">{title}</h2>
-          {description && <p className="text-sm text-[#8c8c8c]">{description}</p>}
-        </div>
-      </Flex>
-      {children}
-    </Card>
-  );
-}
 
 /** Đăng tin mới, hoặc sửa tin của tôi khi có ?id=. */
 export default function PostListingPage() {
@@ -133,7 +109,11 @@ export default function PostListingPage() {
         const address = { ...formValues.address, geo: isSameArea ? oldAddress?.geo : undefined };
         const body = { ...formValues, address, images };
         const saved = editing ? await updateListing(editing.id, body) : await createListing(body);
-        message.success(editing ? 'Đã cập nhật tin' : 'Đăng tin thành công');
+        if (saved.status === ListingStatus.PENDING) {
+          message.info('Tin đã gửi, đang chờ quản trị viên duyệt');
+        } else {
+          message.success(editing ? 'Đã cập nhật tin' : 'Đăng tin thành công');
+        }
         router.push(
           saved.status === ListingStatus.ACTIVE
             ? `/phong-tro/${saved.id}`
@@ -188,7 +168,7 @@ export default function PostListingPage() {
     >
       <Card variant="borderless" className="mb-4!">
         <h1 className="text-primary text-xl!">{editing ? 'Sửa tin đăng' : 'Đăng tin mới'}</h1>
-        <p className="text-sm text-[#8c8c8c]">
+        <p className="text-sm text-subtle">
           Điền đủ 6 bước bên dưới. Trường có nhãn &quot;(optional)&quot; có thể bỏ trống.
         </p>
       </Card>
@@ -230,7 +210,7 @@ export default function PostListingPage() {
                 }}
               >
                 {fileList.length < MAX_IMAGES && (
-                  <div className="flex flex-col items-center gap-1 text-[#595959]">
+                  <div className="flex flex-col items-center gap-1 text-body">
                     <ImagePlus size={22} />
                     <span className="text-xs">Thêm ảnh</span>
                   </div>

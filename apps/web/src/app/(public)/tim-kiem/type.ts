@@ -7,6 +7,9 @@ export interface SearchPageProps {
     category?: string | string[];
     minPrice?: string | string[];
     maxPrice?: string | string[];
+    minArea?: string | string[];
+    maxArea?: string | string[];
+    bedrooms?: string | string[];
     sort?: string | string[];
     page?: string | string[];
   }>;

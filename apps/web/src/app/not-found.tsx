@@ -9,7 +9,7 @@ export default function NotFound() {
   return (
     <main>
       <SubHeader />
-      <section className="w-full max-w-300 mx-auto my-3 rounded-lg bg-white py-10">
+      <section className="w-full max-w-300 mx-auto my-3 rounded-lg bg-surface py-10">
         <Result
           status="404"
           title="Không tìm thấy trang"

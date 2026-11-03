@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -58,6 +59,10 @@ export class AuthService {
         name: `Người dùng ${phone.slice(-4)}`,
         role: 'renter',
       });
+    }
+
+    if (user.isBlocked) {
+      throw new ForbiddenException('Tài khoản đã bị khoá. Liên hệ hỗ trợ.');
     }
 
     //4. Tạo JWT access token

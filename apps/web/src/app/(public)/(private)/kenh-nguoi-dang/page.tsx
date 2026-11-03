@@ -3,10 +3,11 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useMemo } from 'react';
-import { Button, Card, Col, Empty, Flex, Row, Skeleton, Statistic } from 'antd';
+import { Button, Card, Col, Flex, Row, Skeleton, Statistic } from 'antd';
 import { Eye, EyeOff, FileText, Heart, Plus, TrendingUp } from 'lucide-react';
 import { ListingStatus } from '@tro-oi/shared';
 
+import { EmptyState, EmptyVariant } from '@/components/common';
 import { NO_IMAGE } from '@/constants';
 import { formatListingPrice } from '@/utils/helpers';
 
@@ -93,16 +94,16 @@ export default function SellerOverviewPage() {
         extra={<Link href={`${SELLER_BASE}/tin-dang`}>Quản lý tất cả tin</Link>}
       >
         {topListings.length === 0 ? (
-          <Empty description="Bạn chưa có tin đăng nào">
+          <EmptyState variant={EmptyVariant.LISTING} description="Bạn chưa có tin đăng nào">
             <Link href="/dang-tin">
               <Button type="primary">Đăng tin đầu tiên</Button>
             </Link>
-          </Empty>
+          </EmptyState>
         ) : (
           <Flex vertical gap={12}>
             {topListings.map((listing, index) => (
               <Flex key={listing.id} align="center" gap={12}>
-                <span className="w-6 text-center font-bold text-[#8c8c8c]">{index + 1}</span>
+                <span className="w-6 text-center font-bold text-subtle">{index + 1}</span>
                 <div className="relative h-14 w-18 shrink-0 overflow-hidden rounded-md">
                   <Image
                     src={listing.images[0] || NO_IMAGE}
@@ -114,11 +115,11 @@ export default function SellerOverviewPage() {
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="text-default line-clamp-1">{listing.title}</p>
-                  <p className="text-sm text-[#f0325e] font-semibold">
+                  <p className="text-sm text-price font-semibold">
                     {formatListingPrice(listing.price, listing.transaction)}
                   </p>
                 </div>
-                <Flex gap={16} className="shrink-0 text-sm text-[#595959]">
+                <Flex gap={16} className="shrink-0 text-sm text-body">
                   <Flex align="center" gap={4}>
                     <Eye size={16} /> {listing.viewCount ?? 0}
                   </Flex>

@@ -23,7 +23,7 @@ const getUserOrNotFound = cache(async (id: string) => {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const user = await getUserOrNotFound((await params).id);
-  return { title: `${user.name} | Trọ ơi` };
+  return { title: `${user.name}` };
 }
 
 /** Hồ sơ công khai của người đăng tin + các tin đang hiển thị. */

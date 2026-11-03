@@ -1,9 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { Button, Card, Empty, Flex, Skeleton } from 'antd';
+import { Button, Card, Flex, Skeleton } from 'antd';
 
-import { CardItem } from '@/components/common';
+import { CardItem, EmptyState, EmptyVariant } from '@/components/common';
 import { useAuthStore, useRequireUser } from '@/stores/useAuthStore';
 
 /** Tin đã lưu của người dùng (lấy từ store, bỏ lưu ngay trên thẻ). */
@@ -27,11 +27,14 @@ export default function FavouritePage() {
         </Card>
       ) : favorites.length === 0 ? (
         <Card variant="borderless" className="rounded-none!">
-          <Empty description="Bạn chưa lưu tin nào">
+          <EmptyState
+            variant={EmptyVariant.FAVORITE}
+            description="Bạn chưa lưu tin nào. Bấm ♡ Lưu trên tin đăng để xem lại sau."
+          >
             <Link href="/tim-kiem">
               <Button type="primary">Tìm trọ ngay</Button>
             </Link>
-          </Empty>
+          </EmptyState>
         </Card>
       ) : (
         <Flex vertical gap={4}>

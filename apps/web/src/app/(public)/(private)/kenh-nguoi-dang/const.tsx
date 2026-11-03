@@ -1,4 +1,4 @@
-import { FilePlus2, LayoutDashboard, ListChecks, UserRound } from 'lucide-react';
+import { FilePlus2, LayoutDashboard, ListChecks, ShoppingBag, UserRound } from 'lucide-react';
 import { ListingStatus } from '@tro-oi/shared';
 
 export const SELLER_BASE = '/kenh-nguoi-dang';
@@ -7,6 +7,7 @@ export const SELLER_BASE = '/kenh-nguoi-dang';
 export const SELLER_MENU = [
   { key: SELLER_BASE, label: 'Tổng quan', icon: <LayoutDashboard size={18} /> },
   { key: `${SELLER_BASE}/tin-dang`, label: 'Quản lý tin', icon: <ListChecks size={18} /> },
+  { key: `${SELLER_BASE}/do-ban`, label: 'Đồ đang bán', icon: <ShoppingBag size={18} /> },
   { key: '/dang-tin', label: 'Đăng tin mới', icon: <FilePlus2 size={18} /> },
   { key: '/ca-nhan', label: 'Trang cá nhân', icon: <UserRound size={18} /> },
 ];

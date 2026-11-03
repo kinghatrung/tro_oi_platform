@@ -19,10 +19,12 @@ import {
   ChevronDown,
   FilePlus2,
   LayoutDashboard,
+  ShieldCheck,
 } from 'lucide-react';
-import { PropertyCategory, TransactionType } from '@tro-oi/shared';
+import { PropertyCategory, TransactionType, UserRole } from '@tro-oi/shared';
 
-import { ButtonDropdown, CardDropdown, AreaPicker } from '@/components/common';
+import { useSiteSettings } from '@/app/providers';
+import { ButtonDropdown, CardDropdown, AreaPicker, ThemeToggle } from '@/components/common';
 import { useAuthStore } from '@/stores/useAuthStore';
 
 const CATEGORY_ICONS: Record<PropertyCategory, React.ReactNode> = {
@@ -62,38 +64,44 @@ const CATEGORY_MENU: MenuProps['items'] = [
 ];
 
 const menuLabel = (text: string) => (
-  <span className="ml-2 text-[#595959] text-[16px] font-bold">{text}</span>
+  <span className="ml-2 text-body text-[16px] font-bold">{text}</span>
 );
 
 const USER_MENU: MenuProps['items'] = [
   {
     key: '/ca-nhan',
     label: menuLabel('Trang cá nhân'),
-    icon: <UserRound color="#595959" size={20} />,
+    icon: <UserRound size={20} />,
   },
   {
     key: '/kenh-nguoi-dang',
     label: menuLabel('Kênh người đăng'),
-    icon: <LayoutDashboard color="#595959" size={20} />,
+    icon: <LayoutDashboard size={20} />,
   },
   {
     key: '/dang-tin',
     label: menuLabel('Đăng tin mới'),
-    icon: <FilePlus2 color="#595959" size={20} />,
+    icon: <FilePlus2 size={20} />,
   },
   {
     key: '/yeu-thich',
     label: menuLabel('Tin đã lưu'),
-    icon: <Heart fill="#595959" color="#595959" size={20} />,
+    icon: <Heart fill="currentColor" size={20} />,
   },
-  { key: 'logout', label: menuLabel('Đăng xuất'), icon: <LogOut color="#595959" size={20} /> },
+  { key: 'logout', label: menuLabel('Đăng xuất'), icon: <LogOut size={20} /> },
 ];
+
+const ADMIN_MENU_ITEM = {
+  key: '/quan-tri',
+  label: menuLabel('Trang quản trị'),
+  icon: <ShieldCheck size={20} />,
+};
 
 const AREA_BUTTON = (label: string) => (
   <Button>
     <span className="inline-flex items-center gap-1.5">
-      <MapPin size={24} fill="#16a6a3" color="#fff" />
-      <span className="text-[16px] text-black">{label}</span>
+      <MapPin size={24} fill="var(--brand)" color="var(--surface)" />
+      <span className="text-[16px] text-ink">{label}</span>
       <ChevronDown size={16} />
     </span>
   </Button>
@@ -109,7 +117,10 @@ function Navbar() {
   const user = useAuthStore((state) => state.user);
   const loadSession = useAuthStore((state) => state.loadSession);
   const logout = useAuthStore((state) => state.logout);
+  const settings = useSiteSettings();
   const isHousingSection = !pathname.startsWith('/cho-oi');
+  const userMenu = user?.role === UserRole.ADMIN ? [ADMIN_MENU_ITEM, ...USER_MENU!] : USER_MENU;
+  const postHref = isHousingSection ? '/dang-tin' : '/cho-oi/dang-ban';
 
   const handleCategoryClick = useCallback<NonNullable<MenuProps['onClick']>>(
     ({ key }) => {
@@ -156,41 +167,46 @@ function Navbar() {
               <Image
                 width={80}
                 height={20}
-                alt="Logo"
-                className="object-contain"
-                src="/images/tro-oi-logo.svg"
+                alt={settings.siteName}
+                className="brand-art object-contain"
+                src={settings.logoUrl}
               />
             </Button>
           </Link>
 
           {/* useSearchParams trong AreaPicker cần Suspense để trang tĩnh build được */}
           <Suspense fallback={AREA_BUTTON('Chọn khu vực')}>
-            <AreaPicker>{AREA_BUTTON}</AreaPicker>
+            <AreaPicker basePath={isHousingSection ? '/tim-kiem' : '/cho-oi'}>
+              {AREA_BUTTON}
+            </AreaPicker>
           </Suspense>
         </Space>
 
         <Flex gap={32} align="center">
           <Link
             href="/"
-            className={`text-[16px] font-bold tracking-tight transition-all text-[#073B3D] ${
+            className={`text-[16px] font-bold tracking-tight transition-all text-ink ${
               isHousingSection ? 'opacity-100' : 'opacity-40 hover:opacity-70'
             }`}
           >
             Trọ ơi!
           </Link>
 
-          <Link
-            href="/cho-oi"
-            className={`text-[16px] font-bold tracking-tight transition-all text-[#073B3D] ${
-              isHousingSection ? 'opacity-40 hover:opacity-70' : 'opacity-100'
-            }`}
-          >
-            Chợ ơi!
-          </Link>
+          {settings.enableMarketplace && (
+            <Link
+              href="/cho-oi"
+              className={`text-[16px] font-bold tracking-tight transition-all text-ink ${
+                isHousingSection ? 'opacity-40 hover:opacity-70' : 'opacity-100'
+              }`}
+            >
+              Chợ ơi!
+            </Link>
+          )}
         </Flex>
 
         {/* Dropdown người dùng */}
         <Space>
+          <ThemeToggle />
           <Link href="/yeu-thich" aria-label="Tin đã lưu">
             <Button icon={<Heart size={20} />} />
           </Link>
@@ -202,14 +218,14 @@ function Navbar() {
               <Button>Đăng nhập</Button>
             </Link>
           )}
-          <Link href="/dang-tin">
-            <Button type="primary">Đăng tin</Button>
+          <Link href={postHref}>
+            <Button type="primary">{isHousingSection ? 'Đăng tin' : 'Đăng bán'}</Button>
           </Link>
           <ButtonDropdown
             aria-label="Tài khoản"
             dropdown
             placement="bottomRight"
-            menus={user ? USER_MENU : undefined}
+            menus={user ? userMenu : undefined}
             onMenuClick={handleUserMenuClick}
             iconLeft={
               user ? (
@@ -221,23 +237,23 @@ function Navbar() {
               )
             }
             popupRender={(menu) => (
-              <div className="bg-[#f7f7f7] rounded-lg shadow-md w-100 p-4 border-4 border-white">
-                <div className="bg-white p-4 rounded-lg">
+              <div className="bg-soft rounded-lg shadow-md w-100 p-4 border-4 border-white">
+                <div className="bg-surface p-4 rounded-lg">
                   {user ? (
                     <Flex align="center" gap={12}>
                       <Avatar size={48} src={user.avatar}>
                         {user.name.charAt(0)}
                       </Avatar>
                       <div>
-                        <p className="text-[#222] font-bold text-lg">{user.name}</p>
-                        <p className="text-[#8c8c8c] font-medium">{user.phone}</p>
+                        <p className="text-ink font-bold text-lg">{user.name}</p>
+                        <p className="text-subtle font-medium">{user.phone}</p>
                       </div>
                     </Flex>
                   ) : (
                     <Flex vertical gap={16}>
                       <div>
-                        <p className="text-[#222] font-bold text-lg">Tìm trọ nhanh, ở trọ vui</p>
-                        <p className="text-[#8c8c8c] font-medium text-[16px]">Đăng nhập cái đã!</p>
+                        <p className="text-ink font-bold text-lg">Tìm trọ nhanh, ở trọ vui</p>
+                        <p className="text-subtle font-medium text-[16px]">Đăng nhập cái đã!</p>
                       </div>
 
                       <Link href="/dang-nhap" className="w-full">
@@ -252,7 +268,7 @@ function Navbar() {
                 {user && (
                   <>
                     <div className="pt-3 pb-2 pl-2">
-                      <span className="text-[#8c8c8c] font-bold">Tiện ích</span>
+                      <span className="text-subtle font-bold">Tiện ích</span>
                     </div>
                     {menu}
                   </>

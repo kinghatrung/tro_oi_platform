@@ -71,7 +71,7 @@ export function ProfileEditModal({ user, open, onClose, onSaved }: ProfileEditMo
           >
             <div className="relative cursor-pointer w-fit">
               <Avatar size={96} src={avatar} icon={<UserRound size={48} />} />
-              <span className="absolute bottom-0 right-0 flex size-8 items-center justify-center rounded-full bg-white shadow">
+              <span className="absolute bottom-0 right-0 flex size-8 items-center justify-center rounded-full bg-surface shadow">
                 <Camera size={16} />
               </span>
             </div>

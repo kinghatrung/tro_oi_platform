@@ -117,20 +117,15 @@ export function CardItem({ listing, column }: CardItemProps) {
             <Flex vertical gap={7} className="min-w-0! flex-1">
               {/* Title + Save */}
               <Flex justify="space-between" align="start" gap={12}>
-                <h3 className="text-default text-[#222] m-0! line-clamp-2 font-semibold leading-5! min-w-0 flex-1">
+                <h3 className="text-default text-ink m-0! line-clamp-2 font-semibold leading-5! min-w-0 flex-1">
                   {title}
                 </h3>
 
                 <Button
                   size="small"
                   aria-pressed={isFavorite}
-                  icon={
-                    <Heart
-                      size={18}
-                      className={isFavorite ? 'fill-[#f0325e] stroke-[#f0325e]' : ''}
-                    />
-                  }
-                  className="shrink-0 text-sm! text-[#222]! rounded-xl!"
+                  icon={<Heart size={18} className={isFavorite ? 'fill-price stroke-price' : ''} />}
+                  className="shrink-0 text-sm! text-ink! rounded-xl!"
                   onClick={handleToggle}
                 >
                   {isFavorite ? 'Đã lưu' : 'Lưu'}
@@ -141,26 +136,26 @@ export function CardItem({ listing, column }: CardItemProps) {
               <Flex align="center" gap={12} wrap>
                 {bedrooms != null && (
                   <Flex align="center" gap={4}>
-                    <BedDouble size={16} color="#222" />
-                    <span className="text-secondary text-[#222]">{bedrooms} PN</span>
+                    <BedDouble size={16} />
+                    <span className="text-secondary text-ink">{bedrooms} PN</span>
                   </Flex>
                 )}
 
                 {direction && (
                   <Flex align="center" gap={4}>
-                    <House size={16} color="#222" />
-                    <span className="text-secondary text-[#222]">{direction}</span>
+                    <House size={16} />
+                    <span className="text-secondary text-ink">{direction}</span>
                   </Flex>
                 )}
 
-                <span className="text-secondary text-[#222]">{propertyType}</span>
+                <span className="text-secondary text-ink">{propertyType}</span>
               </Flex>
 
               {/* Address */}
               {locationLabel && (
                 <Flex align="center" gap={4}>
-                  <MapPin size={16} color="#222" />
-                  <span className="text-secondary text-[#222]">{locationLabel}</span>
+                  <MapPin size={16} />
+                  <span className="text-secondary text-ink">{locationLabel}</span>
                 </Flex>
               )}
 
@@ -171,7 +166,7 @@ export function CardItem({ listing, column }: CardItemProps) {
                     <CircleUserRound size={15} className="text-white" />
                   </div>
 
-                  <span className="text-secondary text-[#222]">{author.name}</span>
+                  <span className="text-secondary text-ink">{author.name}</span>
                   {author.role && (
                     <span className="text-secondary text-sm">{USER_ROLE_LABELS[author.role]}</span>
                   )}
@@ -180,7 +175,7 @@ export function CardItem({ listing, column }: CardItemProps) {
 
               {/* Price */}
               <Flex align="center" gap={12}>
-                <span className="text-primary text-[#f0325e]">
+                <span className="text-primary text-price">
                   {priceLabel}
                   {area != null && ` - ${area}m²`}
                 </span>
@@ -206,7 +201,7 @@ export function CardItem({ listing, column }: CardItemProps) {
         block
         overflow-hidden
         rounded-lg
-        bg-white
+        bg-surface
         cursor-pointer
         transition-all duration-300
         ease-in-out
@@ -240,10 +235,7 @@ export function CardItem({ listing, column }: CardItemProps) {
             active:scale-95
           `)}
         >
-          <Heart
-            size={20}
-            className={isFavorite ? 'fill-[#f0325e] stroke-[#f0325e]' : 'stroke-white'}
-          />
+          <Heart size={20} className={isFavorite ? 'fill-price stroke-price' : 'stroke-white'} />
         </button>
 
         <Flex
@@ -274,11 +266,11 @@ export function CardItem({ listing, column }: CardItemProps) {
             <p className="text-secondary">{propertyType}</p>
           </Space>
           <Space size={8} wrap>
-            <p className="text-primary text-[#f0325e]">{priceLabel}</p>
-            {area != null && <p className="text-secondary text-[#222]!">{area} m²</p>}
+            <p className="text-primary text-price">{priceLabel}</p>
+            {area != null && <p className="text-secondary text-ink!">{area} m²</p>}
           </Space>
           <Space size={4}>
-            <MapPin size={16} color="#bfbfbf" />
+            <MapPin size={16} className="text-subtle" />
             <p className="text-secondary line-clamp-1">{locationLabel}</p>
           </Space>
         </Flex>
