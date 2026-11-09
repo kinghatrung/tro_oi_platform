@@ -13,7 +13,7 @@ const listing: MatchableListing = {
   amenities: ['wifi', 'parking'],
   address: {
     city: 'Hà Nội',
-    district: 'Cầu Giấy',
+    ward: 'Phường Cầu Giấy',
     fullAddress: 'Số 10 Xuân Thuỷ, Cầu Giấy, Hà Nội',
   },
 };
@@ -28,10 +28,11 @@ describe('matchesSavedSearch', () => {
   it('khu vực, loại hình, giá (triệu), diện tích, tiện ích', () => {
     expect(
       match(
-        'transaction=rent-room&category=phong-tro&city=H%C3%A0+N%E1%BB%99i&district=c%E1%BA%A7u&minPrice=3&maxPrice=4&minArea=20&amenities=wifi',
+        'transaction=rent-room&category=phong-tro&city=H%C3%A0+N%E1%BB%99i&ward=Ph%C6%B0%E1%BB%9Dng+C%E1%BA%A7u+Gi%E1%BA%A5y&minPrice=3&maxPrice=4&minArea=20&amenities=wifi',
       ),
     ).toBe(true);
     expect(match('city=H%E1%BB%93+Ch%C3%AD+Minh')).toBe(false);
+    expect(match('ward=Ph%C6%B0%E1%BB%9Dng+Ngh%C4%A9a+%C4%90%C3%B4')).toBe(false); // phường khác
     expect(match('maxPrice=3')).toBe(false);
     expect(match('category=can-ho')).toBe(false);
     expect(match('amenities=wifi,elevator')).toBe(false);

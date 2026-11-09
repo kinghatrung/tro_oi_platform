@@ -20,6 +20,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 
+import { PROVINCES } from '../../../common/provinces.js';
 import { IMAGE_URL_PATTERN } from '../../listing/dto/listing.dto.js';
 import {
   PRODUCT_CATEGORIES,
@@ -52,7 +53,7 @@ export class SearchProductDto {
   @IsOptional()
   @IsString()
   @MaxLength(100)
-  district?: string;
+  ward?: string;
 
   @IsOptional()
   @Type(() => Number)
@@ -98,11 +99,15 @@ class ProductAddressDto {
   @IsOptional()
   @IsString()
   @MaxLength(100)
+  ward?: string;
+
+  /** Quận/huyện — chỉ còn ở dữ liệu trước 1/7/2025 (mô hình 3 cấp), form mới không gửi. */
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
   district?: string;
 
-  @IsString()
-  @IsNotEmpty({ message: 'Vui lòng chọn tỉnh/thành phố' })
-  @MaxLength(100)
+  @IsIn(PROVINCES, { message: 'Vui lòng chọn tỉnh/thành phố' })
   city: string;
 }
 

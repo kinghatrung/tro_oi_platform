@@ -69,11 +69,13 @@ export class Address {
   @Prop()
   street?: string;
 
-  @Prop()
+  /** Phường/xã/đặc khu (mô hình 2 cấp từ 1/7/2025). */
+  @Prop({ index: true })
   ward?: string;
 
-  @Prop({ required: true })
-  district: string;
+  /** Quận/huyện — chỉ còn ở dữ liệu trước 1/7/2025 (mô hình 3 cấp), form mới không gửi. */
+  @Prop()
+  district?: string;
 
   @Prop({ required: true, index: true })
   city: string;

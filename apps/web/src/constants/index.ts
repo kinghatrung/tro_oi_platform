@@ -34,8 +34,10 @@ export const CATEGORIES = [
 /** Ảnh hiển thị khi tin không có ảnh. */
 export const NO_IMAGE = '/images/no-image.svg';
 
-/** Tỉnh/thành hỗ trợ. Giá trị lưu nguyên văn vào address.city (khớp seed bên API). */
-export const CITIES = ['Hà Nội', 'Hồ Chí Minh', 'Đà Nẵng', 'Cần Thơ', 'Bình Dương'] as const;
+export { PROVINCES, type Province } from './provinces';
+
+/** Thành phố nổi bật ở lưới khu vực trang chủ (đều nằm trong PROVINCES). */
+export const FEATURED_CITIES = ['Hà Nội', 'Hồ Chí Minh', 'Đà Nẵng', 'Hải Phòng', 'Cần Thơ'] as const;
 
 /** Lựa chọn sắp xếp trên trang tìm kiếm — key lưu ở ?sort=. */
 export const SORT_OPTIONS = [

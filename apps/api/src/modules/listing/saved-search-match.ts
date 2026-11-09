@@ -7,7 +7,7 @@ export interface MatchableListing {
   area?: number;
   bedrooms?: number;
   amenities?: string[];
-  address: { city?: string; district?: string; fullAddress?: string };
+  address: { city?: string; ward?: string; fullAddress?: string };
 }
 
 const MILLION = 1_000_000;
@@ -31,7 +31,7 @@ export function matchesSavedSearch(
 ): boolean {
   const params = new URLSearchParams(query);
   const keyword = params.get('keyword')?.trim();
-  const district = params.get('district')?.trim();
+  const ward = params.get('ward')?.trim();
   const minPrice = numberParam(params, 'minPrice');
   const maxPrice = numberParam(params, 'maxPrice');
   const minArea = numberParam(params, 'minArea');
@@ -44,7 +44,7 @@ export function matchesSavedSearch(
       params.get('transaction') === listing.transaction,
     !params.get('category') || params.get('category') === listing.category,
     !params.get('city') || params.get('city') === listing.address.city,
-    !district || includesText(listing.address.district, district),
+    !ward || ward === listing.address.ward,
     !keyword ||
       includesText(listing.title, keyword) ||
       includesText(listing.address.fullAddress, keyword),

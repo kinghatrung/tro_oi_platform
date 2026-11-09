@@ -16,9 +16,7 @@ export function buildListingQuery(query: SearchListingDto) {
   if (query.transaction) filter.transaction = query.transaction;
   if (query.category) filter.category = query.category;
   if (query.city) filter['address.city'] = query.city;
-  if (query.district) {
-    filter['address.district'] = new RegExp(escapeRegex(query.district), 'i');
-  }
+  if (query.ward) filter['address.ward'] = query.ward;
   if (query.minPrice !== undefined || query.maxPrice !== undefined) {
     filter.price = {
       ...(query.minPrice !== undefined && { $gte: query.minPrice }),

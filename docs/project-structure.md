@@ -22,6 +22,8 @@ yarn install
 # MongoDB local: mongodb://localhost:27017/tro-oi
 cp apps/api/.env.example apps/api/.env.local   # điền giá trị
 yarn workspace api seed      # (tuỳ chọn) tạo user + tin đăng mẫu
+# DB có dữ liệu trước 1/7/2025 (quận/huyện): yarn workspace api migrate:admin-units (chạy lại an toàn)
+# Cập nhật danh mục tỉnh/phường khi địa giới thay đổi: yarn geo:build (cần mạng)
 yarn dev:api                 # http://localhost:5000
 yarn dev:web                 # http://localhost:3001
 ```
@@ -37,7 +39,11 @@ yarn dev:web                 # http://localhost:3001
 | `JWT_EXPIRES_IN`         |          | Mặc định `7d`                                             |
 | `PORT`                   |          | Mặc định `5000`                                           |
 | `WEB_ORIGIN`             |          | CORS origin, mặc định `http://localhost:3001` (nhiều origin ngăn cách bởi dấu phẩy) |
-| `API_PUBLIC_URL`         |          | URL công khai của API để tạo link ảnh upload, mặc định `http://localhost:5000` |
+| `API_PUBLIC_URL`         |          | URL công khai của API để tạo link ảnh upload (khi lưu ổ đĩa), mặc định `http://localhost:5000` |
+| `REDIS_URL`              |          | Redis cho chat realtime khi chạy nhiều instance (Socket.IO redis-adapter). Bỏ trống = 1 instance. Không kết nối được → API không khởi động |
+| `S3_BUCKET`              |          | Bật lưu ảnh lên dịch vụ tương thích S3 (R2, MinIO, AWS). Bỏ trống = ổ đĩa `apps/api/uploads` |
+| `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_PUBLIC_URL` | khi có `S3_BUCKET` | Khoá truy cập + URL công khai đọc ảnh (domain bucket/CDN). Thiếu → API báo lỗi lúc khởi động |
+| `S3_REGION`, `S3_ENDPOINT`, `S3_FORCE_PATH_STYLE` |  | Mặc định `auto` / AWS / `false`. R2: endpoint `https://<account>.r2.cloudflarestorage.com`; MinIO: `S3_FORCE_PATH_STYLE=true` |
 | `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY` | | Firebase Admin — cần cho `/auth/verify-phone` |
 | `AUTH_DEV_LOGIN`         |          | `true` để bật `/auth/dev-login` (đăng nhập bằng SĐT không OTP). **Không bật ở production** |
 
@@ -46,6 +52,7 @@ yarn dev:web                 # http://localhost:3001
 | Biến                                   | Mô tả                                                    |
 | -------------------------------------- | -------------------------------------------------------- |
 | `NEXT_PUBLIC_API_URL`                  | URL API, mặc định `http://localhost:5000`                |
+| `NEXT_PUBLIC_UPLOAD_URL`               | = `S3_PUBLIC_URL` của API khi ảnh lưu trên S3 (whitelist cho `next/image`). Bỏ trống nếu ảnh lưu trên API |
 | `NEXT_PUBLIC_FIREBASE_API_KEY`, `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`, `NEXT_PUBLIC_FIREBASE_PROJECT_ID`, `NEXT_PUBLIC_FIREBASE_APP_ID` | Firebase Client. **Bỏ trống → trang đăng nhập dùng `/auth/dev-login`** |
 
 ---
@@ -57,13 +64,15 @@ src/
 ├── main.ts                     # bootstrap: CORS, cookie-parser, ValidationPipe, interceptor/filter, static /uploads
 ├── app.module.ts               # Config + Mongoose + các module
 ├── seed.ts                     # script tạo dữ liệu mẫu (yarn workspace api seed)
+├── migrate-admin-units.ts      # chuyển địa chỉ cũ sang 2 cấp (yarn workspace api migrate:admin-units), logic ở common/admin-units-migration.ts (có test)
 ├── common/
 │   ├── response.interceptor.ts # thành công → { code, message: 'Thành công', data }
 │   ├── http-exception.filter.ts# lỗi → { code, message (tiếng Việt), data: null }
 │   ├── response-format.spec.ts # test contract ApiResponse
 │   ├── current-user.decorator.ts # @CurrentUser() → { sub, phone, role }
 │   ├── status-rules.ts         # assertOwnerStatusChange(): chủ tin không tự duyệt tin chờ (có test)
-│   └── moderation.ts           # admin xử lý tin người khác → nhãn nhật ký + thông báo chủ tin (có test)
+│   ├── moderation.ts           # admin xử lý tin người khác → nhãn nhật ký + thông báo chủ tin (có test)
+│   └── provinces.ts            # 34 tỉnh/thành hợp lệ cho address.city — TỰ SINH bởi yarn geo:build
 └── modules/
     ├── auth/                   # verify-phone, dev-login, FirebaseService
     │   ├── jwt-auth.guard.ts   # kiểm token + đọc role/isBlocked từ DB mỗi request
@@ -85,7 +94,7 @@ src/
     ├── notification/           # /notifications — thông báo của người dùng (NotificationService.notify dùng ở listing/product)
     ├── audit/                  # AuditService: nhật ký thao tác admin (đọc qua GET /admin/audit-logs)
     ├── admin/                  # /admin/* — thống kê, người dùng, tin, báo cáo, lưu thiết lập, nhật ký
-    └── upload/                 # POST /uploads (multer, lưu apps/api/uploads/)
+    └── upload/                 # POST /uploads (multer bộ nhớ) → StorageService: S3 nếu có S3_BUCKET, ngược lại ổ đĩa apps/api/uploads/
 ```
 
 - Collections: `users`, `listings`, `products`, `reports`, `settings`, `notifications` (TTL 90 ngày), `audit_logs`, `conversations`, `messages`, `reviews`, `pages`.
@@ -118,7 +127,7 @@ src/
 │           ├── ca-nhan/               # Hồ sơ của tôi + xem tin (ProfileEditModal.tsx: tên, email, giới thiệu, ảnh đại diện, ảnh bìa)
 │           ├── yeu-thich/             # Đã lưu: tab Tin Trọ ơi + Đồ Chợ ơi + Tìm kiếm
 │           ├── thong-bao/             # Tất cả thông báo (phân trang), đánh dấu đã đọc
-│           ├── dang-tin/              # Đăng / sửa tin (?id=): 6 bước (bước Hình ảnh có link video YouTube) + PostSidebar (xem trước, checklist), CategoryPicker
+│           ├── dang-tin/              # Đăng / sửa tin (?id=): 6 bước (Hình ảnh có link video YouTube; Vị trí: tỉnh → phường/xã + GeoField ghim bản đồ) + PostSidebar (xem trước, checklist), CategoryPicker
 │           ├── cho-oi/dang-ban/       # Đăng / sửa món đồ Chợ ơi (?id=)
 │           └── kenh-nguoi-dang/       # Kênh người đăng: layout sidebar (SellerSidebar)
 │               ├── page.tsx           #   Tổng quan: thống kê tin/lượt xem/lượt lưu, top tin
@@ -152,7 +161,10 @@ src/
 │   ├── common/                        # UI thuần dùng lại (xem bảng dưới)
 │   ├── chat/                          # UI chat thuần: ConversationList, ChatWindow, MessageBubble, ChatComposer
 │   └── sections/                      # Khối giao diện theo trang
-├── constants/index.ts                 # CATEGORIES, CITIES, SORT_OPTIONS, NO_IMAGE (ảnh dự phòng)
+├── constants/index.ts                 # CATEGORIES, PROVINCES (re-export), FEATURED_CITIES (lưới trang chủ), SORT_OPTIONS, NO_IMAGE
+├── constants/provinces.ts, wards.json # 34 tỉnh/thành + 3.321 phường/xã/đặc khu theo tỉnh — TỰ SINH bởi yarn geo:build, không sửa tay
+├── hooks/useWards.ts                  # useWards(tỉnh): phường/xã của tỉnh, tải wards.json lười (chunk riêng)
+├── lib/geocode.ts                     # geocodeAddress(): địa chỉ → toạ độ qua Nominatim (chỉ khi người dùng bấm)
 ├── lib/siteSettings.ts                # loadSiteSettings() cho Server Component (cache/request, fallback khi API lỗi)
 ├── lib/constants/constantsProduct.tsx # icon danh mục, màu Tag, khoảng giá, sort của Chợ ơi
 ├── lib/searchFilters.ts               # toSearchRequest() / toProductSearchRequest(): searchParams → request (bỏ giá trị sai)
@@ -170,7 +182,7 @@ src/
 | URL                     | Loại          | Data                                                  |
 | ----------------------- | ------------- | ----------------------------------------------------- |
 | `/`                     | Server        | `GET /listings` (mua bán, cho thuê mới), `GET /listings/stats`; "Tin bạn đã xem" đọc localStorage phía client |
-| `/tim-kiem`             | Server        | `GET /listings` từ searchParams: `keyword, city, district, transaction, category, minPrice, maxPrice (triệu), minArea, maxArea, bedrooms, amenities (wifi,parking), sort, page`. Nút "Lưu tìm kiếm" → `POST/DELETE /users/me/saved-searches` |
+| `/tim-kiem`             | Server        | `GET /listings` từ searchParams: `keyword, city, ward, transaction, category, minPrice, maxPrice (triệu), minArea, maxArea, bedrooms, amenities (wifi,parking), sort, page`. Khu vực: `city` (1 trong 34 tỉnh) + `ward` (phường/xã, khớp chính xác). Nút "Lưu tìm kiếm" → `POST/DELETE /users/me/saved-searches` |
 | `/phong-tro/[id]`       | Server        | `GET /listings/:id`, tin tương tự, tin khác của người đăng |
 | `/nguoi-dung/[id]`      | Server        | `GET /users/:id`, `GET /listings?authorId=`, `GET /reviews?userId=`; client: `GET /reviews/mine`, `PUT/DELETE /reviews` |
 | `/dang-nhap`            | Client        | `POST /auth/verify-phone` hoặc `/auth/dev-login`      |
@@ -181,7 +193,7 @@ src/
 | `/yeu-thich` 🔒         | Client        | store favorites + favoriteProducts + savedSearches (`GET /users/me/favorites`, `/favorite-products`, `/saved-searches`) |
 | `/thong-bao` 🔒         | Client        | `GET /notifications`, `PATCH /notifications/:id/read`, `/read-all` |
 | `/dang-tin` 🔒          | Client        | `POST /uploads`, `POST /listings`, `PATCH /listings/:id` |
-| `/cho-oi`               | Server        | `GET /products` từ searchParams: `keyword, category, condition, city, district, price (khoảng), sort, page`. Tắt Chợ ơi → trang báo tạm đóng |
+| `/cho-oi`               | Server        | `GET /products` từ searchParams: `keyword, category, condition, city, ward, price (khoảng), sort, page`. Tắt Chợ ơi → trang báo tạm đóng |
 | `/dieu-khoan-su-dung`, `/chinh-sach-bao-mat` | Server | `GET /pages/:slug` (404 → notFound). Chân trang lấy link từ `GET /pages` |
 | `/cho-oi/[id]`          | Server        | `GET /products/:id`, đồ tương tự; nút "Chat với người đăng" → `/tin-nhan?productId=` |
 | `/cho-oi/dang-ban` 🔒   | Client        | `POST /uploads`, `POST/PATCH /products`               |
@@ -205,6 +217,7 @@ Breadcrumb (`BreadcrumbItem`) tự sinh từ URL theo `ROUTE_LABELS` — thêm r
 | `ButtonDropdown`, `CardDropdown` | Nút mở dropdown / khung popup có header-footer             |
 | `FloatingInput`    | Input label nổi                                                          |
 | `LocationCard`, `LocationMap` | Ảnh khu vực; bản đồ Leaflet (client-only)                    |
+| `LocationPicker` | Bản đồ chọn vị trí: bấm/kéo ghim (client-only, value/onChange GeoPoint) |
 | `ImageLightbox`    | Xem ảnh toàn màn hình + thông tin tin đăng                               |
 | `ProductCard`      | Thẻ món đồ Chợ ơi                                                        |
 | `NotificationList` | Danh sách thông báo (icon theo `kind`, chấm = chưa đọc) — chuông Navbar và `/thong-bao` |
@@ -278,26 +291,41 @@ Web dùng qua `transpilePackages: ['@tro-oi/shared']`; package trỏ thẳng `sr
 
 ## Ảnh
 
-- Ảnh người dùng upload: `POST /uploads` → lưu `apps/api/uploads/`, URL tuyệt đối theo `API_PUBLIC_URL`.
-- `next.config.ts` whitelist `NEXT_PUBLIC_API_URL` + `/uploads/**` cho `next/image`. Dev bật `dangerouslyAllowLocalIP` (API ở localhost); **production phải đặt API ở domain công khai**, nếu không `next/image` trả 400 với ảnh upload.
+- Ảnh người dùng upload: `POST /uploads` → `StorageService`: có `S3_BUCKET` thì lưu `uploads/<tên>` trên S3 (URL theo `S3_PUBLIC_URL`), không thì lưu `apps/api/uploads/` (URL theo `API_PUBLIC_URL`).
+- `next.config.ts` whitelist `NEXT_PUBLIC_API_URL` (+ `NEXT_PUBLIC_UPLOAD_URL` khi dùng S3) + `/uploads/**` cho `next/image`. Dev bật `dangerouslyAllowLocalIP` (API ở localhost); **production phải đặt API ở domain công khai**, nếu không `next/image` trả 400 với ảnh upload.
 - Ảnh tĩnh của web (`/images/*`, `/logo/*`) nằm trong `apps/web/public` — dữ liệu seed dùng các ảnh này.
 
 ---
 
+## Địa chỉ & bản đồ
+
+- Đơn vị hành chính **2 cấp từ 1/7/2025**: `address.city` (34 tỉnh/thành, tên rút gọn vd "Hồ Chí Minh") → `address.ward` (phường/xã/đặc khu, tên đầy đủ vd "Phường Cầu Giấy"). `address.district` chỉ còn ở dữ liệu cũ (hiển thị: `ward ?? district`).
+- Danh mục sinh từ provinces.open-api.vn v2 bằng `scripts/build-admin-units.mjs` (kiểm tra đủ 34 tỉnh / 3.321 xã trước khi ghi). API chỉ kiểm tra `city` ∈ 34 tỉnh; `ward` do web chọn từ danh mục.
+- Form đăng tin: chọn tỉnh → chọn phường/xã (có tìm kiếm) → ghim bản đồ (`GeoField` + `LocationPicker`): bấm/kéo ghim, hoặc "Tìm theo địa chỉ" (Nominatim, ≤ 1 yêu cầu/giây, người đăng chỉnh lại). Không ghim → tin không có bản đồ.
+
+## Chạy nhiều instance API
+
+| Phần | Cách dùng chung |
+| --- | --- |
+| Chat realtime | `REDIS_URL` → Socket.IO redis-adapter. Web chỉ dùng transport WebSocket nên load balancer **không cần sticky session** |
+| Ảnh upload | `S3_*` → mọi instance ghi/đọc cùng bucket |
+| Cache thiết lập | Mỗi instance cache 30 giây (`SETTINGS_CACHE_MS`): instance khác thấy thay đổi chậm nhất 30 giây |
+| Hẹn giờ hết hạn tin | Mọi instance đều chạy mỗi giờ; mỗi tin được nhận nguyên tử (`findOneAndUpdate`) nên không báo trùng (có test 2 instance) |
+| Báo tin mới khớp tìm kiếm đã lưu | Chạy ở instance nhận request đăng/duyệt tin; đọc user bằng cursor, ghi thông báo theo lô 500 |
+| Giới hạn 10 tin/10 giây chat | Theo từng kết nối socket (không cần dùng chung) |
+
 ## Chưa làm (backlog)
 
 - Tin tức, việc làm, khảo sát: mới có type ở shared.
-- Settings cache trong bộ nhớ 1 process API — chạy nhiều instance cần cache dùng chung.
-- Chat: chưa gửi ảnh, "đang nhập...", thông báo đẩy; room Socket.IO trong bộ nhớ 1 process — nhiều instance API cần `@socket.io/redis-adapter`.
-- Báo tin mới khớp tìm kiếm đã lưu quét mọi user có tìm kiếm đã lưu mỗi lần có tin mới — nhiều user cần job nền.
+- Chat: chưa gửi ảnh, "đang nhập...", thông báo đẩy.
+- Báo tin mới khớp tìm kiếm đã lưu so khớp từng tìm kiếm bằng JS (không dùng index) — rất nhiều user cần lưu bộ lọc có cấu trúc để query thẳng Mongo. Tìm kiếm đã lưu dạng cũ có `district=` bị bỏ qua tham số đó.
 - Đánh giá: chưa có điểm sao trên thẻ người đăng (AgentCard), chưa có báo cáo đánh giá vi phạm (admin xoá trực tiếp trên hồ sơ).
 - Thông báo chỉ đến khi mở web (chuông hỏi mỗi 60s) — chưa có push realtime / email / SMS; admin từ chối tin chưa nhập được lý do.
 - Ứng dụng mobile / link tải app.
 - Người dùng chưa tự xoá được tài khoản / tải dữ liệu của mình (hiện chỉ qua email hỗ trợ, như bản nháp Chính sách bảo mật ghi).
 - Đăng nhập Google/Facebook (nút hiển thị nhưng chưa nối).
 - Video tin đăng chỉ nhận link YouTube (chưa upload file video), Chợ ơi chưa có video.
-- Hẹn giờ hết hạn tin chạy trong 1 process API — nhiều instance cần job queue/cron dùng chung.
 - Lịch sử xem tin chỉ lưu trên trình duyệt (localStorage), không đồng bộ theo tài khoản.
-- Dữ liệu tỉnh/thành cố định trong `CITIES` (`apps/web/src/constants`), quận/huyện nhập tay.
-- Geocoding: bản đồ chỉ hiện khi tin có `address.geo`.
+- Địa chỉ cũ không tự xác định được phường (vd quận cũ tách thành nhiều phường như "Quận 1") cần chủ tin sửa tay; API chưa kiểm tra `ward` thuộc đúng tỉnh.
+- Redis adapter và lưu S3 mới test bằng mock/unit test, chưa chạy với Redis/S3 thật.
 - Trang chính sách: hạ tầng xong, **nội dung cần người có chuyên môn pháp lý rà soát** rồi admin đăng ở `/quan-tri/trang-chinh-sach`. Đăng nhập chưa có dòng "đồng ý điều khoản".

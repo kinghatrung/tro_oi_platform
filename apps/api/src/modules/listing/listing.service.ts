@@ -35,6 +35,8 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 const EXPIRE_CHECK_MS = 60 * 60 * 1000;
 /** Báo chủ tin trước khi hết hạn bao lâu. */
 const REMIND_BEFORE_MS = 3 * DAY_MS;
+/** Số thông báo "tin mới khớp tìm kiếm" ghi mỗi lần. */
+const ALERT_BATCH = 500;
 
 export const nextExpiry = (from = Date.now()) =>
   new Date(from + LISTING_TTL_DAYS * DAY_MS);
@@ -56,7 +58,7 @@ export class ListingService implements OnModuleInit, OnModuleDestroy {
     private readonly notificationService: NotificationService,
   ) {}
 
-  // shortcut: hẹn giờ trong 1 process — chạy nhiều instance API thì chuyển sang job queue/cron dùng chung
+  // Mỗi instance API đều chạy hẹn giờ; checkExpiry nhận tin nguyên tử nên không báo trùng
   async onModuleInit() {
     // Tin cũ chưa có hạn: cho thêm 1 kỳ kể từ lúc triển khai thay vì hết hạn hàng loạt
     await this.listingModel
@@ -82,39 +84,24 @@ export class ListingService implements OnModuleInit, OnModuleDestroy {
    */
   async checkExpiry() {
     const now = new Date();
-    const [expiring, overdue] = await Promise.all([
-      this.listingModel
-        .find(
-          {
-            status: 'active',
-            expiryReminded: { $ne: true },
-            expiresAt: {
-              $gt: now,
-              $lte: new Date(now.getTime() + REMIND_BEFORE_MS),
-            },
-          },
-          'title author expiresAt',
-        )
-        .exec(),
-      this.listingModel
-        .find({ status: 'active', expiresAt: { $lte: now } }, 'title author')
-        .exec(),
-    ]);
-    const idsOf = (docs: ListingDocument[]) => docs.map((doc) => doc._id);
-    await Promise.all([
-      this.listingModel
-        .updateMany(
-          { _id: { $in: idsOf(expiring) } },
-          { $set: { expiryReminded: true } },
-        )
-        .exec(),
-      this.listingModel
-        .updateMany(
-          { _id: { $in: idsOf(overdue) }, status: 'active' },
-          { $set: { status: 'expired' } },
-        )
-        .exec(),
-    ]);
+    // Nhận từng tin nguyên tử: nhiều instance API chạy job cùng lúc vẫn không báo trùng
+    const expiring = await this.claimAll(
+      {
+        status: 'active',
+        expiryReminded: { $ne: true },
+        expiresAt: {
+          $gt: now,
+          $lte: new Date(now.getTime() + REMIND_BEFORE_MS),
+        },
+      },
+      { $set: { expiryReminded: true } },
+      false, // cờ nội bộ, không đổi updatedAt
+    );
+    const overdue = await this.claimAll(
+      { status: 'active', expiresAt: { $lte: now } },
+      { $set: { status: 'expired' } },
+      true,
+    );
 
     const manage = '/kenh-nguoi-dang/tin-dang';
     await this.notificationService.notify([
@@ -138,6 +125,25 @@ export class ListingService implements OnModuleInit, OnModuleDestroy {
       })),
     ]);
     return overdue.length;
+  }
+
+  /** findOneAndUpdate lặp tới khi hết tin khớp; `update` phải làm tin không còn khớp `filter`. */
+  private async claimAll(
+    filter: Record<string, unknown>,
+    update: Record<string, unknown>,
+    timestamps: boolean,
+  ) {
+    const claimed: ListingDocument[] = [];
+    for (;;) {
+      const doc = await this.listingModel
+        .findOneAndUpdate(filter, update, {
+          projection: 'title author expiresAt',
+          timestamps,
+        })
+        .exec();
+      if (!doc) return claimed;
+      claimed.push(doc);
+    }
   }
 
   async search(query: SearchListingDto) {
@@ -302,13 +308,14 @@ export class ListingService implements OnModuleInit, OnModuleDestroy {
    * Tin mới hiển thị (đăng không cần duyệt / vừa được duyệt) → báo người có tìm kiếm đã lưu khớp tin
    * (1 thông báo / người). Chạy nền, lỗi chỉ ghi log.
    */
-  // shortcut: quét mọi user có tìm kiếm đã lưu mỗi lần có tin mới — nhiều user thì chuyển sang job nền
+  // shortcut: so khớp từng tìm kiếm đã lưu bằng JS (không dùng index) — rất nhiều user thì lưu bộ lọc có cấu trúc để query thẳng Mongo
   private async alertSavedSearches(
     doc: ListingDocument,
     authorId: Types.ObjectId,
   ) {
     try {
-      const users = await this.userModel
+      // Đọc dần bằng cursor + gửi theo lô: không nạp hết user vào bộ nhớ
+      const users = this.userModel
         .find(
           {
             'savedSearches.0': { $exists: true },
@@ -317,27 +324,29 @@ export class ListingService implements OnModuleInit, OnModuleDestroy {
           },
           'savedSearches',
         )
-        .exec();
-      await this.notificationService.notify(
-        users.flatMap((user) => {
-          const search = user.savedSearches.find((item) =>
-            matchesSavedSearch(doc, item.query),
-          );
-          return search
-            ? [
-                {
-                  user: user._id,
-                  input: {
-                    kind: 'info' as const,
-                    title: 'Có tin mới khớp tìm kiếm của bạn',
-                    message: `"${doc.title}" · ${search.title}`,
-                    link: `/phong-tro/${doc.id as string}`,
-                  },
-                },
-              ]
-            : [];
-        }),
-      );
+        .cursor();
+      let batch: Parameters<NotificationService['notify']>[0] = [];
+      for await (const user of users) {
+        const search = user.savedSearches.find((item) =>
+          matchesSavedSearch(doc, item.query),
+        );
+        if (search) {
+          batch.push({
+            user: user._id,
+            input: {
+              kind: 'info',
+              title: 'Có tin mới khớp tìm kiếm của bạn',
+              message: `"${doc.title}" · ${search.title}`,
+              link: `/phong-tro/${doc.id as string}`,
+            },
+          });
+        }
+        if (batch.length >= ALERT_BATCH) {
+          await this.notificationService.notify(batch);
+          batch = [];
+        }
+      }
+      await this.notificationService.notify(batch);
     } catch (error) {
       this.logger.warn(
         `Không gửi được thông báo tìm kiếm đã lưu: ${(error as Error).message}`,

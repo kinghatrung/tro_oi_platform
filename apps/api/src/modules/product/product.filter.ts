@@ -15,9 +15,7 @@ export function buildProductQuery(query: SearchProductDto) {
   if (query.category) filter.category = query.category;
   if (query.condition) filter.condition = query.condition;
   if (query.city) filter['address.city'] = query.city;
-  if (query.district) {
-    filter['address.district'] = new RegExp(escapeRegex(query.district), 'i');
-  }
+  if (query.ward) filter['address.ward'] = query.ward;
   if (query.minPrice !== undefined || query.maxPrice !== undefined) {
     filter.price = {
       ...(query.minPrice !== undefined && { $gte: query.minPrice }),

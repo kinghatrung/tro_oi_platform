@@ -19,25 +19,21 @@ import {
   type ListingDocument,
 } from './modules/listing/schemas/listing.schema.js';
 
-// Tên thành phố phải khớp CITIES bên apps/web/src/constants
+// Đơn vị hành chính 2 cấp (từ 1/7/2025) — tên phải có trong apps/web/src/constants/wards.json
 const AREAS = [
   {
     city: 'Hà Nội',
-    districts: ['Cầu Giấy', 'Đống Đa', 'Thanh Xuân', 'Ba Đình'],
+    wards: ['Cầu Giấy', 'Đống Đa', 'Thanh Xuân', 'Ba Đình'],
     geo: [21.03, 105.8],
   },
   {
     city: 'Hồ Chí Minh',
-    districts: ['Quận 1', 'Bình Thạnh', 'Gò Vấp', 'Thủ Đức'],
+    wards: ['Sài Gòn', 'Bình Thạnh', 'Gò Vấp', 'Thủ Dầu Một'],
     geo: [10.78, 106.7],
   },
-  { city: 'Đà Nẵng', districts: ['Hải Châu', 'Sơn Trà'], geo: [16.05, 108.2] },
-  { city: 'Cần Thơ', districts: ['Ninh Kiều'], geo: [10.03, 105.78] },
-  {
-    city: 'Bình Dương',
-    districts: ['Thủ Dầu Một', 'Dĩ An'],
-    geo: [10.98, 106.65],
-  },
+  { city: 'Đà Nẵng', wards: ['Hải Châu', 'Sơn Trà'], geo: [16.05, 108.2] },
+  { city: 'Cần Thơ', wards: ['Ninh Kiều'], geo: [10.03, 105.78] },
+  { city: 'Hải Phòng', wards: ['Lê Chân', 'Ngô Quyền'], geo: [20.85, 106.68] },
 ];
 const ADMIN_PHONE = '+84900000000';
 const TITLES = {
@@ -126,12 +122,12 @@ async function seed() {
     const listings = Array.from({ length: 60 }, (_, index) => {
       const category = LISTING_CATEGORIES[index % LISTING_CATEGORIES.length];
       const area = AREAS[index % AREAS.length];
-      const district = area.districts[index % area.districts.length];
+      const ward = area.wards[index % area.wards.length];
       const isBuy = index % 3 === 0 && category !== 'o-ghep';
       const size = 18 + (index % 8) * 6;
 
       return {
-        title: `${TITLES[category]} - ${district}`,
+        title: `${TITLES[category]} - ${ward}`,
         description: `${TITLES[category]}.
 - Diện tích ${size}m², sạch sẽ, an ninh.
 - Gần chợ, trường học, bến xe buýt.
@@ -155,7 +151,7 @@ Liên hệ để xem phòng.`,
         ],
         address: withFullAddress({
           street: `Số ${10 + index} ngõ ${100 + index}`,
-          district,
+          ward: `Phường ${ward}`,
           city: area.city,
           geo: {
             latitude: area.geo[0] + (index % 5) * 0.004,
@@ -187,7 +183,7 @@ Liên hệ để xem phòng.`,
         price: sample.price,
         isNegotiable: index % 2 === 0,
         images: ['/images/no-image.svg'],
-        address: { city: area.city, district: area.districts[0] },
+        address: { city: area.city, ward: `Phường ${area.wards[0]}` },
         seller: authors[index % authors.length]._id,
         viewCount: (index * 23) % 200,
         createdAt: new Date(Date.now() - index * 5 * 60 * 60 * 1000),

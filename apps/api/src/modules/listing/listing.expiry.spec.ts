@@ -73,3 +73,46 @@ describe('Hạn hiển thị tin', () => {
     expect(doc.expiresAt).toBe(old);
   });
 });
+
+describe('checkExpiry nhiều instance', () => {
+  it('2 instance chạy cùng lúc: mỗi tin chỉ được báo 1 lần', async () => {
+    const make = (n: number, prefix: string) =>
+      Array.from({ length: n }, (_, index) => ({
+        title: `${prefix}${index}`,
+        author: ownerId,
+        expiresAt: new Date(),
+      }));
+    // "DB" dùng chung: findOneAndUpdate lấy ra 1 tin (nguyên tử) theo loại cập nhật
+    const pools: Record<string, ReturnType<typeof make>> = {
+      expiryReminded: make(3, 'sắp-'),
+      status: make(4, 'hết-'),
+    };
+    const model = {
+      findOneAndUpdate: (_filter: unknown, update: { $set: object }) => {
+        const key = Object.keys(update.$set)[0];
+        const doc = pools[key].shift() ?? null;
+        return {
+          exec: () =>
+            new Promise((resolve) => setTimeout(() => resolve(doc), 1)),
+        };
+      },
+    };
+    const notified: string[] = [];
+    const notify = async (items: { input: { message: string } }[]) => {
+      notified.push(...items.map((item) => item.input.message.split('"')[1]));
+    };
+    const instance = () =>
+      new ListingService(
+        model as never,
+        {} as never,
+        {} as never,
+        {} as never,
+        { notify } as never,
+      );
+
+    await Promise.all([instance().checkExpiry(), instance().checkExpiry()]);
+    expect(notified.sort()).toEqual(
+      ['sắp-0', 'sắp-1', 'sắp-2', 'hết-0', 'hết-1', 'hết-2', 'hết-3'].sort(),
+    );
+  });
+});

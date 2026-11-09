@@ -1,5 +1,4 @@
 import { randomBytes } from 'node:crypto';
-import { join } from 'node:path';
 
 import {
   BadRequestException,
@@ -9,13 +8,11 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { FilesInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
+import { memoryStorage } from 'multer';
 
 import { JwtAuthGuard } from '../auth/jwt-auth.guard.js';
-
-export const UPLOAD_DIR = join(process.cwd(), 'uploads');
+import { StorageService } from './storage.service.js';
 
 /** Đuôi file lấy theo MIME (không tin tên file client gửi lên). */
 const EXTENSION_BY_MIME: Record<string, string> = {
@@ -27,20 +24,14 @@ const EXTENSION_BY_MIME: Record<string, string> = {
 
 @Controller('uploads')
 export class UploadController {
-  constructor(private readonly configService: ConfigService) {}
+  constructor(private readonly storageService: StorageService) {}
 
   @Post()
   @UseGuards(JwtAuthGuard)
   @UseInterceptors(
     FilesInterceptor('files', 10, {
-      storage: diskStorage({
-        destination: UPLOAD_DIR,
-        filename: (_req, file, callback) =>
-          callback(
-            null,
-            `${Date.now()}-${randomBytes(6).toString('hex')}${EXTENSION_BY_MIME[file.mimetype]}`,
-          ),
-      }),
+      // Giữ trong bộ nhớ (tối đa 10 × 5MB) rồi StorageService ghi ra ổ đĩa hoặc S3
+      storage: memoryStorage(),
       limits: { fileSize: 5 * 1024 * 1024 },
       fileFilter: (_req, file, callback) =>
         file.mimetype in EXTENSION_BY_MIME
@@ -51,13 +42,18 @@ export class UploadController {
             ),
     }),
   )
-  upload(@UploadedFiles() files: Express.Multer.File[] | undefined) {
+  async upload(@UploadedFiles() files: Express.Multer.File[] | undefined) {
     if (!files?.length) throw new BadRequestException('Chưa chọn ảnh');
 
-    const baseUrl = this.configService.get<string>(
-      'API_PUBLIC_URL',
-      'http://localhost:5000',
+    const urls = await Promise.all(
+      files.map((file) =>
+        this.storageService.save(
+          `${Date.now()}-${randomBytes(6).toString('hex')}${EXTENSION_BY_MIME[file.mimetype]}`,
+          file.buffer,
+          file.mimetype,
+        ),
+      ),
     );
-    return { urls: files.map((file) => `${baseUrl}/uploads/${file.filename}`) };
+    return { urls };
   }
 }

@@ -176,7 +176,8 @@ export interface SearchListingRequest extends BaseListRequest {
   transaction?: TransactionType;
   category?: PropertyCategory;
   city?: string;
-  district?: string;
+  /** Phường/xã, khớp chính xác. */
+  ward?: string;
   minPrice?: number;
   maxPrice?: number;
   minArea?: number;

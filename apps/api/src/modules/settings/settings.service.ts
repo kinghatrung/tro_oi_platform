@@ -11,11 +11,13 @@ import {
 import type { UpdateSettingsDto } from './update-settings.dto.js';
 
 const SITE_KEY = 'site';
+/** Instance khác thấy thiết lập mới chậm nhất sau khoảng này (instance vừa lưu thấy ngay). */
+export const SETTINGS_CACHE_MS = 30_000;
 
 @Injectable()
 export class SettingsService {
-  // shortcut: cache trong bộ nhớ 1 process; chạy nhiều instance API cần cache dùng chung (Redis) hoặc TTL
   private cache?: SettingsValues & { updatedAt?: string };
+  private cachedAt = 0;
 
   constructor(
     @InjectModel(Setting.name)
@@ -24,13 +26,16 @@ export class SettingsService {
 
   /** Thiết lập hiện tại = mặc định + giá trị admin đã lưu. */
   async get() {
-    if (this.cache) return this.cache;
+    if (this.cache && Date.now() - this.cachedAt < SETTINGS_CACHE_MS) {
+      return this.cache;
+    }
     const doc = await this.settingModel.findOne({ key: SITE_KEY }).exec();
     this.cache = {
       ...DEFAULT_SETTINGS,
       ...doc?.values,
       updatedAt: doc?.updatedAt.toISOString(),
     };
+    this.cachedAt = Date.now();
     return this.cache;
   }
 

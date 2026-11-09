@@ -19,7 +19,7 @@ export interface PostPreview {
   transaction?: TransactionType;
   category?: PropertyCategory;
   city?: string;
-  district?: string;
+  ward?: string;
   coverUrl?: string;
   imageCount: number;
 }
@@ -49,14 +49,14 @@ export function PostSidebar({
   const checklist = [
     { label: 'Loại hình', isDone: Boolean(preview.category) },
     { label: 'Ít nhất 1 ảnh', isDone: preview.imageCount > 0 },
-    { label: 'Tỉnh/thành, quận/huyện', isDone: Boolean(preview.city && preview.district) },
+    { label: 'Tỉnh/thành, phường/xã', isDone: Boolean(preview.city && preview.ward) },
     { label: 'Giá', isDone: preview.price != null },
     { label: 'Tiêu đề từ 10 ký tự', isDone: (preview.title?.trim().length ?? 0) >= 10 },
   ];
   const percent = Math.round(
     (checklist.filter((item) => item.isDone).length / checklist.length) * 100,
   );
-  const location = [preview.district, preview.city].filter(Boolean).join(', ');
+  const location = [preview.ward, preview.city].filter(Boolean).join(', ');
 
   return (
     <Flex vertical gap={16} className="lg:sticky lg:top-4">

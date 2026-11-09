@@ -2,7 +2,7 @@ export interface SearchPageProps {
   searchParams: Promise<{
     keyword?: string | string[];
     city?: string | string[];
-    district?: string | string[];
+    ward?: string | string[];
     transaction?: string | string[];
     category?: string | string[];
     minPrice?: string | string[];

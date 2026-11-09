@@ -74,7 +74,7 @@ function describeArea(params: URLSearchParams) {
   return [
     (transaction && TRANSACTION_TYPE_LABELS[transaction]) || 'Cho thuê & mua bán',
     (category && PROPERTY_CATEGORY_LABELS[category]) || 'nhà ở',
-    [params.get('district'), params.get('city')].filter(Boolean).join(', ') || 'toàn quốc',
+    [params.get('ward'), params.get('city')].filter(Boolean).join(', ') || 'toàn quốc',
   ].join(' ');
 }
 

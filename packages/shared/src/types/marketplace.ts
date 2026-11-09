@@ -91,7 +91,8 @@ export interface SearchProductRequest extends BaseListRequest {
   category?: ProductCategory;
   condition?: ProductCondition;
   city?: string;
-  district?: string;
+  /** Phường/xã, khớp chính xác. */
+  ward?: string;
   minPrice?: number;
   maxPrice?: number;
   sellerId?: string;

@@ -28,6 +28,11 @@ export type ProductStatus = (typeof PRODUCT_STATUSES)[number];
 
 @Schema({ _id: false })
 export class ProductAddress {
+  /** Phường/xã (mô hình 2 cấp từ 1/7/2025). */
+  @Prop()
+  ward?: string;
+
+  /** Quận/huyện — chỉ còn ở dữ liệu trước 1/7/2025 (mô hình 3 cấp), form mới không gửi. */
   @Prop()
   district?: string;
 

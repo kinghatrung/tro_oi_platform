@@ -9,7 +9,7 @@ import {
   type SortDirection,
 } from '@tro-oi/shared';
 
-import { CITIES, SORT_OPTIONS } from '@/constants';
+import { PROVINCES, SORT_OPTIONS } from '@/constants';
 import { PRODUCT_PRICE_RANGES, PRODUCT_SORT_OPTIONS } from '@/lib/constants/constantsProduct';
 
 type QueryValue = string | string[] | undefined;
@@ -81,7 +81,7 @@ export function toSearchRequest(
     request: {
       keyword: firstQueryValue(params.keyword)?.trim() || undefined,
       city: firstQueryValue(params.city) || undefined,
-      district: firstQueryValue(params.district)?.trim() || undefined,
+      ward: firstQueryValue(params.ward)?.trim() || undefined,
       transaction: isEnumValue(TransactionType, transaction) ? transaction : undefined,
       category: isEnumValue(PropertyCategory, category) ? category : undefined,
       minPrice: valid ? minPrice : undefined,
@@ -116,8 +116,8 @@ export function toProductSearchRequest(
     keyword: firstQueryValue(params.keyword)?.trim() || undefined,
     category: isEnumValue(ProductCategory, category) ? category : undefined,
     condition: isEnumValue(ProductCondition, condition) ? condition : undefined,
-    city: CITIES.find((item) => item === city),
-    district: firstQueryValue(params.district)?.trim() || undefined,
+    city: PROVINCES.find((item) => item === city),
+    ward: firstQueryValue(params.ward)?.trim() || undefined,
     minPrice: price && 'min' in price ? price.min : undefined,
     maxPrice: price && 'max' in price ? price.max : undefined,
     sortBy: sort.sortBy,

@@ -7,6 +7,12 @@ export const LocationMap = dynamic(() => import('./LocationMap').then((mod) => m
   ssr: false,
 });
 
+/** Bản đồ chọn vị trí (kéo/bấm ghim) — chỉ chạy trên trình duyệt. */
+export const LocationPicker = dynamic(
+  () => import('./LocationPicker').then((mod) => mod.LocationPicker),
+  { ssr: false },
+);
+
 export * from './FloatingInput';
 export * from './CardItem';
 export * from './CarouselItem';

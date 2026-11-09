@@ -124,7 +124,7 @@ Type `Listing` (rút gọn):
   "furnishing": "full | basic | empty",
   "amenities": ["wifi", "air-conditioner", "parking"],
   "images": ["http://localhost:5000/uploads/abc.jpg"],
-  "address": { "street": "...", "ward": "...", "district": "Cầu Giấy", "city": "Hà Nội", "fullAddress": "...", "geo": { "latitude": 21.03, "longitude": 105.8 } },
+  "address": { "street": "...", "ward": "Phường Cầu Giấy", "city": "Hà Nội", "fullAddress": "...", "geo": { "latitude": 21.03, "longitude": 105.8 } },
   "author": { "id": "...", "name": "...", "avatar": "...", "role": "landlord", "phone": "+84...", "joinedAt": "...", "listingCount": 4 },
   "isFeatured": false, "viewCount": 128, "favoriteCount": 3,
   "expiresAt": "...", "createdAt": "...", "updatedAt": "..."
@@ -132,6 +132,7 @@ Type `Listing` (rút gọn):
 ```
 
 - `pricePerSquareMeter` do server tính (`price / area`, làm tròn) khi có `area`.
+- `address`: đơn vị hành chính 2 cấp (từ 1/7/2025) — `city` là 1 trong 34 tỉnh/thành (tên rút gọn, danh mục `apps/api/src/common/provinces.ts`), `ward` là phường/xã/đặc khu tên đầy đủ. `district` (quận/huyện) chỉ còn ở dữ liệu cũ.
 - `address.fullAddress` do server ghép từ `street, ward, district, city` nếu client không gửi.
 - `author.listingCount` chỉ có ở `GET /listings/:id`.
 - `viewCount`: mỗi lần gọi `GET /listings/:id` +1 (không đổi `updatedAt`).
@@ -158,7 +159,7 @@ Type `Listing` (rút gọn):
 | `transaction`   | enum   |             | `rent-room` / `buy-room`                        |
 | `category`      | enum   |             |                                                 |
 | `city`          | string |             | Khớp chính xác, vd `Hà Nội`                     |
-| `district`      | string |             | Khớp không phân biệt hoa thường (chứa)          |
+| `ward`          | string |             | Phường/xã, khớp chính xác (vd `Phường Cầu Giấy`) |
 | `minPrice`/`maxPrice` | number |      | VND                                             |
 | `minArea`/`maxArea`   | number |      | m²                                              |
 | `bedrooms`      | number |             | ≥ giá trị này                                   |
@@ -196,7 +197,7 @@ Response: `{ "items": Listing[], "total": 120, "page": 1, "pageSize": 10 }`.
 | `furnishing`  | enum          |          |                              |
 | `amenities`   | enum[]        |          | Giá trị như trên (sai → 400 "Tiện ích không hợp lệ") |
 | `images`      | string[]      | ✔        | 1–20 URL (lấy từ `/uploads`) |
-| `address`     | object        | ✔        | `city`, `district` bắt buộc; `street`, `ward`, `fullAddress`, `geo` tuỳ chọn |
+| `address`     | object        | ✔        | `city` (1 trong 34 tỉnh/thành, sai → 400) và `ward` bắt buộc; `street`, `fullAddress`, `geo { latitude, longitude }` tuỳ chọn; `district` (dữ liệu cũ) tuỳ chọn |
 
 `PATCH /listings/:id`: mọi field của create đều tuỳ chọn, thêm `status`. Chủ tin chỉ chuyển `active ↔ closed` và **không** đổi được tin `pending` (403); admin đổi mọi trạng thái (duyệt = `pending → active`).
 
@@ -212,23 +213,23 @@ Admin đổi trạng thái / xoá tin **của người khác** (Trọ ơi và Ch
 
 Response `data` — Type `UploadResponse`: `{ "urls": ["http://localhost:5000/uploads/1730450000000-ab12cd.jpg"] }`
 
-URL tuyệt đối dựa trên env `API_PUBLIC_URL`. Đuôi file lấy theo MIME (không theo tên file gửi lên); file tĩnh trả kèm `X-Content-Type-Options: nosniff`.
+Lưu ở S3 khi có env `S3_BUCKET` (URL `S3_PUBLIC_URL/uploads/<tên>`), ngược lại ở ổ đĩa (URL `API_PUBLIC_URL/uploads/<tên>`). Tên file do server sinh ngẫu nhiên. Đuôi file lấy theo MIME (không theo tên file gửi lên); file tĩnh trả kèm `X-Content-Type-Options: nosniff`.
 
 ### `GET /uploads/<file>`
 
-File tĩnh từ thư mục `apps/api/uploads/` (không commit vào git).
+File tĩnh từ thư mục `apps/api/uploads/` (không commit vào git) — chỉ khi không dùng S3.
 
 ---
 
 ## Products (Chợ ơi) — `/products`
 
-Type `ProductItem`: `{ id, title, description, category, condition, status, price, isNegotiable, images, address: { city, district? }, seller: { id, name, avatar, phone, joinedAt }, viewCount, createdAt, updatedAt }`.
+Type `ProductItem`: `{ id, title, description, category, condition, status, price, isNegotiable, images, address: { city, ward?, district? (dữ liệu cũ) }, seller: { id, name, avatar, phone, joinedAt }, viewCount, createdAt, updatedAt }`.
 
 - `category` ∈ `furniture | electronics | appliance | vehicle | study | other`; `condition` ∈ `new | like-new | good | fair`; `status` ∈ `pending | active | sold | closed`. `price = 0` = cho tặng.
 
 | Method | Path | Mô tả | `data` |
 | --- | --- | --- | --- |
-| GET | `/products` | Tìm món **active**: `keyword, category, condition, city, district, minPrice, maxPrice, sellerId, excludeId, page, pageSize (≤50, mặc định 12), sortBy (createdAt/price), sortDirection` | `PagedResponse<ProductItem>` |
+| GET | `/products` | Tìm món **active**: `keyword, category, condition, city, ward, minPrice, maxPrice, sellerId, excludeId, page, pageSize (≤50, mặc định 12), sortBy (createdAt/price), sortDirection` | `PagedResponse<ProductItem>` |
 | GET | `/products/mine` 🔒 | Mọi món của tôi | `ProductItem[]` |
 | GET | `/products/:id` | Chi tiết món active, +1 `viewCount` | `ProductItem` |
 | POST | `/products` 🔒 | Đăng bán: `title (5–120), description?, category, condition, price ≥0, isNegotiable?, images (1–10), address.city`. `pending` nếu bật `requireProductApproval`; 403 nếu Chợ ơi đang tắt | `ProductItem` |
@@ -285,7 +286,7 @@ Type `Conversation`: `{ id, listing: { type: listing | product, id, title, image
 
 ### Socket.IO — namespace `/chat`
 
-Kết nối: `` io(`${API_URL}/chat`, { auth: { token: accessToken } }) ``. Token sai / tài khoản bị khoá → `connect_error` với message `unauthorized`. CORS theo `WEB_ORIGIN` (`ChatIoAdapter`). Ack **không** theo `ApiResponse` (interceptor/filter HTTP bỏ qua WebSocket).
+Kết nối: `` io(`${API_URL}/chat`, { auth: { token: accessToken } }) ``. Token sai / tài khoản bị khoá → `connect_error` với message `unauthorized`. CORS theo `WEB_ORIGIN` (`ChatIoAdapter`). Có `REDIS_URL` → sự kiện phát qua Redis giữa các instance; web kết nối `transports: ['websocket']` (không long-polling) nên không cần sticky session. Ack **không** theo `ApiResponse` (interceptor/filter HTTP bỏ qua WebSocket).
 
 | Hướng | Event | Payload | Ghi chú |
 | --- | --- | --- | --- |

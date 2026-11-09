@@ -35,6 +35,7 @@ import {
   type ListingStatus,
   type TransactionType,
 } from '../schemas/listing.schema.js';
+import { PROVINCES } from '../../../common/provinces.js';
 
 /** URL tuyệt đối http(s) hoặc đường dẫn gốc "/..." (ảnh mẫu của web). */
 export const IMAGE_URL_PATTERN = /^(https?:\/\/|\/)\S+$/;
@@ -64,10 +65,11 @@ export class SearchListingDto {
   @MaxLength(100)
   city?: string;
 
+  /** Phường/xã — khớp chính xác (vd "Phường Cầu Giấy"). */
   @IsOptional()
   @IsString()
   @MaxLength(100)
-  district?: string;
+  ward?: string;
 
   @IsOptional()
   @Type(() => Number)
@@ -152,19 +154,18 @@ class AddressDto {
   @MaxLength(200)
   street?: string;
 
+  @IsString()
+  @IsNotEmpty({ message: 'Vui lòng chọn phường/xã' })
+  @MaxLength(100)
+  ward: string;
+
+  /** Quận/huyện — chỉ còn ở dữ liệu trước 1/7/2025 (mô hình 3 cấp), form mới không gửi. */
   @IsOptional()
   @IsString()
   @MaxLength(100)
-  ward?: string;
+  district?: string;
 
-  @IsString()
-  @IsNotEmpty({ message: 'Vui lòng nhập quận/huyện' })
-  @MaxLength(100)
-  district: string;
-
-  @IsString()
-  @IsNotEmpty({ message: 'Vui lòng chọn tỉnh/thành phố' })
-  @MaxLength(100)
+  @IsIn(PROVINCES, { message: 'Vui lòng chọn tỉnh/thành phố' })
   city: string;
 
   @IsOptional()

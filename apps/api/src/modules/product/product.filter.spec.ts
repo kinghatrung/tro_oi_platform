@@ -35,9 +35,9 @@ describe('buildProductQuery', () => {
     expect(sort).toEqual({ price: 1, _id: -1 });
     expect(skip).toBe(12);
     expect(
-      buildProductQuery(dto({ district: 'cầu giấy' })).filter[
-        'address.district'
+      buildProductQuery(dto({ ward: 'Phường Cầu Giấy' })).filter[
+        'address.ward'
       ],
-    ).toEqual(/cầu giấy/i);
+    ).toBe('Phường Cầu Giấy');
   });
 });

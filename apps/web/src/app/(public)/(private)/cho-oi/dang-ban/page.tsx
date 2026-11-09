@@ -25,7 +25,8 @@ import { ProductStatus, type CreateProductRequest, type ProductItem } from '@tro
 import { createProduct, getMyProducts, updateProduct } from '@/api/products';
 import { antdUploadRequest } from '@/api/uploads';
 import { FormSection } from '@/components/common';
-import { CITIES } from '@/constants';
+import { PROVINCES } from '@/constants';
+import { useWards } from '@/hooks/useWards';
 import {
   PRODUCT_CATEGORY_OPTIONS,
   PRODUCT_CONDITION_OPTIONS,
@@ -36,7 +37,7 @@ import { formatNumber, formatVietnameseCurrency } from '@/utils/helpers';
 type ProductFormValues = Omit<CreateProductRequest, 'images'>;
 
 const MAX_IMAGES = 10;
-const CITY_OPTIONS = CITIES.map((city) => ({ value: city, label: city }));
+const CITY_OPTIONS = PROVINCES.map((city) => ({ value: city, label: city }));
 const CATEGORY_RADIO_OPTIONS = PRODUCT_CATEGORY_OPTIONS.map(({ value, label, icon }) => ({
   value,
   label: (
@@ -61,6 +62,8 @@ export default function PostProductPage() {
   const user = useRequireUser();
   const [form] = Form.useForm<ProductFormValues>();
   const price = Form.useWatch('price', form);
+  const city = Form.useWatch(['address', 'city'], form);
+  const wardOptions = useWards(city).map((ward) => ({ value: ward, label: ward }));
   const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [editing, setEditing] = useState<ProductItem>();
   const [isLoading, setIsLoading] = useState(Boolean(editId));
@@ -257,12 +260,23 @@ export default function PostProductPage() {
                 rules={[{ required: true, message: 'Chọn tỉnh/thành phố' }]}
                 className="mb-0!"
               >
-                <Select showSearch options={CITY_OPTIONS} placeholder="Chọn tỉnh/thành" />
+                <Select
+                  showSearch
+                  options={CITY_OPTIONS}
+                  placeholder="Chọn tỉnh/thành"
+                  onChange={() => form.setFieldValue(['address', 'ward'], undefined)}
+                />
               </Form.Item>
             </Col>
             <Col xs={24} md={12}>
-              <Form.Item name={['address', 'district']} label="Quận/huyện" className="mb-0!">
-                <Input placeholder="VD: Cầu Giấy" />
+              <Form.Item name={['address', 'ward']} label="Phường/xã" className="mb-0!">
+                <Select
+                  showSearch
+                  allowClear
+                  options={wardOptions}
+                  disabled={!city}
+                  placeholder={city ? 'Chọn phường/xã (tuỳ chọn)' : 'Chọn tỉnh/thành trước'}
+                />
               </Form.Item>
             </Col>
           </Row>

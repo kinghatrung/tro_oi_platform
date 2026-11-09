@@ -4,10 +4,10 @@ import { useCallback, useState, type ReactNode } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Dropdown, Select } from 'antd';
 
-import { CITIES } from '@/constants';
+import { PROVINCES } from '@/constants';
+import { useWards } from '@/hooks/useWards';
 
 import { CardDropdown } from './CardDropdown';
-import { FloatingInput } from './FloatingInput';
 
 interface AreaPickerProps {
   /** Nút mở popup; nhận tên khu vực đang chọn để hiển thị. */
@@ -18,9 +18,9 @@ interface AreaPickerProps {
   basePath?: string;
 }
 
-const CITY_OPTIONS = CITIES.map((city) => ({ value: city, label: city }));
+const CITY_OPTIONS = PROVINCES.map((city) => ({ value: city, label: city }));
 
-/** Popup chọn tỉnh/thành + quận → điều hướng basePath?city=&district=. */
+/** Popup chọn tỉnh/thành + phường/xã → điều hướng basePath?city=&ward=. */
 export function AreaPicker({
   children,
   keepParams = false,
@@ -30,26 +30,27 @@ export function AreaPicker({
   const searchParams = useSearchParams();
   const [isOpen, setIsOpen] = useState(false);
   const [city, setCity] = useState(searchParams.get('city') ?? undefined);
-  const [district, setDistrict] = useState(searchParams.get('district') ?? '');
+  const [ward, setWard] = useState(searchParams.get('ward') ?? undefined);
+  const wards = useWards(city);
   const currentCity = searchParams.get('city');
   const label = currentCity
-    ? [searchParams.get('district'), currentCity].filter(Boolean).join(', ')
+    ? [searchParams.get('ward'), currentCity].filter(Boolean).join(', ')
     : 'Toàn quốc';
 
   const handleApply = useCallback(() => {
     const params = new URLSearchParams(keepParams ? searchParams.toString() : '');
     if (city) params.set('city', city);
     else params.delete('city');
-    if (city && district.trim()) params.set('district', district.trim());
-    else params.delete('district');
+    if (city && ward) params.set('ward', ward);
+    else params.delete('ward');
     params.delete('page');
     setIsOpen(false);
     router.push(`${basePath}?${params.toString()}`);
-  }, [basePath, city, district, keepParams, router, searchParams]);
+  }, [basePath, city, ward, keepParams, router, searchParams]);
 
   const handleClear = useCallback(() => {
     setCity(undefined);
-    setDistrict('');
+    setWard(undefined);
   }, []);
 
   return (
@@ -73,14 +74,21 @@ export function AreaPicker({
             placeholder="Chọn tỉnh thành"
             options={CITY_OPTIONS}
             value={city}
-            onChange={setCity}
+            onChange={(next) => {
+              setCity(next);
+              setWard(undefined); // phường thuộc tỉnh cũ
+            }}
           />
           {city && (
-            <FloatingInput
-              title="Quận/huyện"
-              className="h-12! px-4!"
-              value={district}
-              onChange={(event) => setDistrict(event.target.value)}
+            <Select
+              allowClear
+              showSearch
+              size="large"
+              placeholder="Tất cả phường/xã"
+              options={wards.map((item) => ({ value: item, label: item }))}
+              loading={wards.length === 0}
+              value={ward}
+              onChange={setWard}
             />
           )}
         </CardDropdown>

@@ -46,10 +46,12 @@ export function CardItem({ listing, column }: CardItemProps) {
   const imageUrl = images[0] || NO_IMAGE;
   const propertyType = PROPERTY_CATEGORY_LABELS[listing.category];
   const direction = listing.direction && DIRECTION_LABELS[listing.direction];
-  const locationLabel = address?.district ? `${address.district}, ${address.city}` : address?.city;
+  // district: tin trước 1/7/2025 chưa chuyển sang phường/xã
+  const wardLabel = address?.ward ?? address?.district;
+  const locationLabel = wardLabel ? `${wardLabel}, ${address?.city}` : address?.city;
   const priceLabel = formatListingPrice(price, listing.transaction);
   const summary = [
-    address?.district && `${propertyType} ${address.district}`,
+    wardLabel && `${propertyType} ${wardLabel}`,
     address?.street,
     listing.floorCount != null && `${listing.floorCount} tầng`,
     bedrooms != null && `${bedrooms}PN`,

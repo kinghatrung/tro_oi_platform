@@ -35,7 +35,9 @@ export function ProductDetail({ product }: { product: ProductItem }) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [isReportOpen, setIsReportOpen] = useState(false);
   const images = product.images.length > 0 ? product.images : [NO_IMAGE];
-  const location = [product.address?.district, product.address?.city].filter(Boolean).join(', ');
+  const location = [product.address?.ward ?? product.address?.district, product.address?.city]
+    .filter(Boolean)
+    .join(', ');
 
   const handleCopyLink = useCallback(async () => {
     try {

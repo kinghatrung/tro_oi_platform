@@ -8,7 +8,7 @@ import { AppModule } from './app.module.js';
 import { HttpExceptionFilter } from './common/http-exception.filter.js';
 import { ResponseInterceptor } from './common/response.interceptor.js';
 import { ChatIoAdapter } from './modules/chat/chat-io.adapter.js';
-import { UPLOAD_DIR } from './modules/upload/upload.controller.js';
+import { UPLOAD_DIR } from './modules/upload/storage.service.js';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
@@ -18,7 +18,10 @@ async function bootstrap() {
     .get<string>('WEB_ORIGIN', 'http://localhost:3001')
     .split(',');
   app.enableCors({ origin: origins, credentials: true });
-  app.useWebSocketAdapter(new ChatIoAdapter(app, origins));
+  const socketAdapter = new ChatIoAdapter(app, origins);
+  const redisUrl = config.get<string>('REDIS_URL');
+  if (redisUrl) await socketAdapter.connectToRedis(redisUrl);
+  app.useWebSocketAdapter(socketAdapter);
   app.use(cookieParser());
 
   //bật trên toán bộ  app

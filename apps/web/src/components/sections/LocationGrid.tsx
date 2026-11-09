@@ -2,7 +2,7 @@ import { Col, Row } from 'antd';
 import type { ListingStat, PropertyCategory, TransactionType } from '@tro-oi/shared';
 
 import { LocationCard } from '@/components/common';
-import { CITIES, NO_IMAGE } from '@/constants';
+import { FEATURED_CITIES, NO_IMAGE } from '@/constants';
 
 interface LocationGridProps {
   stats: ListingStat[];
@@ -12,7 +12,7 @@ interface LocationGridProps {
 
 /** Featured city + 4 thành phố khác: số tin và ảnh lấy từ stats theo category/transaction đang chọn. */
 export function LocationGrid({ stats, category, transaction }: LocationGridProps) {
-  const [featured, ...locations] = CITIES.map((city) => {
+  const [featured, ...locations] = FEATURED_CITIES.map((city) => {
     const stat = stats.find(
       (item) =>
         item.city === city && item.category === category && item.transaction === transaction,

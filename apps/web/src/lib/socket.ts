@@ -12,6 +12,8 @@ export function getChatSocket() {
   socket ??= io(`${axiosClient.defaults.baseURL}/chat`, {
     auth: (callback) => callback({ token: getAccessToken() }),
     autoConnect: false,
+    // Chỉ WebSocket (không long-polling): chạy nhiều instance API sau load balancer không cần sticky session
+    transports: ['websocket'],
   });
   return socket;
 }

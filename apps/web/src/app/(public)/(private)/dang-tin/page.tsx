@@ -33,10 +33,12 @@ import { antdUploadRequest } from '@/api/uploads';
 import { FormSection } from '@/components/common';
 import { AMENITY_ITEMS } from '@/lib/constants/constantsRoom';
 import { YOUTUBE_URL_PATTERN } from '@/lib/youtube';
+import { useWards } from '@/hooks/useWards';
 import { useRequireUser } from '@/stores/useAuthStore';
 import { formatListingPrice, formatNumber } from '@/utils/helpers';
 
 import { CategoryPicker } from './CategoryPicker';
+import { GeoField } from './GeoField';
 import { PostSidebar, type PostPreview } from './PostSidebar';
 import {
   CITY_OPTIONS,
@@ -80,6 +82,7 @@ export default function PostListingPage() {
   const user = useRequireUser();
   const [form] = Form.useForm<ListingFormValues>();
   const values = Form.useWatch([], form);
+  const wardOptions = useWards(values?.address?.city).map((ward) => ({ value: ward, label: ward }));
   const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [editing, setEditing] = useState<Listing>();
   const [isLoading, setIsLoading] = useState(Boolean(editId));
@@ -98,7 +101,7 @@ export default function PostListingPage() {
       transaction: values?.transaction,
       category: values?.category,
       city: values?.address?.city,
-      district: values?.address?.district,
+      ward: values?.address?.ward,
       coverUrl: doneImages[0] && fileUrl(doneImages[0]),
       imageCount: doneImages.length,
     }),
@@ -115,16 +118,9 @@ export default function PostListingPage() {
 
       setIsSubmitting(true);
       try {
-        // Form không có field toạ độ: giữ geo cũ nếu không đổi khu vực, tránh mất bản đồ
-        const oldAddress = editing?.address;
-        const isSameArea =
-          oldAddress?.city === formValues.address.city &&
-          oldAddress?.district === formValues.address.district;
-        const address = { ...formValues.address, geo: isSameArea ? oldAddress?.geo : undefined };
         // "" = gỡ video khi sửa tin (ô trống → undefined sẽ không xoá được video cũ)
         const body = {
           ...formValues,
-          address,
           images,
           videoUrl: formValues.videoUrl?.trim() ?? '',
         };
@@ -259,7 +255,7 @@ export default function PostListingPage() {
             <FormSection
               step={3}
               title="Vị trí"
-              description="Địa chỉ giúp người thuê tìm thấy tin."
+              description="Địa chỉ theo đơn vị hành chính mới (tỉnh/thành → phường/xã), ghim vị trí để tin có bản đồ."
             >
               <Row gutter={16}>
                 <Col xs={24} md={12}>
@@ -268,34 +264,37 @@ export default function PostListingPage() {
                     label="Tỉnh/thành phố"
                     rules={[{ required: true, message: 'Chọn tỉnh/thành phố' }]}
                   >
-                    <Select showSearch options={CITY_OPTIONS} placeholder="Chọn tỉnh/thành" />
-                  </Form.Item>
-                </Col>
-                <Col xs={24} md={12}>
-                  <Form.Item
-                    name={['address', 'district']}
-                    label="Quận/huyện"
-                    rules={[{ required: true, whitespace: true, message: 'Nhập quận/huyện' }]}
-                  >
-                    <Input placeholder="VD: Cầu Giấy" />
+                    <Select
+                      showSearch
+                      options={CITY_OPTIONS}
+                      placeholder="Chọn tỉnh/thành"
+                      // Phường/xã thuộc tỉnh cũ → chọn lại
+                      onChange={() => form.setFieldValue(['address', 'ward'], undefined)}
+                    />
                   </Form.Item>
                 </Col>
                 <Col xs={24} md={12}>
                   <Form.Item
                     name={['address', 'ward']}
                     label="Phường/xã"
-                    className="mb-0! md:mb-6!"
+                    rules={[{ required: true, message: 'Chọn phường/xã' }]}
                   >
-                    <Input placeholder="VD: Dịch Vọng" />
+                    <Select
+                      showSearch
+                      options={wardOptions}
+                      disabled={!values?.address?.city}
+                      placeholder={values?.address?.city ? 'Chọn phường/xã' : 'Chọn tỉnh/thành trước'}
+                    />
                   </Form.Item>
                 </Col>
-                <Col xs={24} md={12}>
-                  <Form.Item
-                    name={['address', 'street']}
-                    label="Số nhà, tên đường"
-                    className="mb-0!"
-                  >
+                <Col span={24}>
+                  <Form.Item name={['address', 'street']} label="Số nhà, tên đường">
                     <Input placeholder="VD: Số 12 ngõ 165 Xuân Thuỷ" />
+                  </Form.Item>
+                </Col>
+                <Col span={24}>
+                  <Form.Item name={['address', 'geo']} label="Vị trí trên bản đồ" className="mb-0!">
+                    <GeoField />
                   </Form.Item>
                 </Col>
               </Row>
