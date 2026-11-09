@@ -114,6 +114,7 @@ export async function getListing(id: string) {
 - Scrollbar đã style toàn cục trong globals.css (mảnh, màu theo `--subtle`) — không tự style lại; dải cuộn ngang cần ẩn thanh cuộn thì dùng `[scrollbar-width:none]`.
 - Trạng thái rỗng: dùng `EmptyState` (`components/common`), không dùng `<Empty>` mặc định của AntD. Cần ngữ cảnh mới → vẽ SVG cùng phong cách vào `public/images/empty/` và thêm vào `EmptyVariant`.
 - Ảnh: `next/image`. Ảnh upload (`/uploads/**` trên API hoặc S3) đã được whitelist trong `next.config.ts`.
+- Bản đồ: **chỉ dùng `VietnamMap`** (components/common). Không thêm bản đồ/tile khác (Leaflet + tile OSM, Google Maps nhúng...) vì không kiểm soát được chữ Hán / tên do nước ngoài đặt trên Hoàng Sa, Trường Sa. Đổi nguồn tile → giữ `patchVietnamStyle` và kiểm tra lại các vùng: Hoàng Sa, Trường Sa, biên giới Móng Cái, Lào Cai (không chữ Hán, không tên do Trung Quốc đặt).
 - Địa chỉ: tỉnh/thành lấy từ `PROVINCES`, phường/xã từ `useWards(tỉnh)` — không hard-code tên địa danh, không thêm ô nhập quận/huyện. `provinces.ts` / `wards.json` (web) và `common/provinces.ts` (api) là file TỰ SINH: sửa bằng `yarn geo:build`, không sửa tay.
 - Text từ người dùng render dạng text (`whitespace-pre-line`), **không** `dangerouslySetInnerHTML` (nếu bắt buộc → sanitize).
 

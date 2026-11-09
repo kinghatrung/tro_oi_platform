@@ -38,7 +38,7 @@ import {
 } from '@tro-oi/shared';
 
 import { useSiteSettings } from '@/app/providers';
-import { LocationMap, ButtonDropdown, ImageLightbox, ReportModal } from '@/components/common';
+import { VietnamMap, ButtonDropdown, ImageLightbox, ReportModal } from '@/components/common';
 import { NO_IMAGE } from '@/constants';
 import { useSaveToggle } from '@/hooks/useSaveToggle';
 import {
@@ -451,12 +451,8 @@ export function PropertyOverview({ listing, similarListings = [] }: PropertyOver
           onCancel={() => setIsMapOpen(false)}
           destroyOnHidden
         >
-          <div className="h-162.5">
-            <LocationMap
-              latitude={geo.latitude}
-              longitude={geo.longitude}
-              popupText={listing.title}
-            />
+          <div className="h-[75vh] min-h-100">
+            <VietnamMap value={geo} popupText={listing.title} className="h-full w-full" />
           </div>
         </Modal>
       )}

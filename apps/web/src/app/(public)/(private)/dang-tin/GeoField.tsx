@@ -5,7 +5,7 @@ import { App, Button, Form } from 'antd';
 import { MapPinOff, Search } from 'lucide-react';
 import type { AddressInfo, GeoPoint } from '@tro-oi/shared';
 
-import { LocationPicker } from '@/components/common';
+import { VietnamMap } from '@/components/common';
 import { geocodeAddress } from '@/lib/geocode';
 
 /** Chính sách Nominatim: tối đa 1 yêu cầu/giây. */
@@ -66,7 +66,7 @@ export function GeoField({ value, onChange }: GeoFieldProps) {
         )}
       </div>
       <div className="overflow-hidden rounded-lg border border-line">
-        <LocationPicker value={value} onChange={(point) => onChange?.(point)} />
+        <VietnamMap value={value} onChange={(point) => onChange?.(point)} />
       </div>
       <p className="mt-1 text-xs text-subtle">
         {value

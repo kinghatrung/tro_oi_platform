@@ -2,16 +2,13 @@
 
 import dynamic from 'next/dynamic';
 
-/** Loads the browser-only location map without server-side rendering. */
-export const LocationMap = dynamic(() => import('./LocationMap').then((mod) => mod.LocationMap), {
+/**
+ * Bản đồ lãnh thổ Việt Nam (gồm Hoàng Sa, Trường Sa; nhãn tiếng Việt) — xem ghim, hoặc chọn vị trí khi có onChange.
+ * MapLibre cần WebGL nên chỉ chạy trên trình duyệt.
+ */
+export const VietnamMap = dynamic(() => import('./VietnamMap').then((mod) => mod.VietnamMap), {
   ssr: false,
 });
-
-/** Bản đồ chọn vị trí (kéo/bấm ghim) — chỉ chạy trên trình duyệt. */
-export const LocationPicker = dynamic(
-  () => import('./LocationPicker').then((mod) => mod.LocationPicker),
-  { ssr: false },
-);
 
 export * from './FloatingInput';
 export * from './CardItem';

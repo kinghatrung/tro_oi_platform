@@ -24,6 +24,7 @@ cp apps/api/.env.example apps/api/.env.local   # điền giá trị
 yarn workspace api seed      # (tuỳ chọn) tạo user + tin đăng mẫu
 # DB có dữ liệu trước 1/7/2025 (quận/huyện): yarn workspace api migrate:admin-units (chạy lại an toàn)
 # Cập nhật danh mục tỉnh/phường khi địa giới thay đổi: yarn geo:build (cần mạng)
+# Đường bao lãnh thổ cho bản đồ (Natural Earth, quan điểm Việt Nam): yarn geo:territory (cần mạng)
 yarn dev:api                 # http://localhost:5000
 yarn dev:web                 # http://localhost:3001
 ```
@@ -162,6 +163,7 @@ src/
 │   ├── chat/                          # UI chat thuần: ConversationList, ChatWindow, MessageBubble, ChatComposer
 │   └── sections/                      # Khối giao diện theo trang
 ├── constants/index.ts                 # CATEGORIES, PROVINCES (re-export), FEATURED_CITIES (lưới trang chủ), SORT_OPTIONS, NO_IMAGE
+├── constants/vietnam-territory.json  # đường bao lãnh thổ VN gồm Hoàng Sa, Trường Sa (TỰ SINH bởi yarn geo:territory)
 ├── constants/provinces.ts, wards.json # 34 tỉnh/thành + 3.321 phường/xã/đặc khu theo tỉnh — TỰ SINH bởi yarn geo:build, không sửa tay
 ├── hooks/useWards.ts                  # useWards(tỉnh): phường/xã của tỉnh, tải wards.json lười (chunk riêng)
 ├── lib/geocode.ts                     # geocodeAddress(): địa chỉ → toạ độ qua Nominatim (chỉ khi người dùng bấm)
@@ -216,8 +218,8 @@ Breadcrumb (`BreadcrumbItem`) tự sinh từ URL theo `ROUTE_LABELS` — thêm r
 | `AreaPicker`       | Popup chọn tỉnh/thành + quận → điều hướng `/tim-kiem`                    |
 | `ButtonDropdown`, `CardDropdown` | Nút mở dropdown / khung popup có header-footer             |
 | `FloatingInput`    | Input label nổi                                                          |
-| `LocationCard`, `LocationMap` | Ảnh khu vực; bản đồ Leaflet (client-only)                    |
-| `LocationPicker` | Bản đồ chọn vị trí: bấm/kéo ghim (client-only, value/onChange GeoPoint) |
+| `LocationCard`   | Ảnh khu vực                                                              |
+| `VietnamMap`     | Bản đồ duy nhất của web (MapLibre, client-only): `value` = ghim, có `onChange` → bấm/kéo ghim để chọn vị trí. Cao mặc định `h-120` (480px); modal chi tiết tin `75vh`. Style chủ quyền ở `lib/vietnamMapStyle.ts` |
 | `ImageLightbox`    | Xem ảnh toàn màn hình + thông tin tin đăng                               |
 | `ProductCard`      | Thẻ món đồ Chợ ơi                                                        |
 | `NotificationList` | Danh sách thông báo (icon theo `kind`, chấm = chưa đọc) — chuông Navbar và `/thong-bao` |
@@ -299,9 +301,16 @@ Web dùng qua `transpilePackages: ['@tro-oi/shared']`; package trỏ thẳng `sr
 
 ## Địa chỉ & bản đồ
 
+- **Bản đồ thể hiện chủ quyền Việt Nam** (`VietnamMap` + `lib/vietnamMapStyle.ts`): nền vector OpenFreeMap (OSM, không cần key), style được chỉnh lúc tải:
+  - Chỉ kéo/zoom trong khung lãnh thổ gồm quần đảo Hoàng Sa, Trường Sa (`VIETNAM_BOUNDS`); phần ngoài lãnh thổ phủ mờ (nhạt dần khi zoom ≥ 10).
+  - Nhãn chỉ dùng `name:vi`, rồi `name:latin` — **không bao giờ hiện chữ Hán**. Đường ranh giới: chỉ vẽ biên giới đất liền của Việt Nam (`adm0_l`/`adm0_r` = `VNM`); bỏ biên giới giữa các nước khác, đường biên trên biển, ranh giới tranh chấp và ranh giới hành chính bên trong (OSM còn tỉnh/huyện cũ).
+  - Mọi zoom: ẩn nhãn có tên gốc không phải chữ Latin (địa danh Trung Quốc, Lào, Campuchia). Zoom xa: thêm điều kiện nằm trong đường bao lãnh thổ. Zoom gần: ẩn nhãn không tên nằm ngoài đường bao (biển số đường nước ngoài).
+  - Vùng 2 quần đảo: chỉ hiện đảo/đá có tên tiếng Việt và thực thể có tên gốc Latin; ẩn mọi tên đơn vị hành chính, công trình do Trung Quốc đặt ("Tam Sa"...). Luôn có nhãn "Quần đảo Hoàng Sa (Việt Nam)", "Quần đảo Trường Sa (Việt Nam)".
+  - Đường bao: `constants/vietnam-territory.json` — Natural Earth 1:10m bản "quan điểm Việt Nam" (gồm 2 quần đảo), sinh bằng `yarn geo:territory`. Chỉ chính xác cỡ km nên chỉ dùng cho lớp mờ và lọc nhãn ở zoom xa.
+
 - Đơn vị hành chính **2 cấp từ 1/7/2025**: `address.city` (34 tỉnh/thành, tên rút gọn vd "Hồ Chí Minh") → `address.ward` (phường/xã/đặc khu, tên đầy đủ vd "Phường Cầu Giấy"). `address.district` chỉ còn ở dữ liệu cũ (hiển thị: `ward ?? district`).
 - Danh mục sinh từ provinces.open-api.vn v2 bằng `scripts/build-admin-units.mjs` (kiểm tra đủ 34 tỉnh / 3.321 xã trước khi ghi). API chỉ kiểm tra `city` ∈ 34 tỉnh; `ward` do web chọn từ danh mục.
-- Form đăng tin: chọn tỉnh → chọn phường/xã (có tìm kiếm) → ghim bản đồ (`GeoField` + `LocationPicker`): bấm/kéo ghim, hoặc "Tìm theo địa chỉ" (Nominatim, ≤ 1 yêu cầu/giây, người đăng chỉnh lại). Không ghim → tin không có bản đồ.
+- Form đăng tin: chọn tỉnh → chọn phường/xã (có tìm kiếm) → ghim bản đồ (`GeoField` + `VietnamMap`): bấm/kéo ghim, hoặc "Tìm theo địa chỉ" (Nominatim, ≤ 1 yêu cầu/giây, người đăng chỉnh lại). Không ghim → tin không có bản đồ.
 
 ## Chạy nhiều instance API
 
@@ -324,6 +333,7 @@ Web dùng qua `transpilePackages: ['@tro-oi/shared']`; package trỏ thẳng `sr
 - Ứng dụng mobile / link tải app.
 - Người dùng chưa tự xoá được tài khoản / tải dữ liệu của mình (hiện chỉ qua email hỗ trợ, như bản nháp Chính sách bảo mật ghi).
 - Đăng nhập Google/Facebook (nút hiển thị nhưng chưa nối).
+- Bản đồ dùng dịch vụ miễn phí OpenFreeMap (không SLA) — cần ổn định/cam kết thì chuyển sang nhà cung cấp trong nước (vd Vietmap, cũng dựa trên MapLibre, giữ nguyên `patchVietnamStyle`) hoặc tự host tile; quy tắc lọc nhãn đã kiểm tra bằng trình duyệt tự động, chưa có test tự động trong repo (web chưa có test runner).
 - Video tin đăng chỉ nhận link YouTube (chưa upload file video), Chợ ơi chưa có video.
 - Lịch sử xem tin chỉ lưu trên trình duyệt (localStorage), không đồng bộ theo tài khoản.
 - Địa chỉ cũ không tự xác định được phường (vd quận cũ tách thành nhiều phường như "Quận 1") cần chủ tin sửa tay; API chưa kiểm tra `ward` thuộc đúng tỉnh.

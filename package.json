@@ -9,7 +9,8 @@
     "dev:web": "yarn workspace web dev",
     "dev:api": "yarn workspace api dev",
     "dev:mobile": "yarn workspace mobile start",
-    "geo:build": "node scripts/build-admin-units.mjs"
+    "geo:build": "node scripts/build-admin-units.mjs",
+    "geo:territory": "node scripts/build-vietnam-territory.mjs"
   },
   "devDependencies": {
     "concurrently": "^10.0.5",

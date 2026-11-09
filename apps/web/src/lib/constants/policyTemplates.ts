@@ -77,7 +77,8 @@ Tin nhắn chỉ hiển thị cho hai người trong cuộc trò chuyện trên 
 ## 7. Dịch vụ bên thứ ba
 - Google Firebase: gửi và xác thực mã OTP qua số điện thoại.
 - YouTube (chế độ youtube-nocookie): phát video nhúng trong tin đăng.
-- OpenStreetMap: hiển thị bản đồ vị trí tin đăng; khi người đăng bấm "Tìm theo địa chỉ", địa chỉ đã nhập được gửi tới dịch vụ Nominatim của OpenStreetMap để tìm toạ độ.
+- OpenFreeMap (dữ liệu OpenStreetMap): tải bản đồ nền hiển thị vị trí tin đăng.
+- Nominatim (OpenStreetMap): khi người đăng bấm "Tìm theo địa chỉ", địa chỉ đã nhập được gửi đi để tìm toạ độ.
 - Lưu trữ ảnh tải lên: [[Máy chủ của đơn vị vận hành, hoặc tên nhà cung cấp lưu trữ đám mây nếu dùng]]
 - Zalo: chỉ khi bạn bấm nút liên hệ Zalo.
 Các dịch vụ này có chính sách bảo mật riêng.
