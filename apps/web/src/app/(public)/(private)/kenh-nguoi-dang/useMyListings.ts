@@ -23,7 +23,13 @@ export function useMyListings() {
             item.id === updated.id ? { ...updated, favoriteCount: item.favoriteCount } : item,
           ),
         );
-        message.success(status === ListingStatus.ACTIVE ? 'Đã hiển thị lại tin' : 'Đã ẩn tin');
+        message.success(
+          status === ListingStatus.CLOSED
+            ? 'Đã ẩn tin'
+            : listing.status === ListingStatus.EXPIRED
+              ? 'Đã gia hạn tin'
+              : 'Đã hiển thị lại tin',
+        );
       } catch (error) {
         message.error((error as Error).message);
       }

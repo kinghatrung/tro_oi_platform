@@ -1,39 +1,67 @@
 'use client';
 
 import Link from 'next/link';
-import Image from 'next/image';
-import { useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { App, Avatar, Button, Flex, Layout, Menu, Spin, type MenuProps } from 'antd';
-import { ArrowLeft, UserRound } from 'lucide-react';
+import { App, Drawer, Flex, Grid, Layout, Spin, type BreadcrumbProps, type MenuProps } from 'antd';
 import { UserRole } from '@tro-oi/shared';
 
-import { useSiteSettings } from '@/app/providers';
-import { ThemeToggle } from '@/components/common';
+import { AdminSidebar, AdminTopBar } from '@/components/admin';
 import { useRequireUser } from '@/stores/useAuthStore';
 
 import { ADMIN_BASE, ADMIN_MENU } from './const';
 
+const SIDER_WIDTH = 256;
+const SIDER_COLLAPSED_WIDTH = 72;
+
 /** Mục menu đang mở: khớp dài nhất (vd /quan-tri/nguoi-dung thắng /quan-tri). */
-const activeKey = (pathname: string) =>
-  ADMIN_MENU.map(({ key }) => key)
-    .filter((key) => pathname === key || pathname.startsWith(`${key}/`))
-    .sort((a, b) => b.length - a.length)[0] ?? ADMIN_BASE;
+const findActive = (pathname: string) =>
+  ADMIN_MENU.filter(({ key }) => pathname === key || pathname.startsWith(`${key}/`)).sort(
+    (a, b) => b.key.length - a.key.length,
+  )[0] ?? ADMIN_MENU[0];
+
+const MENU_ITEMS: MenuProps['items'] = ADMIN_MENU.map(({ key, label, icon }) => ({
+  key,
+  label,
+  icon,
+}));
 
 /**
- * Khung trang quản trị: sidebar + header. Chỉ admin — người khác bị đưa về trang chủ.
- * API /admin/* vẫn tự chặn bằng AdminGuard, kiểm tra ở đây chỉ để điều hướng.
+ * Khung quản trị toàn màn hình (theo cbs-fe): sidebar thu gọn/mở rộng ở desktop (≥ xl),
+ * tablet/mobile thành Drawer. Chỉ admin — người khác bị đưa về trang chủ
+ * (API /admin/* vẫn tự chặn bằng AdminGuard, kiểm tra ở đây chỉ để điều hướng).
  */
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const { message } = App.useApp();
-  const settings = useSiteSettings();
   const user = useRequireUser();
   const isAdmin = user?.role === UserRole.ADMIN;
-  const menuItems = useMemo<MenuProps['items']>(
-    () => ADMIN_MENU.map(({ key, label, icon }) => ({ key, label, icon })),
-    [],
+  // useBreakpoint trả {} lúc SSR → coi là desktop cho tới khi đo được
+  const isCompact = Grid.useBreakpoint().xl === false;
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const active = findActive(pathname);
+
+  const breadcrumb = useMemo<BreadcrumbProps['items']>(
+    () =>
+      active.key === ADMIN_BASE
+        ? [{ title: active.label }]
+        : [{ title: <Link href={ADMIN_BASE}>Quản trị</Link> }, { title: active.label }],
+    [active],
+  );
+
+  const handleToggle = useCallback(() => {
+    if (isCompact) setDrawerOpen(true);
+    else setSidebarOpen((open) => !open);
+  }, [isCompact]);
+
+  const handleNavigate = useCallback(
+    (key: string) => {
+      setDrawerOpen(false);
+      router.push(key);
+    },
+    [router],
   );
 
   useEffect(() => {
@@ -51,46 +79,53 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
     );
   }
 
+  const sidebar = (collapsed: boolean) => (
+    <AdminSidebar
+      homeHref={ADMIN_BASE}
+      items={MENU_ITEMS}
+      selectedKey={active.key}
+      collapsed={collapsed}
+      onNavigate={handleNavigate}
+    />
+  );
+
   return (
-    <Layout className="min-h-dvh">
-      <Layout.Sider
-        breakpoint="lg"
-        collapsedWidth={0}
-        width={240}
-        theme="light"
-        className="border-r border-line"
-      >
-        <Link href={ADMIN_BASE} className="flex items-center gap-2 px-5 py-4">
-          <Image
-            src={settings.logoUrl}
-            alt={settings.siteName}
-            width={80}
-            height={20}
-          />
-          <span className="text-sm font-bold text-ink">Quản trị</span>
-        </Link>
-        <Menu
-          mode="inline"
-          className="border-e-0!"
-          items={menuItems}
-          selectedKeys={[activeKey(pathname)]}
-          onClick={({ key }) => router.push(key)}
+    // fixed inset-0: chiếm trọn màn hình, che luôn thanh thông báo công khai của layout gốc
+    <Layout className="fixed! inset-0 z-10 flex-row! overflow-hidden">
+      {isCompact ? (
+        <Drawer
+          open={drawerOpen}
+          onClose={() => setDrawerOpen(false)}
+          placement="left"
+          size={SIDER_WIDTH}
+          closable={false}
+          styles={{ body: { padding: 0 } }}
+        >
+          {sidebar(false)}
+        </Drawer>
+      ) : (
+        <Layout.Sider
+          width={SIDER_WIDTH}
+          collapsedWidth={SIDER_COLLAPSED_WIDTH}
+          collapsed={!sidebarOpen}
+          trigger={null}
+          collapsible
+          theme="light"
+          className="h-full border-e border-line"
+        >
+          {sidebar(!sidebarOpen)}
+        </Layout.Sider>
+      )}
+      <Layout className="min-w-0 flex-1">
+        <AdminTopBar
+          isCompact={isCompact}
+          sidebarOpen={sidebarOpen}
+          onToggleSidebar={handleToggle}
+          breadcrumb={breadcrumb}
         />
-      </Layout.Sider>
-      <Layout>
-        <Layout.Header className="flex! items-center justify-between border-b border-line bg-surface! px-6!">
-          <Link href="/">
-            <Button type="text" icon={<ArrowLeft size={16} />}>
-              Về {settings.siteName}
-            </Button>
-          </Link>
-          <Flex align="center" gap={12}>
-            <ThemeToggle />
-            <Avatar size={32} src={user.avatar} icon={<UserRound size={16} />} />
-            <span className="font-semibold text-ink">{user.name}</span>
-          </Flex>
-        </Layout.Header>
-        <Layout.Content className="bg-page p-6">{children}</Layout.Content>
+        <Layout.Content className="min-h-0 flex-1 overflow-y-auto bg-page p-3 sm:p-4">
+          {children}
+        </Layout.Content>
       </Layout>
     </Layout>
   );

@@ -23,3 +23,4 @@ export * from './ThemeToggle';
 export * from './ReportModal';
 export * from './FormSection';
 export * from './ProductCard';
+export * from './NotificationList';

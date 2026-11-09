@@ -7,6 +7,7 @@ import { AppService } from './app.service.js';
 import { AdminModule } from './modules/admin/admin.module.js';
 import { AuthModule } from './modules/auth/auth.module.js';
 import { ListingModule } from './modules/listing/listing.module.js';
+import { NotificationModule } from './modules/notification/notification.module.js';
 import { ProductModule } from './modules/product/product.module.js';
 import { ReportModule } from './modules/report/report.module.js';
 import { SettingsModule } from './modules/settings/settings.module.js';
@@ -34,6 +35,7 @@ import { UserModule } from './modules/user/user.module.js';
     ProductModule,
     ReportModule,
     AdminModule,
+    NotificationModule,
   ],
   controllers: [AppController],
   providers: [AppService],

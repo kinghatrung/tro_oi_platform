@@ -4,7 +4,7 @@ import clsx from 'clsx';
 import { useCallback, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { App, Button, Card, Descriptions, Flex, Image, Tag } from 'antd';
-import { Clock, Eye, Flag, Link2, MapPin } from 'lucide-react';
+import { Clock, Eye, Flag, Heart, Link2, MapPin } from 'lucide-react';
 import {
   PRODUCT_CATEGORY_LABELS,
   PRODUCT_CONDITION_LABELS,
@@ -14,6 +14,7 @@ import {
 
 import { ReportModal } from '@/components/common';
 import { NO_IMAGE } from '@/constants';
+import { useSaveToggle } from '@/hooks/useSaveToggle';
 import { CONDITION_TAG_COLORS } from '@/lib/constants/constantsProduct';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { formatRelativeTime, formatVietnameseCurrency } from '@/utils/helpers';
@@ -24,6 +25,13 @@ export function ProductDetail({ product }: { product: ProductItem }) {
   const pathname = usePathname();
   const { message } = App.useApp();
   const isLoggedIn = useAuthStore((state) => Boolean(state.user));
+  const isSaved = useAuthStore((state) =>
+    state.favoriteProducts.some((item) => item.id === product.id),
+  );
+  const toggleFavoriteProduct = useAuthStore((state) => state.toggleFavoriteProduct);
+  const handleToggleSave = useSaveToggle(
+    useCallback(() => toggleFavoriteProduct(product), [product, toggleFavoriteProduct]),
+  );
   const [activeIndex, setActiveIndex] = useState(0);
   const [isReportOpen, setIsReportOpen] = useState(false);
   const images = product.images.length > 0 ? product.images : [NO_IMAGE];
@@ -100,7 +108,14 @@ export function ProductDetail({ product }: { product: ProductItem }) {
             <Eye size={16} /> {product.viewCount ?? 0} lượt xem
           </Flex>
         </Flex>
-        <Flex gap={8} className="mt-4!">
+        <Flex gap={8} wrap className="mt-4!">
+          <Button
+            aria-pressed={isSaved}
+            icon={<Heart size={16} className={isSaved ? 'fill-price stroke-price' : ''} />}
+            onClick={() => handleToggleSave()}
+          >
+            {isSaved ? 'Đã lưu' : 'Lưu'}
+          </Button>
           <Button icon={<Link2 size={16} />} onClick={handleCopyLink}>
             Sao chép liên kết
           </Button>

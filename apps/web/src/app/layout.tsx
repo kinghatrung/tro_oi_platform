@@ -27,7 +27,7 @@ async function resolveThemeMode(settings: SiteSettings): Promise<ThemeMode> {
   return settings.allowThemeToggle && isValid ? chosen : settings.defaultTheme;
 }
 
-/** Tiêu đề, mô tả, favicon lấy từ thiết lập website (admin đổi ở /quan-tri/thiet-lap). */
+/** Tiêu đề, mô tả lấy từ thiết lập website (admin đổi ở /quan-tri/thiet-lap). Favicon ở providers.tsx. */
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await loadSiteSettings();
   return {
@@ -36,7 +36,6 @@ export async function generateMetadata(): Promise<Metadata> {
       template: `%s | ${settings.siteName}`,
     },
     description: settings.description,
-    icons: { icon: settings.faviconUrl },
   };
 }
 

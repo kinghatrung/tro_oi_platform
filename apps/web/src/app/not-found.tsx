@@ -1,8 +1,11 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Button, Result } from 'antd';
 
 import SubHeader from '@/components/layout/SubHeader';
 import Footer from '@/components/layout/Footer';
+
+export const metadata: Metadata = { title: 'Không tìm thấy trang' };
 
 /** 404: URL không tồn tại hoặc tin đăng/người dùng đã bị xoá/ẩn. */
 export default function NotFound() {

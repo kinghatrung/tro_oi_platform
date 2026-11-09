@@ -9,6 +9,21 @@ import {
 export const USER_ROLES = ['renter', 'landlord', 'agent', 'admin'] as const;
 export type UserRole = (typeof USER_ROLES)[number];
 
+/** Bộ lọc /tim-kiem người dùng đã lưu. */
+@Schema({ timestamps: { createdAt: true, updatedAt: false } })
+export class SavedSearch {
+  _id: Types.ObjectId;
+
+  /** Query string của /tim-kiem (không có page, key đã sắp xếp) — khoá chống lưu trùng. */
+  @Prop({ required: true })
+  query: string;
+
+  @Prop({ required: true })
+  title: string;
+
+  createdAt: Date;
+}
+
 @Schema({ timestamps: true, collection: 'users' })
 export class User {
   @Prop({ required: true, unique: true, index: true })
@@ -39,6 +54,17 @@ export class User {
     default: [],
   })
   favoriteListingIds: Types.ObjectId[];
+
+  /** Món đồ Chợ ơi đã lưu, thứ tự thêm vào (cũ → mới). */
+  @Prop({
+    type: [{ type: MongooseSchema.Types.ObjectId, ref: 'Product' }],
+    default: [],
+  })
+  favoriteProductIds: Types.ObjectId[];
+
+  /** Tìm kiếm đã lưu, thứ tự thêm vào (cũ → mới). */
+  @Prop({ type: [SchemaFactory.createForClass(SavedSearch)], default: [] })
+  savedSearches: SavedSearch[];
 
   createdAt: Date;
   updatedAt: Date;

@@ -11,6 +11,12 @@ import { buildAntTheme } from '@/theme/buildTheme';
 const THEME_COOKIE = 'theme';
 const ONE_YEAR = 365 * 24 * 60 * 60;
 
+/** Favicon Chợ ơi: sạp hàng trên nền marketplaceColor. */
+const marketFavicon = (color: string) =>
+  `data:image/svg+xml,${encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="${color}"/><path d="M14 12H50L56 28a6 6 0 0 1-12 0 6 6 0 0 1-12 0 6 6 0 0 1-12 0 6 6 0 0 1-12 0Z" fill="#fff"/><path d="M14 40V52H50V40" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  )}`;
+
 interface ThemeContextValue {
   mode: ThemeMode;
   /** Admin cho phép người dùng tự đổi theme. */
@@ -69,6 +75,11 @@ export function Providers({ children, settings, initialTheme }: ProvidersProps) 
 
   return (
     <SiteSettingsContext.Provider value={settings}>
+      {/* React đưa thẻ này vào <head>; đặt ở đây để đổi theo khu vực khi chuyển trang */}
+      <link
+        rel="icon"
+        href={isMarket ? marketFavicon(settings.marketplaceColor) : settings.faviconUrl}
+      />
       <ThemeContext.Provider value={themeValue}>
         <ConfigProvider locale={viVN} theme={antTheme}>
           {/* globals.css: body:has([data-section='market']) đổi token màu, cả popup gắn vào body */}

@@ -38,3 +38,18 @@ export interface UpdateProfileRequest {
   bio?: string;
   avatar?: string;
 }
+
+/** Bộ lọc /tim-kiem đã lưu (GET /users/me/saved-searches). */
+export interface SavedSearch {
+  id: string;
+  /** Query string của /tim-kiem, không có page. Link: `/tim-kiem?${query}`. */
+  query: string;
+  title: string;
+  /** ISO 8601. */
+  createdAt: string;
+}
+
+export interface CreateSavedSearchRequest {
+  query: string;
+  title: string;
+}

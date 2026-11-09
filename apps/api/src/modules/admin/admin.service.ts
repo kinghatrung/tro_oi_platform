@@ -6,6 +6,7 @@ import {
 import { InjectModel } from '@nestjs/mongoose';
 import { isValidObjectId, type Model } from 'mongoose';
 
+import { AuditService } from '../audit/audit.service.js';
 import {
   User,
   toUser,
@@ -23,7 +24,10 @@ import {
   Product,
   type ProductDocument,
 } from '../product/schemas/product.schema.js';
+import type { UpdateReportDto } from '../report/report.dto.js';
 import { ReportService } from '../report/report.service.js';
+import { SettingsService } from '../settings/settings.service.js';
+import type { UpdateSettingsDto } from '../settings/update-settings.dto.js';
 import type {
   AdminListingQueryDto,
   AdminProductQueryDto,
@@ -32,6 +36,12 @@ import type {
 } from './admin.dto.js';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+
+const REPORT_ACTIONS: Record<UpdateReportDto['status'], string> = {
+  resolved: 'Xử lý báo cáo',
+  dismissed: 'Bỏ qua báo cáo',
+  open: 'Mở lại báo cáo',
+};
 
 /** [{ _id: status, count }] → { status: count }. */
 const toStatusMap = (rows: { _id: string; count: number }[]) =>
@@ -46,6 +56,8 @@ export class AdminService {
     @InjectModel(Product.name)
     private readonly productModel: Model<ProductDocument>,
     private readonly reportService: ReportService,
+    private readonly settingsService: SettingsService,
+    private readonly auditService: AuditService,
   ) {}
 
   async stats() {
@@ -141,13 +153,51 @@ export class AdminService {
         'Không thể tự đổi quyền hoặc khoá chính mình',
       );
     }
-    const user = isValidObjectId(id)
+    const before = isValidObjectId(id)
       ? await this.userModel
-          .findByIdAndUpdate(id, dto, { returnDocument: 'after' })
+          .findByIdAndUpdate(id, dto, { returnDocument: 'before' })
           .exec()
       : null;
-    if (!user) throw new NotFoundException('Không tìm thấy người dùng');
-    return toUser(user);
+    if (!before) throw new NotFoundException('Không tìm thấy người dùng');
+
+    // Drawer gửi cả form → chỉ ghi phần thực sự đổi
+    const actions = [
+      dto.role !== undefined &&
+        dto.role !== before.role &&
+        (dto.role === 'admin' ? 'Cấp quyền quản trị' : 'Gỡ quyền quản trị'),
+      dto.isBlocked !== undefined &&
+        dto.isBlocked !== before.isBlocked &&
+        (dto.isBlocked ? 'Khoá tài khoản' : 'Mở khoá tài khoản'),
+    ].filter(Boolean);
+    if (actions.length > 0) {
+      await this.auditService.log(adminId, {
+        action: actions.join(', '),
+        targetType: 'user',
+        targetId: id,
+        targetTitle: before.name,
+      });
+    }
+    before.set(dto);
+    return toUser(before);
+  }
+
+  async updateReport(adminId: string, id: string, dto: UpdateReportDto) {
+    await this.reportService.update(id, dto);
+    await this.auditService.log(adminId, {
+      action: REPORT_ACTIONS[dto.status],
+      targetType: 'report',
+      targetId: id,
+    });
+    return null;
+  }
+
+  async updateSettings(adminId: string, dto: UpdateSettingsDto) {
+    const settings = await this.settingsService.update(dto);
+    await this.auditService.log(adminId, {
+      action: 'Cập nhật thiết lập website',
+      targetType: 'settings',
+    });
+    return settings;
   }
 
   /** Tin Trọ ơi mọi trạng thái (status bỏ trống = tất cả). */

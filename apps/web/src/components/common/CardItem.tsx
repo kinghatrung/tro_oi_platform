@@ -3,9 +3,8 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import clsx from 'clsx';
-import { useCallback, type MouseEvent } from 'react';
-import { usePathname, useRouter } from 'next/navigation';
-import { App, Flex, Space, Card, Button } from 'antd';
+import { useCallback } from 'react';
+import { Flex, Space, Card, Button } from 'antd';
 import { MapPin, Heart, House, CircleUserRound, Image as ImageIcon, BedDouble } from 'lucide-react';
 import {
   DIRECTION_LABELS,
@@ -16,6 +15,7 @@ import {
 } from '@tro-oi/shared';
 
 import { NO_IMAGE } from '@/constants';
+import { useSaveToggle } from '@/hooks/useSaveToggle';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { formatListingPrice, formatRelativeTime, formatVietnameseCurrency } from '@/utils/helpers';
 
@@ -27,32 +27,13 @@ interface CardItemProps {
 
 /** Nút Lưu tin: chưa đăng nhập → chuyển tới trang đăng nhập. */
 function useFavoriteToggle(listing: Listing) {
-  const router = useRouter();
-  const pathname = usePathname();
-  const { message } = App.useApp();
-  const isLoggedIn = useAuthStore((state) => Boolean(state.user));
   const isFavorite = useAuthStore((state) =>
     state.favorites.some((item) => item.id === listing.id),
   );
   const toggleFavorite = useAuthStore((state) => state.toggleFavorite);
-
-  const handleToggle = useCallback(
-    async (event: MouseEvent) => {
-      event.preventDefault();
-      event.stopPropagation();
-      if (!isLoggedIn) {
-        router.push(`/dang-nhap?redirect=${encodeURIComponent(pathname)}`);
-        return;
-      }
-      try {
-        await toggleFavorite(listing);
-      } catch (error) {
-        message.error((error as Error).message);
-      }
-    },
-    [isLoggedIn, listing, message, pathname, router, toggleFavorite],
+  const handleToggle = useSaveToggle(
+    useCallback(() => toggleFavorite(listing), [listing, toggleFavorite]),
   );
-
   return { isFavorite, handleToggle };
 }
 

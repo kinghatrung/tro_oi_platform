@@ -1,3 +1,5 @@
+import { plainToInstance } from 'class-transformer';
+import { validateSync } from 'class-validator';
 import { Types } from 'mongoose';
 
 import { SearchListingDto } from './dto/listing.dto.js';
@@ -56,5 +58,20 @@ describe('buildListingQuery', () => {
     expect(buildListingQuery(dto({ maxArea: 30 })).filter.area).toEqual({
       $lte: 30,
     });
+  });
+
+  it('amenities: tin phải có đủ mọi tiện ích', () => {
+    expect(
+      buildListingQuery(dto({ amenities: ['wifi', 'parking'] })).filter
+        .amenities,
+    ).toEqual({ $all: ['wifi', 'parking'] });
+  });
+
+  it('query amenities "wifi,parking" → mảng; tiện ích lạ → lỗi validate', () => {
+    const ok = plainToInstance(SearchListingDto, { amenities: 'wifi,parking' });
+    expect(ok.amenities).toEqual(['wifi', 'parking']);
+    expect(validateSync(ok)).toHaveLength(0);
+    const bad = plainToInstance(SearchListingDto, { amenities: 'wifi,ho-boi' });
+    expect(validateSync(bad)).not.toHaveLength(0);
   });
 });

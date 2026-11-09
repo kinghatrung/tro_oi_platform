@@ -32,6 +32,7 @@ export function buildListingQuery(query: SearchListingDto) {
     };
   }
   if (query.bedrooms !== undefined) filter.bedrooms = { $gte: query.bedrooms };
+  if (query.amenities?.length) filter.amenities = { $all: query.amenities };
   if (query.authorId) filter.author = new Types.ObjectId(query.authorId);
   if (query.excludeId)
     filter._id = { $ne: new Types.ObjectId(query.excludeId) };

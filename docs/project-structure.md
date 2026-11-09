@@ -62,14 +62,15 @@ src/
 │   ├── http-exception.filter.ts# lỗi → { code, message (tiếng Việt), data: null }
 │   ├── response-format.spec.ts # test contract ApiResponse
 │   ├── current-user.decorator.ts # @CurrentUser() → { sub, phone, role }
-│   └── status-rules.ts         # assertOwnerStatusChange(): chủ tin không tự duyệt tin chờ (có test)
+│   ├── status-rules.ts         # assertOwnerStatusChange(): chủ tin không tự duyệt tin chờ (có test)
+│   └── moderation.ts           # admin xử lý tin người khác → nhãn nhật ký + thông báo chủ tin (có test)
 └── modules/
     ├── auth/                   # verify-phone, dev-login, FirebaseService
     │   ├── jwt-auth.guard.ts   # kiểm token + đọc role/isBlocked từ DB mỗi request
     │   ├── admin.guard.ts      # chỉ role admin — dùng SAU JwtAuthGuard
-    │   └── schemas/user.schema.ts  # User (phone, name, email, bio, avatar, role, isBlocked, favoriteListingIds)
-    ├── user/                   # /users: me, favorites, hồ sơ công khai
-    ├── listing/                # /listings (Trọ ơi): tìm kiếm, stats, CRUD, duyệt tin theo settings
+    │   └── schemas/user.schema.ts  # User (phone, name, email, bio, avatar, role, isBlocked, favoriteListingIds, favoriteProductIds, savedSearches)
+    ├── user/                   # /users: me, favorites, favorite-products, saved-searches, hồ sơ công khai
+    ├── listing/                # /listings (Trọ ơi): tìm kiếm, stats, CRUD, duyệt tin theo settings, hết hạn + nhắc hạn
     │   ├── listing.filter.ts   # build Mongo filter/sort từ query (có unit test)
     │   └── listing.mapper.ts   # toListing(): document → Listing (shared type)
     ├── product/                # /products (Chợ ơi): tìm kiếm, CRUD, duyệt tin theo settings
@@ -77,12 +78,14 @@ src/
     │   └── product.mapper.ts   # toProduct()
     ├── report/                 # POST /reports — người dùng báo cáo tin vi phạm
     ├── settings/               # GET /settings — thiết lập website (singleton, cache bộ nhớ)
-    ├── admin/                  # /admin/* — thống kê, người dùng, tin, báo cáo, lưu thiết lập
+    ├── notification/           # /notifications — thông báo của người dùng (NotificationService.notify dùng ở listing/product)
+    ├── audit/                  # AuditService: nhật ký thao tác admin (đọc qua GET /admin/audit-logs)
+    ├── admin/                  # /admin/* — thống kê, người dùng, tin, báo cáo, lưu thiết lập, nhật ký
     └── upload/                 # POST /uploads (multer, lưu apps/api/uploads/)
 ```
 
-- Collections: `users`, `listings`, `products`, `reports`, `settings`.
-- Quan hệ: `Listing.author`, `Product.seller`, `Report.reporter → User._id`; `User.favoriteListingIds → Listing._id[]`; `Report.targetId → Listing | Product`.
+- Collections: `users`, `listings`, `products`, `reports`, `settings`, `notifications` (TTL 90 ngày), `audit_logs`.
+- Quan hệ: `Listing.author`, `Product.seller`, `Report.reporter`, `Notification.user`, `AuditLog.actor → User._id`; `User.favoriteListingIds → Listing._id[]`, `User.favoriteProductIds → Product._id[]`; `Report.targetId → Listing | Product`. `User.savedSearches` là mảng con nhúng.
 - **Tài khoản admin:** `yarn workspace api seed` luôn đảm bảo SĐT `0900000000` là admin (dev-login được). Production: đặt `role: 'admin'` cho user thật bằng mongosh, rồi dùng trang `/quan-tri/nguoi-dung` để cấp quyền cho người khác.
 - Chi tiết endpoint: [api.md](api.md).
 
@@ -108,27 +111,34 @@ src/
 │       ├── cho-oi/[id]/               # Chi tiết món đồ Chợ ơi
 │       └── (private)/                 # cần đăng nhập (chặn ở src/proxy.ts), layout force-dynamic
 │           ├── ca-nhan/               # Hồ sơ của tôi + xem tin (ProfileEditModal.tsx)
-│           ├── yeu-thich/             # Tin đã lưu
+│           ├── yeu-thich/             # Đã lưu: tab Tin Trọ ơi + Đồ Chợ ơi + Tìm kiếm
+│           ├── thong-bao/             # Tất cả thông báo (phân trang), đánh dấu đã đọc
 │           ├── dang-tin/              # Đăng / sửa tin (?id=): 6 bước + PostSidebar (xem trước, checklist), CategoryPicker
 │           ├── cho-oi/dang-ban/       # Đăng / sửa món đồ Chợ ơi (?id=)
 │           └── kenh-nguoi-dang/       # Kênh người đăng: layout sidebar (SellerSidebar)
 │               ├── page.tsx           #   Tổng quan: thống kê tin/lượt xem/lượt lưu, top tin
-│               ├── tin-dang/          #   Quản lý tin: bảng lọc (cả Chờ duyệt)/tìm/sắp xếp, sửa/ẩn/xoá
+│               ├── tin-dang/          #   Quản lý tin: bảng lọc (cả Chờ duyệt)/tìm/sắp xếp, cột Hết hạn, sửa/ẩn/gia hạn/xoá
 │               ├── do-ban/            #   Đồ đang bán (Chợ ơi): đã bán, ẩn/hiện, sửa, xoá
 │               ├── useMyListings.ts   #   hook dùng chung: GET /listings/mine + ẩn/hiện/xoá
 │               └── const.tsx          #   menu sidebar, màu Tag theo trạng thái
-│   └── (admin)/quan-tri/              # Trang quản trị (AdminShell: sidebar + header), chỉ admin
-│       ├── page.tsx                   #   Tổng quan (GET /admin/stats)
-│       ├── nguoi-dung/                #   Người dùng: tìm, đổi vai trò, khoá/mở khoá
-│       ├── tin-tro/, tin-cho/         #   Duyệt / ẩn / xoá tin Trọ ơi, Chợ ơi
+│   └── (admin)/quan-tri/              # Trang quản trị toàn màn hình, chỉ admin (UI dùng chung ở components/admin)
+│       ├── AdminShell.tsx             #   Khung: Sider 256/72px thu gọn được (≥ xl), Drawer (< xl), AdminTopBar + breadcrumb
+│       ├── const.tsx                  #   ADMIN_MENU (key = URL), ADMIN_BASE
+│       ├── page.tsx                   #   Tổng quan (GET /admin/stats): StatCards + StatusBreakdown
+│       ├── nguoi-dung/                #   Người dùng: FilterBar (từ khoá + lọc nâng cao vai trò/trạng thái), UserFormDrawer sửa vai trò/khoá
+│       ├── tin-tro/, tin-cho/         #   Duyệt / ẩn / xoá tin Trọ ơi, Chợ ơi (ModerationActions)
 │       ├── bao-cao/                   #   Báo cáo vi phạm: ẩn tin + đóng báo cáo / bỏ qua
-│       ├── thiet-lap/                 #   Thiết lập website (tên, logo, favicon, màu, theme, banner, thông báo, bật/tắt tính năng)
-│       └── useAdminTable.ts           #   hook bảng phân trang phía server
+│       ├── nhat-ky/                   #   Nhật ký thao tác admin (lọc nhanh theo loại đối tượng)
+│       ├── thiet-lap/                 #   Thiết lập website trong FormPageLayout (tab Chung, Giao diện, Trang chủ & thông báo, Tính năng)
+│       └── useAdminTable.ts           #   hook bảng phân trang phía server + runAction (báo kết quả, tự reload)
 ├── proxy.ts                           # Next 16 proxy (middleware): thiếu cookie accessToken → /dang-nhap?redirect=
-├── api/                               # axiosClient (token cookie, ApiError) + 1 file / domain: auth, users, listings, products, reports, settings, admin, uploads
-├── stores/useAuthStore.ts             # user, favorites, login/logout/toggleFavorite + hook useRequireUser()
+├── api/                               # axiosClient (token cookie, ApiError) + 1 file / domain: auth, users, listings, products, reports, settings, admin, uploads, notifications
+├── stores/useAuthStore.ts             # user, favorites, favoriteProducts, savedSearches, login/logout/toggleFavorite(Product)/toggleSavedSearch + hook useRequireUser()
+├── stores/useNotificationStore.ts     # số chưa đọc + thông báo mới nhất (chuông), markRead/markAllRead dùng chung với /thong-bao
+├── hooks/useSaveToggle.ts             # handler nút Lưu (tin, món đồ, tìm kiếm): chưa đăng nhập → /dang-nhap, lỗi → toast
+├── lib/viewHistory.ts                 # lịch sử xem tin (localStorage, 15 tin): recordView() ở trang chi tiết, readViewHistory() cho trang chủ
 ├── components/
-│   ├── layout/                        # Header (banner: trang chủ, Chợ ơi), SubHeader, Navbar, Container, Footer
+│   ├── layout/                        # Header (banner: trang chủ, Chợ ơi), SubHeader, Navbar (+ NotificationBell: hỏi số chưa đọc mỗi 60s), Container, Footer
 │   ├── common/                        # UI thuần dùng lại (xem bảng dưới)
 │   ├── chat/                          # UI chat thuần: ConversationList, ChatWindow, MessageBubble, ChatComposer
 │   └── sections/                      # Khối giao diện theo trang
@@ -136,7 +146,7 @@ src/
 ├── lib/siteSettings.ts                # loadSiteSettings() cho Server Component (cache/request, fallback khi API lỗi)
 ├── lib/constants/constantsProduct.tsx # icon danh mục, màu Tag, khoảng giá, sort của Chợ ơi
 ├── lib/searchFilters.ts               # toSearchRequest() / toProductSearchRequest(): searchParams → request (bỏ giá trị sai)
-├── lib/constants/constantsRoom.tsx    # buildPropertyFeatures(listing), câu hỏi mẫu
+├── lib/constants/constantsRoom.tsx    # buildPropertyFeatures(listing), AMENITY_ITEMS (icon + nhãn tiện ích), câu hỏi mẫu
 ├── utils/helpers.ts                   # formatNumber, formatRelativeTime, formatVietnameseCurrency, formatListingPrice
 ├── lib/firebase.ts                    # khởi tạo Firebase client (null khi chưa cấu hình)
 ├── theme/antTheme.ts                  # theme AntD gốc (sáng, màu teal)
@@ -148,8 +158,8 @@ src/
 
 | URL                     | Loại          | Data                                                  |
 | ----------------------- | ------------- | ----------------------------------------------------- |
-| `/`                     | Server        | `GET /listings` (mua bán, cho thuê mới), `GET /listings/stats` |
-| `/tim-kiem`             | Server        | `GET /listings` từ searchParams: `keyword, city, district, transaction, category, minPrice, maxPrice (triệu), minArea, maxArea, bedrooms, sort, page` |
+| `/`                     | Server        | `GET /listings` (mua bán, cho thuê mới), `GET /listings/stats`; "Tin bạn đã xem" đọc localStorage phía client |
+| `/tim-kiem`             | Server        | `GET /listings` từ searchParams: `keyword, city, district, transaction, category, minPrice, maxPrice (triệu), minArea, maxArea, bedrooms, amenities (wifi,parking), sort, page`. Nút "Lưu tìm kiếm" → `POST/DELETE /users/me/saved-searches` |
 | `/phong-tro/[id]`       | Server        | `GET /listings/:id`, tin tương tự, tin khác của người đăng |
 | `/nguoi-dung/[id]`      | Server        | `GET /users/:id`, `GET /listings?authorId=`           |
 | `/dang-nhap`            | Client        | `POST /auth/verify-phone` hoặc `/auth/dev-login`      |
@@ -157,7 +167,8 @@ src/
 | `/kenh-nguoi-dang` 🔒   | Client        | `GET /listings/mine` → thống kê                      |
 | `/tin-nhan` 🔒          | Client        | `GET /listings/:id` (mở chat theo `?listingId=`); tin nhắn **chỉ lưu cục bộ** cho tới khi làm backend chat |
 | `/kenh-nguoi-dang/tin-dang` 🔒 | Client | `GET /listings/mine`, `PATCH/DELETE /listings/:id` |
-| `/yeu-thich` 🔒         | Client        | store favorites (`GET /users/me/favorites`)           |
+| `/yeu-thich` 🔒         | Client        | store favorites + favoriteProducts + savedSearches (`GET /users/me/favorites`, `/favorite-products`, `/saved-searches`) |
+| `/thong-bao` 🔒         | Client        | `GET /notifications`, `PATCH /notifications/:id/read`, `/read-all` |
 | `/dang-tin` 🔒          | Client        | `POST /uploads`, `POST /listings`, `PATCH /listings/:id` |
 | `/cho-oi`               | Server        | `GET /products` từ searchParams: `keyword, category, condition, city, district, price (khoảng), sort, page`. Tắt Chợ ơi → trang báo tạm đóng |
 | `/cho-oi/[id]`          | Server        | `GET /products/:id`, đồ tương tự                      |
@@ -184,17 +195,38 @@ Breadcrumb (`BreadcrumbItem`) tự sinh từ URL theo `ROUTE_LABELS` — thêm r
 | `LocationCard`, `LocationMap` | Ảnh khu vực; bản đồ Leaflet (client-only)                    |
 | `ImageLightbox`    | Xem ảnh toàn màn hình + thông tin tin đăng                               |
 | `ProductCard`      | Thẻ món đồ Chợ ơi                                                        |
+| `NotificationList` | Danh sách thông báo (icon theo `kind`, chấm = chưa đọc) — chuông Navbar và `/thong-bao` |
 | `ReportModal`      | Báo cáo tin (Trọ ơi/Chợ ơi) → `POST /reports`. Tự gọi API (ngoại lệ có chủ đích) |
 | `ThemeToggle`      | Nút sáng/tối (ẩn khi admin tắt `allowThemeToggle`)                       |
 | `FormSection`      | Khối form có số bước (đăng tin, đăng bán)                                |
 | `EmptyState`      | Trạng thái rỗng theo bộ nhận diện (`EmptyVariant`: SEARCH, LISTING, FAVORITE, CHAT → `public/images/empty/*.svg`). **Dùng thay `<Empty>` của AntD** |
 
+### Component quản trị (`components/admin`) — theo bố cục cbs-fe
+
+| Component | Vai trò |
+| --- | --- |
+| `layout/AdminSidebar` | Logo (thu gọn → favicon) + Menu; dùng chung cho Sider và Drawer |
+| `layout/AdminTopBar` | Nút thu gọn/mở sidebar (màn nhỏ: mở Drawer) + breadcrumb | xem website, sáng/tối, menu tài khoản |
+| `PageCard` | Khung trang danh sách, cao đúng bằng Content (trang không cuộn) |
+| `FilterBar` | [từ khoá] [lọc nhanh] … [phễu lọc nâng cao (popover Form, số bộ lọc đang bật)] [Tìm kiếm] [Làm mới] |
+| `DataTable` | Table + cột STT + `EmptyState`; lấp phần còn lại của PageCard: chỉ thân bảng cuộn (dọc + ngang), header bảng và phân trang cố định ở đáy (CSS `.fill-table` trong globals.css) |
+| `EntityCell` | Ô ảnh/avatar + tiêu đề + dòng phụ ở cột đầu bảng |
+| `RowActions`, `IconAction` | Nút icon trong cột thao tác: tooltip, link tab mới, Popconfirm; chặn click lan lên dòng |
+| `ModerationActions` | Duyệt / từ chối / ẩn / hiện / xoá — dùng chung tin Trọ ơi và Chợ ơi |
+| `AppDrawer` | Drawer form/chi tiết: đầu (tiêu đề + mô tả) — thân cuộn + loading — chân chứa nút Huỷ/Lưu |
+| `FormPageLayout` | Trang form dài, cùng bố cục AppDrawer (dùng ở Thiết lập website) |
+| `FormSectionTitle`, `SwitchField` | Tiêu đề nhóm trường; hàng Switch có mô tả |
+| `ImageUrlField`, `ImageListField` | Control Form.Item cho 1 ảnh / danh sách ảnh (tải lên + dán URL) |
+| `StatCards`, `StatusBreakdown` | Thẻ số liệu; thanh tỉ lệ theo trạng thái (trang Tổng quan) |
+
+Trang danh sách mới: `useAdminTable` + `PageCard` > `FilterBar` + `DataTable`; form ngắn → `AppDrawer`, form dài → `FormPageLayout`.
+
 ### Luồng đăng nhập
 
 1. `/dang-nhap`: nhập SĐT → Firebase gửi OTP (reCAPTCHA invisible) → nhập OTP → lấy ID token → `POST /auth/verify-phone`. Không có Firebase config → `POST /auth/dev-login`.
 2. Lưu `accessToken` vào cookie (7 ngày) + `useAuthStore`.
-3. `Navbar` gọi `useAuthStore.loadSession()` khi mount: có cookie → `GET /users/me` + `GET /users/me/favorites`.
-4. `src/proxy.ts` chặn `/ca-nhan`, `/yeu-thich`, `/dang-tin`, `/kenh-nguoi-dang`, `/tin-nhan`, `/cho-oi/dang-ban`, `/quan-tri` khi chưa có cookie; layout `(auth)` đẩy về `/` khi đã có cookie.
+3. `Navbar` gọi `useAuthStore.loadSession()` khi mount: có cookie → `GET /users/me` + favorites, favorite-products, saved-searches.
+4. `src/proxy.ts` chặn `/ca-nhan`, `/yeu-thich`, `/thong-bao`, `/dang-tin`, `/kenh-nguoi-dang`, `/tin-nhan`, `/cho-oi/dang-ban`, `/quan-tri` khi chưa có cookie; layout `(auth)` đẩy về `/` khi đã có cookie.
 5. Cookie còn nhưng token hết hạn: `loadSession` lỗi → xoá cookie; trang private dùng `useRequireUser()` tự chuyển sang `/dang-nhap`.
 6. API trả 401 ở bất kỳ request nào → interceptor xoá cookie.
 7. Đăng xuất: `logout()` + `window.location.assign('/')` (reload sạch state).
@@ -203,7 +235,7 @@ Breadcrumb (`BreadcrumbItem`) tự sinh từ URL theo `ROUTE_LABELS` — thêm r
 ### Thiết lập website & theme
 
 1. `app/layout.tsx` gọi `loadSiteSettings()` (`GET /settings`, cache theo request; API lỗi → `FALLBACK_SETTINGS`).
-2. Metadata: title `"{siteName}: {tagline}"`, template `"%s | {siteName}"` (page chỉ đặt phần `%s`), description, favicon.
+2. Metadata: title `"{siteName}: {tagline}"`, template `"%s | {siteName}"` (page chỉ đặt phần `%s`), description. Favicon render trong `providers.tsx`: `faviconUrl`, riêng Chợ ơi là icon sạp hàng sinh từ `marketplaceColor`.
 3. `<html data-theme>` = cookie `theme` (nếu `allowThemeToggle`) hoặc `defaultTheme`; `style="--brand: primaryColor"`.
 4. `globals.css`: token màu đổi theo `[data-theme='dark']`; `--brand-soft/--brand-dark` sinh bằng `color-mix` từ `--brand`.
 5. `providers.tsx`: `buildAntTheme(primaryColor, isDark)` cho AntD; `ThemeToggle` ghi cookie + đổi `data-theme` ngay.
@@ -222,6 +254,7 @@ Breadcrumb (`BreadcrumbItem`) tự sinh từ URL theo `ROUTE_LABELS` — thêm r
 
 - `requireListingApproval` / `requireProductApproval` bật → tin mới `pending`, không hiện công khai.
 - Chủ tin không đổi được trạng thái tin `pending`; admin duyệt ở `/quan-tri/tin-tro`, `/quan-tri/tin-cho`.
+- Admin duyệt / từ chối / ẩn / hiện lại / xoá tin của người khác → chủ tin nhận thông báo (chuông Navbar), thao tác được ghi ở `/quan-tri/nhat-ky`.
 
 ---
 
@@ -242,15 +275,17 @@ Web dùng qua `transpilePackages: ['@tro-oi/shared']`; package trỏ thẳng `sr
 ## Chưa làm (backlog)
 
 - Tin tức, việc làm, khảo sát: mới có type ở shared.
-- Chat cho Chợ ơi (chat hiện chỉ gắn với tin Trọ ơi), yêu thích món đồ Chợ ơi.
-- Nhật ký thao tác admin (audit log), gửi thông báo cho người dùng khi tin bị duyệt/từ chối.
+- Chat cho Chợ ơi (chat hiện chỉ gắn với tin Trọ ơi).
 - Settings cache trong bộ nhớ 1 process API — chạy nhiều instance cần cache dùng chung.
 - Chat realtime: **UI xong**, backend + WebSocket theo [chat-plan.md](chat-plan.md).
-- Thông báo, đánh giá người dùng (đã gỡ UI đánh giá vì chưa có backend).
+- Đánh giá người dùng (đã gỡ UI đánh giá vì chưa có backend).
+- Thông báo chỉ đến khi mở web (chuông hỏi mỗi 60s) — chưa có push realtime / email / SMS; admin từ chối tin chưa nhập được lý do.
+- Thông báo khi có tin mới khớp tìm kiếm đã lưu.
 - Ảnh bìa hồ sơ riêng (đang dùng dải màu chung), ứng dụng mobile / link tải app.
 - Đăng nhập Google/Facebook (nút hiển thị nhưng chưa nối).
-- Hết hạn tin tự động, tiện ích (amenities), video.
-- Lưu tìm kiếm (hiện chỉ nhớ trong phiên), lịch sử xem tin.
+- Video cho tin đăng.
+- Hẹn giờ hết hạn tin chạy trong 1 process API — nhiều instance cần job queue/cron dùng chung.
+- Lịch sử xem tin chỉ lưu trên trình duyệt (localStorage), không đồng bộ theo tài khoản.
 - Dữ liệu tỉnh/thành cố định trong `CITIES` (`apps/web/src/constants`), quận/huyện nhập tay.
 - Geocoding: bản đồ chỉ hiện khi tin có `address.geo`.
 - Trang tĩnh: chính sách sử dụng / bảo mật.

@@ -2,12 +2,17 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
+  type OnModuleDestroy,
+  type OnModuleInit,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { isValidObjectId, type Model } from 'mongoose';
 
 import type { AuthUser } from '../../common/current-user.decorator.js';
+import { recordModeration } from '../../common/moderation.js';
 import { assertOwnerStatusChange } from '../../common/status-rules.js';
+import { AuditService } from '../audit/audit.service.js';
+import { NotificationService } from '../notification/notification.service.js';
 import { SettingsService } from '../settings/settings.service.js';
 import type {
   CreateListingDto,
@@ -19,17 +24,118 @@ import { AUTHOR_FIELDS, toListing, withFullAddress } from './listing.mapper.js';
 import { User, type UserDocument } from '../auth/schemas/user.schema.js';
 import { Listing, type ListingDocument } from './schemas/listing.schema.js';
 
-/** Trạng thái chủ tin tự chuyển được: hiển thị ↔ ẩn. */
+/** Trạng thái chủ tin tự chuyển được: hiển thị ↔ ẩn, hết hạn → hiển thị (gia hạn). */
 const OWNER_STATUSES = ['active', 'closed'] as const;
 
+/** Tin hiển thị được bao lâu kể từ lần đăng / duyệt / gia hạn gần nhất. */
+export const LISTING_TTL_DAYS = 30;
+const DAY_MS = 24 * 60 * 60 * 1000;
+const EXPIRE_CHECK_MS = 60 * 60 * 1000;
+/** Báo chủ tin trước khi hết hạn bao lâu. */
+const REMIND_BEFORE_MS = 3 * DAY_MS;
+
+export const nextExpiry = (from = Date.now()) =>
+  new Date(from + LISTING_TTL_DAYS * DAY_MS);
+
+const formatDate = (date: Date) =>
+  date.toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
+
 @Injectable()
-export class ListingService {
+export class ListingService implements OnModuleInit, OnModuleDestroy {
+  private expireTimer?: NodeJS.Timeout;
+
   constructor(
     @InjectModel(Listing.name)
     private readonly listingModel: Model<ListingDocument>,
     @InjectModel(User.name) private readonly userModel: Model<UserDocument>,
     private readonly settingsService: SettingsService,
+    private readonly auditService: AuditService,
+    private readonly notificationService: NotificationService,
   ) {}
+
+  // shortcut: hẹn giờ trong 1 process — chạy nhiều instance API thì chuyển sang job queue/cron dùng chung
+  async onModuleInit() {
+    // Tin cũ chưa có hạn: cho thêm 1 kỳ kể từ lúc triển khai thay vì hết hạn hàng loạt
+    await this.listingModel
+      .updateMany(
+        { status: 'active', expiresAt: { $exists: false } },
+        { $set: { expiresAt: nextExpiry() } },
+      )
+      .exec();
+    await this.checkExpiry();
+    this.expireTimer = setInterval(
+      () => void this.checkExpiry(),
+      EXPIRE_CHECK_MS,
+    );
+  }
+
+  onModuleDestroy() {
+    clearInterval(this.expireTimer);
+  }
+
+  /**
+   * Tin sắp hết hạn → báo chủ tin (1 lần / kỳ). Tin quá expiresAt → expired
+   * (ẩn khỏi tìm kiếm, chủ tin gia hạn ở Kênh người đăng) + báo chủ tin.
+   */
+  async checkExpiry() {
+    const now = new Date();
+    const [expiring, overdue] = await Promise.all([
+      this.listingModel
+        .find(
+          {
+            status: 'active',
+            expiryReminded: { $ne: true },
+            expiresAt: {
+              $gt: now,
+              $lte: new Date(now.getTime() + REMIND_BEFORE_MS),
+            },
+          },
+          'title author expiresAt',
+        )
+        .exec(),
+      this.listingModel
+        .find({ status: 'active', expiresAt: { $lte: now } }, 'title author')
+        .exec(),
+    ]);
+    const idsOf = (docs: ListingDocument[]) => docs.map((doc) => doc._id);
+    await Promise.all([
+      this.listingModel
+        .updateMany(
+          { _id: { $in: idsOf(expiring) } },
+          { $set: { expiryReminded: true } },
+        )
+        .exec(),
+      this.listingModel
+        .updateMany(
+          { _id: { $in: idsOf(overdue) }, status: 'active' },
+          { $set: { status: 'expired' } },
+        )
+        .exec(),
+    ]);
+
+    const manage = '/kenh-nguoi-dang/tin-dang';
+    await this.notificationService.notify([
+      ...expiring.map((doc) => ({
+        user: doc.author,
+        input: {
+          kind: 'warning' as const,
+          title: 'Tin sắp hết hạn',
+          message: `"${doc.title}" sẽ hết hạn ngày ${formatDate(doc.expiresAt!)}. Gia hạn để tin tiếp tục hiển thị.`,
+          link: manage,
+        },
+      })),
+      ...overdue.map((doc) => ({
+        user: doc.author,
+        input: {
+          kind: 'error' as const,
+          title: 'Tin đã hết hạn',
+          message: `"${doc.title}" đã ngừng hiển thị. Bấm Gia hạn ${LISTING_TTL_DAYS} ngày để đăng lại.`,
+          link: manage,
+        },
+      })),
+    ]);
+    return overdue.length;
+  }
 
   async search(query: SearchListingDto) {
     const { filter, sort, skip, limit } = buildListingQuery(query);
@@ -147,6 +253,7 @@ export class ListingService {
       address: withFullAddress(dto.address),
       author: user.sub,
       status: requireListingApproval ? 'pending' : 'active',
+      ...(!requireListingApproval && { expiresAt: nextExpiry() }),
     });
     await doc.populate('author', AUTHOR_FIELDS);
     return toListing(doc);
@@ -154,6 +261,7 @@ export class ListingService {
 
   async update(user: AuthUser, id: string, dto: UpdateListingDto) {
     const doc = await this.findOwned(user, id);
+    const from = doc.status;
     assertOwnerStatusChange(
       doc.status,
       dto.status,
@@ -163,8 +271,15 @@ export class ListingService {
     doc.set({
       ...dto,
       ...(dto.address && { address: withFullAddress(dto.address) }),
+      // Duyệt / hiện lại / gia hạn tin hết hạn → tính lại hạn hiển thị
+      ...(dto.status === 'active' &&
+        from !== 'active' && {
+          expiresAt: nextExpiry(),
+          expiryReminded: false,
+        }),
     });
     await doc.save();
+    await this.moderated(user, doc, from, doc.status);
     await doc.populate('author', AUTHOR_FIELDS);
     return toListing(doc);
   }
@@ -172,7 +287,25 @@ export class ListingService {
   async remove(user: AuthUser, id: string) {
     const doc = await this.findOwned(user, id);
     await doc.deleteOne();
+    await this.moderated(user, doc, doc.status, null);
     return null;
+  }
+
+  private moderated(
+    user: AuthUser,
+    doc: ListingDocument,
+    from: string,
+    to: string | null,
+  ) {
+    return recordModeration(
+      { audit: this.auditService, notification: this.notificationService },
+      user,
+      'listing',
+      doc.author,
+      { id: doc.id as string, title: doc.title },
+      from,
+      to,
+    );
   }
 
   /** Tin tồn tại và user là chủ tin hoặc admin. */

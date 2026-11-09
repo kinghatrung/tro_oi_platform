@@ -43,6 +43,7 @@ export function toListing(
     floorCount: doc.floorCount,
     direction: doc.direction,
     furnishing: doc.furnishing,
+    amenities: doc.amenities ?? [],
     images: doc.images,
     address: doc.address,
     author: isPopulated
@@ -58,6 +59,7 @@ export function toListing(
       : undefined,
     isFeatured: doc.isFeatured,
     viewCount: doc.viewCount ?? 0,
+    expiresAt: doc.expiresAt?.toISOString(),
     favoriteCount: extra.favoriteCount,
     createdAt: doc.createdAt.toISOString(),
     updatedAt: doc.updatedAt.toISOString(),

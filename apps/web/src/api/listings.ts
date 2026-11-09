@@ -11,7 +11,9 @@ import type {
 import axiosClient from './axiosClient';
 
 export async function searchListings(params: SearchListingRequest) {
-  const res = (await axiosClient.get('/listings', { params })) as ApiResponse<
+  // API nhận amenities dạng "wifi,parking" (axios mặc định gửi amenities[]=...)
+  const query = { ...params, amenities: params.amenities?.join(',') };
+  const res = (await axiosClient.get('/listings', { params: query })) as ApiResponse<
     PagedResponse<Listing>
   >;
   return res.data;

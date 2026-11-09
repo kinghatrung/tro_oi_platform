@@ -1,7 +1,9 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 
+import { AuditModule } from '../audit/audit.module.js';
 import { AuthModule } from '../auth/auth.module.js';
+import { NotificationModule } from '../notification/notification.module.js';
 import { SettingsModule } from '../settings/settings.module.js';
 import { ListingController } from './listing.controller.js';
 import { ListingService } from './listing.service.js';
@@ -16,6 +18,8 @@ import { Listing, ListingSchema } from './schemas/listing.schema.js';
     ]),
     AuthModule,
     SettingsModule,
+    AuditModule,
+    NotificationModule,
   ],
   controllers: [ListingController],
   providers: [ListingService],

@@ -15,14 +15,14 @@ import {
   Tooltip,
   type TableColumnsType,
 } from 'antd';
-import { Eye, EyeOff, Pencil, Plus, Trash2 } from 'lucide-react';
+import { Eye, EyeOff, Pencil, Plus, RotateCw, Trash2 } from 'lucide-react';
 import { LISTING_STATUS_LABELS, ListingStatus, type Listing } from '@tro-oi/shared';
 
 import { EmptyState, EmptyVariant } from '@/components/common';
 import { NO_IMAGE } from '@/constants';
 import { formatListingPrice, formatRelativeTime } from '@/utils/helpers';
 
-import { STATUS_TAG_COLORS } from '../const';
+import { LISTING_TTL_DAYS, STATUS_TAG_COLORS } from '../const';
 import { useMyListings } from '../useMyListings';
 
 type StatusFilter = 'all' | 'active' | 'pending' | 'hidden';
@@ -131,12 +131,27 @@ export default function SellerListingsPage() {
         render: (value: string) => formatRelativeTime(value),
       },
       {
+        title: 'Hết hạn',
+        dataIndex: 'expiresAt',
+        width: 120,
+        render: (value: string | undefined, listing) =>
+          listing.status === ListingStatus.ACTIVE && value
+            ? new Date(value).toLocaleDateString('vi-VN')
+            : '—',
+      },
+      {
         title: 'Thao tác',
         key: 'actions',
         width: 140,
         fixed: 'right',
         render: (_, listing) => {
           const isActive = listing.status === ListingStatus.ACTIVE;
+          const isExpired = listing.status === ListingStatus.EXPIRED;
+          const toggleLabel = isActive
+            ? 'Ẩn tin'
+            : isExpired
+              ? `Gia hạn ${LISTING_TTL_DAYS} ngày`
+              : 'Hiện lại';
           return (
             <Flex gap={4}>
               <Tooltip title="Sửa">
@@ -146,11 +161,19 @@ export default function SellerListingsPage() {
               </Tooltip>
               {/* Tin chờ duyệt: chỉ admin đổi được trạng thái */}
               {listing.status !== ListingStatus.PENDING && (
-                <Tooltip title={isActive ? 'Ẩn tin' : 'Hiện lại'}>
+                <Tooltip title={toggleLabel}>
                   <Button
                     size="small"
-                    aria-label={isActive ? 'Ẩn tin' : 'Hiện lại tin'}
-                    icon={isActive ? <EyeOff size={14} /> : <Eye size={14} />}
+                    aria-label={toggleLabel}
+                    icon={
+                      isActive ? (
+                        <EyeOff size={14} />
+                      ) : isExpired ? (
+                        <RotateCw size={14} />
+                      ) : (
+                        <Eye size={14} />
+                      )
+                    }
                     onClick={() => toggleStatus(listing)}
                   />
                 </Tooltip>

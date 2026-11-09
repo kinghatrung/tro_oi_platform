@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useState } from 'react';
-import { Card, Space, Button, Flex, type MenuProps } from 'antd';
+import { Card, Checkbox, Space, Button, Flex, type MenuProps } from 'antd';
 import { Bookmark, ListFilter, BedDouble, Building2 } from 'lucide-react';
 import {
   PROPERTY_CATEGORY_LABELS,
@@ -14,7 +14,10 @@ import {
 
 import { ButtonDropdown, CardDropdown, FloatingInput } from '@/components/common';
 import { CATEGORIES } from '@/constants';
+import { useSaveToggle } from '@/hooks/useSaveToggle';
+import { AMENITY_ITEMS } from '@/lib/constants/constantsRoom';
 import { parsePriceRange, searchQueryKey } from '@/lib/searchFilters';
+import { useAuthStore } from '@/stores/useAuthStore';
 
 const transactionItems: MenuProps['items'] = [
   {
@@ -51,9 +54,12 @@ const FILTER_KEYS = [
   'minArea',
   'maxArea',
   'bedrooms',
+  'amenities',
 ] as const;
 
-/** Giá trị bộ lọc dạng chuỗi, đồng bộ 1-1 với query string. */
+const AMENITY_OPTIONS = AMENITY_ITEMS.map(({ value, label }) => ({ value, label }));
+
+/** Giá trị bộ lọc dạng chuỗi, đồng bộ 1-1 với query string (amenities: "wifi,parking"). */
 type FilterState = Record<(typeof FILTER_KEYS)[number], string>;
 
 const EMPTY_FILTERS = Object.fromEntries(FILTER_KEYS.map((key) => [key, ''])) as FilterState;
@@ -61,43 +67,53 @@ const EMPTY_FILTERS = Object.fromEntries(FILTER_KEYS.map((key) => [key, ''])) as
 const readFilters = (params: URLSearchParams) =>
   Object.fromEntries(FILTER_KEYS.map((key) => [key, params.get(key) ?? ''])) as FilterState;
 
-/** Tiêu đề trang theo bộ lọc, vd "Cho thuê Phòng trọ Hà Nội tháng 11/2026". */
-function buildTitle(params: URLSearchParams) {
+/** "Cho thuê Phòng trọ Cầu Giấy, Hà Nội" theo bộ lọc. */
+function describeArea(params: URLSearchParams) {
   const transaction = params.get('transaction') as TransactionType | null;
   const category = params.get('category') as PropertyCategory | null;
-  const now = new Date();
   return [
     (transaction && TRANSACTION_TYPE_LABELS[transaction]) || 'Cho thuê & mua bán',
     (category && PROPERTY_CATEGORY_LABELS[category]) || 'nhà ở',
     [params.get('district'), params.get('city')].filter(Boolean).join(', ') || 'toàn quốc',
-    `tháng ${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}`,
   ].join(' ');
+}
+
+/** Tiêu đề trang, vd "Cho thuê Phòng trọ Hà Nội tháng 11/2026". */
+function buildTitle(params: URLSearchParams) {
+  const now = new Date();
+  return `${describeArea(params)} tháng ${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}`;
+}
+
+/** Tên tìm kiếm đã lưu: khu vực + các bộ lọc khác, vd "... · 2-5 triệu · 2+ PN". */
+function describeSearch(params: URLSearchParams) {
+  const range = (min: string | null, max: string | null, unit: string) =>
+    (min || max) && `${min || 0}-${max || '∞'} ${unit}`;
+  const amenities = params.get('amenities')?.split(',').filter(Boolean).length;
+  return [
+    describeArea(params),
+    params.get('keyword') && `"${params.get('keyword')}"`,
+    range(params.get('minPrice'), params.get('maxPrice'), 'triệu'),
+    range(params.get('minArea'), params.get('maxArea'), 'm²'),
+    params.get('bedrooms') && `${params.get('bedrooms')}+ PN`,
+    amenities && `${amenities} tiện ích`,
+  ]
+    .filter(Boolean)
+    .join(' · ');
 }
 
 export function SearchFilters() {
   const serializedParams = useSearchParams().toString();
-  const [savedQuery, setSavedQuery] = useState<string | null>(null);
-  const queryKey = searchQueryKey(new URLSearchParams(serializedParams));
-
-  return (
-    <SearchFiltersForm
-      key={serializedParams}
-      serializedParams={serializedParams}
-      saved={savedQuery === queryKey}
-      onSavedChange={setSavedQuery}
-    />
-  );
+  return <SearchFiltersForm key={serializedParams} serializedParams={serializedParams} />;
 }
 
-interface SearchFiltersFormProps {
-  serializedParams: string;
-  saved: boolean;
-  onSavedChange: (query: string) => void;
-}
-
-function SearchFiltersForm({ serializedParams, saved, onSavedChange }: SearchFiltersFormProps) {
+function SearchFiltersForm({ serializedParams }: { serializedParams: string }) {
   const router = useRouter();
   const pathname = usePathname();
+  const saved = useAuthStore((state) =>
+    state.savedSearches.some(
+      (item) => item.query === searchQueryKey(new URLSearchParams(serializedParams)),
+    ),
+  );
   const [filters, setFilters] = useState<FilterState>(() =>
     readFilters(new URLSearchParams(serializedParams)),
   );
@@ -126,11 +142,15 @@ function SearchFiltersForm({ serializedParams, saved, onSavedChange }: SearchFil
     navigateWithFilters(EMPTY_FILTERS);
   };
 
-  // shortcut: chỉ ghi nhớ trong phiên hiện tại, cần API "tìm kiếm đã lưu" để lưu lâu dài
-  const saveSearch = () => {
+  // Áp dụng cả bộ lọc đang chọn dở rồi lưu / bỏ lưu; chưa đăng nhập → /dang-nhap
+  const toggleSaveSearch = useSaveToggle(async () => {
     const params = navigateWithFilters(filters);
-    if (params) onSavedChange(searchQueryKey(params));
-  };
+    if (params) {
+      await useAuthStore
+        .getState()
+        .toggleSavedSearch(searchQueryKey(params), describeSearch(params));
+    }
+  });
 
   return (
     <Card variant="borderless">
@@ -149,7 +169,8 @@ function SearchFiltersForm({ serializedParams, saved, onSavedChange }: SearchFil
             size="small"
             icon={<Bookmark size={20} strokeWidth={2.2} />}
             className="rounded-2xl! font-bold!"
-            onClick={saveSearch}
+            type={saved ? 'primary' : 'default'}
+            onClick={toggleSaveSearch}
           >
             {saved ? 'Đã lưu tìm kiếm' : 'Lưu tìm kiếm'}
           </Button>
@@ -306,6 +327,33 @@ function SearchFiltersForm({ serializedParams, saved, onSavedChange }: SearchFil
                   onClear={() => navigateWithFilters({ ...filters, bedrooms: '' })}
                   width={220}
                 />
+              )}
+            />
+
+            <ButtonDropdown
+              size="small"
+              dropdown
+              label={
+                filters.amenities ? `Tiện ích (${filters.amenities.split(',').length})` : 'Tiện ích'
+              }
+              className="rounded-2xl! btn-gray"
+              popupRender={() => (
+                <CardDropdown
+                  title="Tiện ích"
+                  footer="both"
+                  onClear={() => setFilters((current) => ({ ...current, amenities: '' }))}
+                  onApply={() => navigateWithFilters(filters)}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <Checkbox.Group
+                    options={AMENITY_OPTIONS}
+                    value={filters.amenities.split(',').filter(Boolean)}
+                    onChange={(values) =>
+                      setFilters((current) => ({ ...current, amenities: values.join(',') }))
+                    }
+                    className="grid! grid-cols-2 gap-y-2"
+                  />
+                </CardDropdown>
               )}
             />
           </Space>

@@ -3,6 +3,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 
 import { User } from '../auth/schemas/user.schema.js';
 import { Listing } from '../listing/schemas/listing.schema.js';
+import { Product } from '../product/schemas/product.schema.js';
 import { UserService } from './user.service.js';
 
 describe('UserService', () => {
@@ -14,6 +15,7 @@ describe('UserService', () => {
         UserService,
         { provide: getModelToken(User.name), useValue: {} },
         { provide: getModelToken(Listing.name), useValue: {} },
+        { provide: getModelToken(Product.name), useValue: {} },
       ],
     }).compile();
 

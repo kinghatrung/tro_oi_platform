@@ -6,6 +6,7 @@ import { Suspense, useCallback, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { Avatar, Button, Flex, Space, type MenuProps } from 'antd';
 import {
+  Bell,
   Heart,
   MessageCircle,
   Menu,
@@ -26,6 +27,8 @@ import { PropertyCategory, TransactionType, UserRole } from '@tro-oi/shared';
 import { useSiteSettings } from '@/app/providers';
 import { ButtonDropdown, CardDropdown, AreaPicker, ThemeToggle } from '@/components/common';
 import { useAuthStore } from '@/stores/useAuthStore';
+
+import { NotificationBell } from './NotificationBell';
 
 const CATEGORY_ICONS: Record<PropertyCategory, React.ReactNode> = {
   [PropertyCategory.ROOM]: <BedDouble size={24} />,
@@ -87,6 +90,11 @@ const USER_MENU: MenuProps['items'] = [
     key: '/yeu-thich',
     label: menuLabel('Tin đã lưu'),
     icon: <Heart fill="currentColor" size={20} />,
+  },
+  {
+    key: '/thong-bao',
+    label: menuLabel('Thông báo'),
+    icon: <Bell size={20} />,
   },
   { key: 'logout', label: menuLabel('Đăng xuất'), icon: <LogOut size={20} /> },
 ];
@@ -210,6 +218,7 @@ function Navbar() {
           <Link href="/yeu-thich" aria-label="Tin đã lưu">
             <Button icon={<Heart size={20} />} />
           </Link>
+          {user && <NotificationBell />}
           <Link href="/tin-nhan">
             <Button icon={<MessageCircle size={16} />}>Tin nhắn</Button>
           </Link>

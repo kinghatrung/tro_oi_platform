@@ -15,9 +15,10 @@ import {
 } from '../../common/current-user.decorator.js';
 import { AdminGuard } from '../auth/admin.guard.js';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard.js';
+import { AuditLogQueryDto } from '../audit/audit.dto.js';
+import { AuditService } from '../audit/audit.service.js';
 import { ReportQueryDto, UpdateReportDto } from '../report/report.dto.js';
 import { ReportService } from '../report/report.service.js';
-import { SettingsService } from '../settings/settings.service.js';
 import { UpdateSettingsDto } from '../settings/update-settings.dto.js';
 import {
   AdminListingQueryDto,
@@ -37,7 +38,7 @@ export class AdminController {
   constructor(
     private readonly adminService: AdminService,
     private readonly reportService: ReportService,
-    private readonly settingsService: SettingsService,
+    private readonly auditService: AuditService,
   ) {}
 
   @Get('stats')
@@ -75,12 +76,24 @@ export class AdminController {
   }
 
   @Patch('reports/:id')
-  updateReport(@Param('id') id: string, @Body() dto: UpdateReportDto) {
-    return this.reportService.update(id, dto);
+  updateReport(
+    @CurrentUser() admin: AuthUser,
+    @Param('id') id: string,
+    @Body() dto: UpdateReportDto,
+  ) {
+    return this.adminService.updateReport(admin.sub, id, dto);
   }
 
   @Put('settings')
-  updateSettings(@Body() dto: UpdateSettingsDto) {
-    return this.settingsService.update(dto);
+  updateSettings(
+    @CurrentUser() admin: AuthUser,
+    @Body() dto: UpdateSettingsDto,
+  ) {
+    return this.adminService.updateSettings(admin.sub, dto);
+  }
+
+  @Get('audit-logs')
+  listAuditLogs(@Query() query: AuditLogQueryDto) {
+    return this.auditService.list(query);
   }
 }

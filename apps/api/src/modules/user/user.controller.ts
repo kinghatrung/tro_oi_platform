@@ -5,6 +5,7 @@ import {
   Get,
   Param,
   Patch,
+  Post,
   Put,
   UseGuards,
 } from '@nestjs/common';
@@ -14,6 +15,7 @@ import {
   type AuthUser,
 } from '../../common/current-user.decorator.js';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard.js';
+import { CreateSavedSearchDto } from './dto/saved-search.dto.js';
 import { UpdateProfileDto } from './dto/update-profile.dto.js';
 import { UserService } from './user.service.js';
 
@@ -56,6 +58,51 @@ export class UserController {
     @Param('listingId') listingId: string,
   ) {
     return this.userService.removeFavorite(user.sub, listingId);
+  }
+
+  @Get('me/favorite-products')
+  @UseGuards(JwtAuthGuard)
+  getFavoriteProducts(@CurrentUser() user: AuthUser) {
+    return this.userService.getFavoriteProducts(user.sub);
+  }
+
+  @Put('me/favorite-products/:productId')
+  @UseGuards(JwtAuthGuard)
+  addFavoriteProduct(
+    @CurrentUser() user: AuthUser,
+    @Param('productId') productId: string,
+  ) {
+    return this.userService.addFavoriteProduct(user.sub, productId);
+  }
+
+  @Delete('me/favorite-products/:productId')
+  @UseGuards(JwtAuthGuard)
+  removeFavoriteProduct(
+    @CurrentUser() user: AuthUser,
+    @Param('productId') productId: string,
+  ) {
+    return this.userService.removeFavoriteProduct(user.sub, productId);
+  }
+
+  @Get('me/saved-searches')
+  @UseGuards(JwtAuthGuard)
+  getSavedSearches(@CurrentUser() user: AuthUser) {
+    return this.userService.getSavedSearches(user.sub);
+  }
+
+  @Post('me/saved-searches')
+  @UseGuards(JwtAuthGuard)
+  addSavedSearch(
+    @CurrentUser() user: AuthUser,
+    @Body() dto: CreateSavedSearchDto,
+  ) {
+    return this.userService.addSavedSearch(user.sub, dto);
+  }
+
+  @Delete('me/saved-searches/:id')
+  @UseGuards(JwtAuthGuard)
+  removeSavedSearch(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    return this.userService.removeSavedSearch(user.sub, id);
   }
 
   @Get(':id')

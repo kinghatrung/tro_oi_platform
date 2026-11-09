@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import {
   App,
   Card,
+  Checkbox,
   Col,
   Flex,
   Form,
@@ -29,6 +30,7 @@ import {
 import { createListing, getMyListings, updateListing } from '@/api/listings';
 import { antdUploadRequest } from '@/api/uploads';
 import { FormSection } from '@/components/common';
+import { AMENITY_ITEMS } from '@/lib/constants/constantsRoom';
 import { useRequireUser } from '@/stores/useAuthStore';
 import { formatListingPrice, formatNumber } from '@/utils/helpers';
 
@@ -48,6 +50,16 @@ const toFileList = (images: string[]): UploadFile[] =>
   images.map((url, index) => ({ uid: `${index}-${url}`, name: url, status: 'done', url }));
 
 const fileUrl = (file: UploadFile) => (file.response as string | undefined) ?? file.url;
+
+const AMENITY_OPTIONS = AMENITY_ITEMS.map(({ value, label, icon }) => ({
+  value,
+  label: (
+    <span className="inline-flex items-center gap-1.5">
+      {icon}
+      {label}
+    </span>
+  ),
+}));
 
 const formatPrice = (value?: number | string) => (value ? formatNumber(Number(value)) : '');
 const parsePrice = (value?: string) => Number(value?.replace(/\D/g, '') || 0);
@@ -336,8 +348,16 @@ export default function PostListingPage() {
                   </Form.Item>
                 </Col>
                 <Col xs={24} md={12}>
-                  <Form.Item name="direction" label="Hướng" className="mb-0!">
+                  <Form.Item name="direction" label="Hướng">
                     <Select allowClear options={DIRECTION_OPTIONS} placeholder="Chọn hướng" />
+                  </Form.Item>
+                </Col>
+                <Col xs={24}>
+                  <Form.Item name="amenities" label="Tiện ích" className="mb-0!">
+                    <Checkbox.Group
+                      options={AMENITY_OPTIONS}
+                      className="grid! grid-cols-2 gap-y-3 md:grid-cols-3"
+                    />
                   </Form.Item>
                 </Col>
               </Row>

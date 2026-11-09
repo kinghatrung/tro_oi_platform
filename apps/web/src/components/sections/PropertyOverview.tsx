@@ -40,7 +40,13 @@ import {
 import { useSiteSettings } from '@/app/providers';
 import { LocationMap, ButtonDropdown, ImageLightbox, ReportModal } from '@/components/common';
 import { NO_IMAGE } from '@/constants';
-import { buildPropertyFeatures, SAMPLE_QUESTIONS } from '@/lib/constants/constantsRoom';
+import { useSaveToggle } from '@/hooks/useSaveToggle';
+import {
+  AMENITY_ITEMS,
+  buildPropertyFeatures,
+  SAMPLE_QUESTIONS,
+} from '@/lib/constants/constantsRoom';
+import { recordView } from '@/lib/viewHistory';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { formatListingPrice, formatRelativeTime } from '@/utils/helpers';
 
@@ -88,6 +94,7 @@ export function PropertyOverview({ listing, similarListings = [] }: PropertyOver
   const priceLabel = formatListingPrice(listing.price, listing.transaction);
   const geo = listing.address?.geo;
   const features = useMemo(() => buildPropertyFeatures(listing), [listing]);
+  const amenities = AMENITY_ITEMS.filter(({ value }) => listing.amenities?.includes(value));
   const lightboxSimilar = useMemo(
     () =>
       similarListings.map((item) => ({
@@ -124,17 +131,9 @@ export function PropertyOverview({ listing, similarListings = [] }: PropertyOver
     scrollRef.current?.scrollBy({ left: dir === 'left' ? -300 : 300, behavior: 'smooth' });
   }, []);
 
-  const handleToggleFavorite = useCallback(async () => {
-    if (!isLoggedIn) {
-      router.push(`/dang-nhap?redirect=${encodeURIComponent(pathname)}`);
-      return;
-    }
-    try {
-      await toggleFavorite(listing);
-    } catch (error) {
-      message.error((error as Error).message);
-    }
-  }, [isLoggedIn, listing, message, pathname, router, toggleFavorite]);
+  const handleToggleFavorite = useSaveToggle(
+    useCallback(() => toggleFavorite(listing), [listing, toggleFavorite]),
+  );
 
   // Câu hỏi từ lightbox → mở trang chat với nội dung điền sẵn
   const handleSendMessage = useCallback(
@@ -180,6 +179,10 @@ export function PropertyOverview({ listing, similarListings = [] }: PropertyOver
     },
     [contactEmail, listing.id, openReport],
   );
+
+  useEffect(() => {
+    recordView(listing); // "Tin bạn đã xem" ở trang chủ
+  }, [listing]);
 
   useEffect(() => {
     checkScrollPosition(); // check ngay khi mount (phòng trường hợp ảnh ít, không cần cuộn)
@@ -394,6 +397,22 @@ export function PropertyOverview({ listing, similarListings = [] }: PropertyOver
         </div>
       </Card>
 
+      {amenities.length > 0 && (
+        <Card variant="borderless">
+          <p className="text-primary mb-3">Tiện ích</p>
+          <ul className="grid grid-cols-2 gap-3 md:grid-cols-3">
+            {amenities.map(({ value, label, icon }) => (
+              <li key={value} className="flex items-center gap-3 text-ink">
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-brand-soft text-brand">
+                  {icon}
+                </span>
+                {label}
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
+
       {listing.description && (
         <Card variant="borderless">
           <p className="text-primary mb-2">Mô tả chi tiết</p>
@@ -449,7 +468,7 @@ export function PropertyOverview({ listing, similarListings = [] }: PropertyOver
         similarListings={lightboxSimilar}
         sampleQuestions={SAMPLE_QUESTIONS}
         isLiked={isFavorite}
-        onLikeToggle={handleToggleFavorite}
+        onLikeToggle={() => handleToggleFavorite()}
         onShare={handleCopyLink}
         onSendMessage={handleSendMessage}
         onReport={openReport}

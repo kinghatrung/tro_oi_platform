@@ -11,6 +11,7 @@ import {
   type ProductDocument,
 } from './modules/product/schemas/product.schema.js';
 import {
+  AMENITIES,
   DIRECTIONS,
   FURNISHING_STATUSES,
   LISTING_CATEGORIES,
@@ -147,6 +148,7 @@ Liên hệ để xem phòng.`,
         floorCount: category === 'nguyen-can' ? 3 : undefined,
         direction: DIRECTIONS[index % DIRECTIONS.length],
         furnishing: FURNISHING_STATUSES[index % FURNISHING_STATUSES.length],
+        amenities: AMENITIES.filter((_, i) => (i + index) % 3 !== 0),
         images: [
           ...IMAGES.slice(index % IMAGES.length),
           ...IMAGES.slice(0, index % IMAGES.length),

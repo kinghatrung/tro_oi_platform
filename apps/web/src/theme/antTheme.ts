@@ -512,6 +512,11 @@ export const theme: ThemeConfig = {
     Pagination: {
       itemActiveBg: "#16A6A3",
 
+      // Nền trang hiện tại là màu chủ đạo → chữ trắng (mặc định antd dùng colorPrimary, trùng nền)
+      itemActiveColor: "#FFFFFF",
+
+      itemActiveColorHover: "#FFFFFF",
+
       itemActiveColorDisabled: "#FFFFFF",
 
       itemBg: "#FFFFFF",

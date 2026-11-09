@@ -73,6 +73,7 @@ export function buildAntTheme(primaryColor: string, isDark: boolean): ThemeConfi
   const base = baseTheme as unknown as { token: Json; components: Json };
 
   if (isDark) {
+    const components = withoutColors(base.components) as NonNullable<ThemeConfig['components']>;
     return {
       algorithm: antdTheme.darkAlgorithm,
       token: {
@@ -81,7 +82,16 @@ export function buildAntTheme(primaryColor: string, isDark: boolean): ThemeConfi
         colorLink: primaryColor,
         colorInfo: primaryColor,
       },
-      components: withoutColors(base.components) as ThemeConfig['components'],
+      components: {
+        ...components,
+        // Giữ kiểu "trang hiện tại tô màu chủ đạo" như theme sáng (mặc định dark chỉ có viền)
+        Pagination: {
+          ...components.Pagination,
+          itemActiveBg: primaryColor,
+          itemActiveColor: '#fff',
+          itemActiveColorHover: '#fff',
+        },
+      },
     };
   }
 

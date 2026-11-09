@@ -1,4 +1,12 @@
-import type { ApiResponse, Listing, UpdateProfileRequest, User } from '@tro-oi/shared';
+import type {
+  ApiResponse,
+  CreateSavedSearchRequest,
+  Listing,
+  ProductItem,
+  SavedSearch,
+  UpdateProfileRequest,
+  User,
+} from '@tro-oi/shared';
 
 import axiosClient from './axiosClient';
 
@@ -28,4 +36,34 @@ export async function addFavorite(listingId: string) {
 
 export async function removeFavorite(listingId: string) {
   await axiosClient.delete(`/users/me/favorites/${listingId}`);
+}
+
+export async function getFavoriteProducts() {
+  const res = (await axiosClient.get('/users/me/favorite-products')) as ApiResponse<ProductItem[]>;
+  return res.data;
+}
+
+export async function addFavoriteProduct(productId: string) {
+  await axiosClient.put(`/users/me/favorite-products/${productId}`);
+}
+
+export async function removeFavoriteProduct(productId: string) {
+  await axiosClient.delete(`/users/me/favorite-products/${productId}`);
+}
+
+export async function getSavedSearches() {
+  const res = (await axiosClient.get('/users/me/saved-searches')) as ApiResponse<SavedSearch[]>;
+  return res.data;
+}
+
+export async function createSavedSearch(body: CreateSavedSearchRequest) {
+  const res = (await axiosClient.post(
+    '/users/me/saved-searches',
+    body,
+  )) as ApiResponse<SavedSearch>;
+  return res.data;
+}
+
+export async function deleteSavedSearch(id: string) {
+  await axiosClient.delete(`/users/me/saved-searches/${id}`);
 }

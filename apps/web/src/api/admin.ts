@@ -7,6 +7,8 @@ import type {
   AdminUser,
   AdminUserQuery,
   ApiResponse,
+  AuditLog,
+  AuditLogQuery,
   Listing,
   PagedResponse,
   ProductItem,
@@ -59,4 +61,11 @@ export async function searchAdminReports(params: AdminReportQuery) {
 
 export async function updateAdminReport(id: string, status: ReportStatus) {
   await axiosClient.patch(`/admin/reports/${id}`, { status });
+}
+
+export async function searchAuditLogs(params: AuditLogQuery) {
+  const res = (await axiosClient.get('/admin/audit-logs', { params })) as ApiResponse<
+    PagedResponse<AuditLog>
+  >;
+  return res.data;
 }

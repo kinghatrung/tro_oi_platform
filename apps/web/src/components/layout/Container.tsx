@@ -1,11 +1,18 @@
 import { TransactionType } from '@tro-oi/shared';
 
-import { Property, BuyNews, RentNews, AreaNews, Promote } from '@/components/sections';
+import {
+  Property,
+  BuyNews,
+  RentNews,
+  AreaNews,
+  Promote,
+  RecentlyViewed,
+} from '@/components/sections';
 import { getListingStats, searchListings } from '@/api/listings';
 
 const LATEST_COUNT = 10;
 
-/** Nội dung trang chủ: loại hình, tin mới (cho thuê/mua bán), khu vực, banner. */
+/** Nội dung trang chủ: loại hình, tin đã xem, tin mới (cho thuê/mua bán), khu vực, banner. */
 export default async function Container() {
   const [stats, rent, buy] = await Promise.all([
     getListingStats(),
@@ -20,6 +27,7 @@ export default async function Container() {
     >
       <div className="w-full max-w-300 mx-auto pt-16 pb-3">
         <Property stats={stats} />
+        <RecentlyViewed />
         <RentNews items={rent.items} />
         <BuyNews items={buy.items} />
         <AreaNews stats={stats} />

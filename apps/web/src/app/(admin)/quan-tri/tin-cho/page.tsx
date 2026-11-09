@@ -1,24 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import Image from 'next/image';
-import { useCallback, useMemo } from 'react';
+import { useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
-import {
-  App,
-  Button,
-  Card,
-  Flex,
-  Input,
-  Popconfirm,
-  Segmented,
-  Select,
-  Table,
-  Tag,
-  Tooltip,
-  type TableColumnsType,
-} from 'antd';
-import { Check, Eye, EyeOff, Trash2, X } from 'lucide-react';
+import { Form, Segmented, Select, Tag, type TableColumnsType } from 'antd';
 import {
   PRODUCT_CATEGORY_LABELS,
   PRODUCT_STATUS_LABELS,
@@ -29,7 +14,7 @@ import {
 
 import { searchAdminProducts } from '@/api/admin';
 import { deleteProduct, updateProduct } from '@/api/products';
-import { NO_IMAGE } from '@/constants';
+import { DataTable, EntityCell, FilterBar, ModerationActions, PageCard } from '@/components/admin';
 import {
   PRODUCT_CATEGORY_OPTIONS,
   PRODUCT_STATUS_TAG_COLORS,
@@ -47,9 +32,11 @@ const STATUS_FILTERS = [
 ];
 const CATEGORY_OPTIONS = PRODUCT_CATEGORY_OPTIONS.map(({ value, label }) => ({ value, label }));
 
+type AdvancedFilters = Pick<AdminProductQuery, 'category'>;
+const DEFAULT_FILTERS: AdvancedFilters = { category: undefined };
+
 /** Quản lý toàn bộ tin Chợ ơi: duyệt, ẩn/hiện, xoá. */
 export default function AdminProductsPage() {
-  const { message } = App.useApp();
   const searchParams = useSearchParams();
   const initialQuery = useMemo<AdminProductQuery>(
     () => ({
@@ -58,28 +45,10 @@ export default function AdminProductsPage() {
     }),
     [searchParams],
   );
-  const { items, isLoading, query, updateQuery, reload, pagination } = useAdminTable(
+  const { items, isLoading, query, updateQuery, reload, runAction, pagination } = useAdminTable(
     searchAdminProducts,
     initialQuery,
-  );
-
-  const runAction = useCallback(
-    async (action: () => Promise<unknown>, successText: string) => {
-      try {
-        await action();
-        message.success(successText);
-        await reload();
-      } catch (error) {
-        message.error((error as Error).message);
-      }
-    },
-    [message, reload],
-  );
-
-  const setStatus = useCallback(
-    (product: ProductItem, status: ProductStatus, successText: string) =>
-      runAction(() => updateProduct(product.id, { status }), successText),
-    [runAction],
+    'món đồ',
   );
 
   const columns = useMemo<TableColumnsType<ProductItem>>(
@@ -88,23 +57,11 @@ export default function AdminProductsPage() {
         title: 'Món đồ',
         key: 'product',
         render: (_, product) => (
-          <Flex gap={12} align="center" className="min-w-64">
-            <div className="relative size-14 shrink-0 overflow-hidden rounded-md bg-soft">
-              <Image
-                src={product.images[0] || NO_IMAGE}
-                alt=""
-                fill
-                sizes="56px"
-                className="object-cover"
-              />
-            </div>
-            <div className="min-w-0">
-              <p className="line-clamp-2 font-semibold text-ink">{product.title}</p>
-              <p className="text-xs text-subtle">
-                {PRODUCT_CATEGORY_LABELS[product.category]} · {product.address?.city}
-              </p>
-            </div>
-          </Flex>
+          <EntityCell
+            image={product.images[0]}
+            title={product.title}
+            subtitle={`${PRODUCT_CATEGORY_LABELS[product.category]} · ${product.address?.city ?? ''}`}
+          />
         ),
       },
       {
@@ -145,111 +102,67 @@ export default function AdminProductsPage() {
       {
         title: 'Thao tác',
         key: 'actions',
-        width: 150,
+        width: 120,
         fixed: 'right',
         render: (_, product) => (
-          <Flex gap={4}>
-            {product.status === ProductStatus.PENDING && (
-              <>
-                <Tooltip title="Duyệt">
-                  <Button
-                    size="small"
-                    type="primary"
-                    aria-label="Duyệt"
-                    icon={<Check size={14} />}
-                    onClick={() => setStatus(product, ProductStatus.ACTIVE, 'Đã duyệt')}
-                  />
-                </Tooltip>
-                <Tooltip title="Từ chối (ẩn)">
-                  <Button
-                    size="small"
-                    aria-label="Từ chối"
-                    icon={<X size={14} />}
-                    onClick={() => setStatus(product, ProductStatus.CLOSED, 'Đã từ chối')}
-                  />
-                </Tooltip>
-              </>
-            )}
-            {product.status === ProductStatus.ACTIVE && (
-              <>
-                <Tooltip title="Xem trên web">
-                  <Link href={`/cho-oi/${product.id}`} target="_blank">
-                    <Button size="small" aria-label="Xem" icon={<Eye size={14} />} />
-                  </Link>
-                </Tooltip>
-                <Tooltip title="Ẩn">
-                  <Button
-                    size="small"
-                    aria-label="Ẩn"
-                    icon={<EyeOff size={14} />}
-                    onClick={() => setStatus(product, ProductStatus.CLOSED, 'Đã ẩn')}
-                  />
-                </Tooltip>
-              </>
-            )}
-            {product.status === ProductStatus.CLOSED && (
-              <Tooltip title="Hiển thị lại">
-                <Button
-                  size="small"
-                  aria-label="Hiển thị lại"
-                  icon={<Eye size={14} />}
-                  onClick={() => setStatus(product, ProductStatus.ACTIVE, 'Đã hiển thị lại')}
-                />
-              </Tooltip>
-            )}
-            <Popconfirm
-              title="Xoá vĩnh viễn món đồ này?"
-              okText="Xoá"
-              cancelText="Huỷ"
-              okButtonProps={{ danger: true }}
-              onConfirm={() => runAction(() => deleteProduct(product.id), 'Đã xoá')}
-            >
-              <Button size="small" danger aria-label="Xoá" icon={<Trash2 size={14} />} />
-            </Popconfirm>
-          </Flex>
+          <ModerationActions
+            status={product.status}
+            viewHref={`/cho-oi/${product.id}`}
+            onSetVisible={(visible, text) =>
+              runAction(
+                () =>
+                  updateProduct(product.id, {
+                    status: visible ? ProductStatus.ACTIVE : ProductStatus.CLOSED,
+                  }),
+                text,
+              )
+            }
+            onDelete={() => runAction(() => deleteProduct(product.id), 'Đã xoá')}
+          />
         ),
       },
     ],
-    [runAction, setStatus],
+    [runAction],
   );
 
   return (
-    <Card variant="borderless">
-      <h1 className="text-primary mb-4 text-xl!">Tin Chợ ơi</h1>
-      <Flex wrap gap={8} align="center" className="mb-4!">
-        <Segmented
-          options={STATUS_FILTERS}
-          value={query.status ?? ''}
-          onChange={(value) => updateQuery({ status: (value as ProductStatus) || undefined })}
-        />
-        <Input.Search
-          allowClear
-          placeholder="Tìm tên món đồ"
-          className="max-w-72"
-          onSearch={(value) => updateQuery({ keyword: value.trim() || undefined })}
-        />
-        <Select
-          allowClear
-          placeholder="Danh mục"
-          className="min-w-40"
-          options={CATEGORY_OPTIONS}
-          value={query.category}
-          onChange={(value) => updateQuery({ category: value })}
-        />
-        {query.sellerId && (
-          <Tag closable onClose={() => updateQuery({ sellerId: undefined })}>
-            Đang lọc theo 1 người bán
-          </Tag>
-        )}
-      </Flex>
-      <Table<ProductItem>
+    <PageCard>
+      <FilterBar<AdvancedFilters>
+        keyword={{ placeholder: 'Tìm tên món đồ' }}
+        onSearch={(keyword) => updateQuery({ keyword })}
+        onReload={reload}
+        quickFilters={
+          <>
+            <Segmented
+              options={STATUS_FILTERS}
+              value={query.status ?? ''}
+              onChange={(value) => updateQuery({ status: (value as ProductStatus) || undefined })}
+            />
+            {query.sellerId && (
+              <Tag closable onClose={() => updateQuery({ sellerId: undefined })}>
+                Đang lọc theo 1 người bán
+              </Tag>
+            )}
+          </>
+        }
+        advanced={{
+          values: { category: query.category },
+          defaultValues: DEFAULT_FILTERS,
+          onApply: updateQuery,
+          fields: (
+            <Form.Item name="category" label="Danh mục">
+              <Select allowClear placeholder="Tất cả" options={CATEGORY_OPTIONS} />
+            </Form.Item>
+          ),
+        }}
+      />
+      <DataTable<ProductItem>
         rowKey="id"
         columns={columns}
         dataSource={items}
         loading={isLoading}
         pagination={pagination}
-        scroll={{ x: 1000 }}
       />
-    </Card>
+    </PageCard>
   );
 }

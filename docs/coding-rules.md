@@ -106,9 +106,12 @@ export async function getListing(id: string) {
   | `text-price` `fill-price` | giá tiền, tim đã lưu (thay `#f0325e`) |
 
   **Không** viết `text-[#hex]`, `bg-white`, `color="#hex"` cho icon (để icon kế thừa `currentColor`). Ngoại lệ: màu thương hiệu bên ngoài (Facebook...), overlay tối trên ảnh, màu trạng thái. Thêm token mới → khai báo ở `:root`, `:root[data-theme='dark']` và `@theme inline` trong `globals.css`.
-- Thông tin website (tên, logo, email hỗ trợ, bật/tắt tính năng) **không hard-code**: Server Component dùng `loadSiteSettings()`, Client Component dùng `useSiteSettings()`. Tiêu đề trang chỉ đặt phần riêng (`title: 'Tìm kiếm'`), layout tự ghép tên site.
+- Thông tin website (tên, logo, email hỗ trợ, bật/tắt tính năng) **không hard-code**: Server Component dùng `loadSiteSettings()`, Client Component dùng `useSiteSettings()`. Tiêu đề trang chỉ đặt phần riêng (`title: 'Tìm kiếm'`), layout tự ghép tên site. Trang `use client` không export được `metadata` → thêm `layout.tsx` cạnh page chỉ để đặt `metadata`.
 - Không inline style cho giá trị tĩnh.
 - Đặt nền lên `<Link>`/`<a>` phải dùng `bg-*!`: reset của AntD (`.ant-app a { background-color: transparent }`) thắng class Tailwind thường.
+- Không đặt margin/padding Tailwind thường lên `<Flex>` của AntD (Flex reset `margin/padding` thắng class) — dùng `<div className="flex ...">` hoặc class `!`.
+- Trang quản trị: dựng từ `components/admin` (PageCard, FilterBar, DataTable, AppDrawer, FormPageLayout...), không tự viết lại thanh lọc/bảng/drawer riêng.
+- Scrollbar đã style toàn cục trong globals.css (mảnh, màu theo `--subtle`) — không tự style lại; dải cuộn ngang cần ẩn thanh cuộn thì dùng `[scrollbar-width:none]`.
 - Trạng thái rỗng: dùng `EmptyState` (`components/common`), không dùng `<Empty>` mặc định của AntD. Cần ngữ cảnh mới → vẽ SVG cùng phong cách vào `public/images/empty/` và thêm vào `EmptyVariant`.
 - Ảnh: `next/image`. Ảnh từ API (`/uploads/**`) đã được whitelist trong `next.config.ts`.
 - Text từ người dùng render dạng text (`whitespace-pre-line`), **không** `dangerouslySetInnerHTML` (nếu bắt buộc → sanitize).
@@ -127,6 +130,7 @@ export async function getListing(id: string) {
 - Đổi trạng thái tin của chủ tin: luôn qua `assertOwnerStatusChange()` (`common/status-rules.ts`) để không tự duyệt tin chờ.
 - `tsconfig` đặt `useDefineForClassFields: false` — **không bỏ**: nếu bật, mọi DTO có sẵn field `undefined`, `doc.set(dto)` / `{...current, ...dto}` sẽ ghi đè dữ liệu cũ.
 - Kiểm tra quyền sở hữu (author/admin) trong service, ném `ForbiddenException`.
+- Thao tác của admin lên dữ liệu người khác phải ghi nhật ký: tin/món đồ đi qua `recordModeration()` (`common/moderation.ts`, kèm thông báo chủ tin), còn lại gọi `AuditService.log()`. Gửi thông báo qua `NotificationService.notify()`. Hai hàm này không ném lỗi, để thao tác chính không hỏng.
 - id không hợp lệ (`!isValidObjectId`) → `NotFoundException`, không để Mongoose CastError thành 500.
 - Secret/config chỉ đọc qua `ConfigService`; thêm biến mới → cập nhật `.env.example` + `project-structure.md`.
 - Logic không tầm thường (filter, quyền, parse) → có ít nhất 1 unit test `*.spec.ts`.

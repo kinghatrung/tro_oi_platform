@@ -1,20 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback, useMemo } from 'react';
-import {
-  App,
-  Button,
-  Card,
-  Flex,
-  Popconfirm,
-  Segmented,
-  Select,
-  Table,
-  Tag,
-  Tooltip,
-  type TableColumnsType,
-} from 'antd';
+import { useMemo } from 'react';
+import { Form, Segmented, Select, Tag, type TableColumnsType } from 'antd';
 import { Check, EyeOff, X } from 'lucide-react';
 import {
   ListingStatus,
@@ -30,6 +18,7 @@ import {
 import { searchAdminReports, updateAdminReport } from '@/api/admin';
 import { updateListing } from '@/api/listings';
 import { updateProduct } from '@/api/products';
+import { DataTable, FilterBar, IconAction, PageCard, RowActions } from '@/components/admin';
 import { formatRelativeTime } from '@/utils/helpers';
 
 import { useAdminTable } from '../useAdminTable';
@@ -49,6 +38,9 @@ const TARGET_OPTIONS = [
 ];
 const INITIAL_QUERY: AdminReportQuery = { status: ReportStatus.OPEN };
 
+type AdvancedFilters = Pick<AdminReportQuery, 'targetType'>;
+const DEFAULT_FILTERS: AdvancedFilters = { targetType: undefined };
+
 const targetHref = (report: Report) =>
   report.targetType === ReportTargetType.LISTING
     ? `/phong-tro/${report.targetId}`
@@ -56,32 +48,27 @@ const targetHref = (report: Report) =>
 
 /** Xử lý báo cáo vi phạm: ẩn tin bị báo cáo, đánh dấu đã xử lý hoặc bỏ qua. */
 export default function AdminReportsPage() {
-  const { message } = App.useApp();
-  const { items, isLoading, query, updateQuery, reload, pagination } = useAdminTable(
+  const { items, isLoading, query, updateQuery, reload, runAction, pagination } = useAdminTable(
     searchAdminReports,
     INITIAL_QUERY,
+    'báo cáo',
   );
 
-  const setReportStatus = useCallback(
-    async (report: Report, status: ReportStatus, hideTarget = false) => {
-      try {
-        if (hideTarget) {
-          await (report.targetType === ReportTargetType.LISTING
-            ? updateListing(report.targetId, { status: ListingStatus.CLOSED })
-            : updateProduct(report.targetId, { status: ProductStatus.CLOSED }));
-        }
-        await updateAdminReport(report.id, status);
-        message.success(hideTarget ? 'Đã ẩn tin và đóng báo cáo' : 'Đã cập nhật báo cáo');
-        await reload();
-      } catch (error) {
-        message.error((error as Error).message);
-      }
-    },
-    [message, reload],
-  );
+  const columns = useMemo<TableColumnsType<Report>>(() => {
+    const setReportStatus = (report: Report, status: ReportStatus, hideTarget = false) =>
+      runAction(
+        async () => {
+          if (hideTarget) {
+            await (report.targetType === ReportTargetType.LISTING
+              ? updateListing(report.targetId, { status: ListingStatus.CLOSED })
+              : updateProduct(report.targetId, { status: ProductStatus.CLOSED }));
+          }
+          await updateAdminReport(report.id, status);
+        },
+        hideTarget ? 'Đã ẩn tin và đóng báo cáo' : 'Đã cập nhật báo cáo',
+      );
 
-  const columns = useMemo<TableColumnsType<Report>>(
-    () => [
+    return [
       {
         title: 'Tin bị báo cáo',
         key: 'target',
@@ -140,69 +127,61 @@ export default function AdminReportsPage() {
         fixed: 'right',
         render: (_, report) =>
           report.status === ReportStatus.OPEN && (
-            <Flex gap={4}>
+            <RowActions>
               {report.targetTitle && (
-                <Popconfirm
-                  title="Ẩn tin này và đóng báo cáo?"
-                  okText="Ẩn tin"
-                  cancelText="Huỷ"
-                  okButtonProps={{ danger: true }}
-                  onConfirm={() => setReportStatus(report, ReportStatus.RESOLVED, true)}
-                >
-                  <Tooltip title="Ẩn tin vi phạm">
-                    <Button size="small" danger aria-label="Ẩn tin" icon={<EyeOff size={14} />} />
-                  </Tooltip>
-                </Popconfirm>
+                <IconAction
+                  title="Ẩn tin vi phạm"
+                  icon={<EyeOff size={14} />}
+                  danger
+                  confirm={{ title: 'Ẩn tin này và đóng báo cáo?', okText: 'Ẩn tin' }}
+                  onClick={() => setReportStatus(report, ReportStatus.RESOLVED, true)}
+                />
               )}
-              <Tooltip title="Đánh dấu đã xử lý">
-                <Button
-                  size="small"
-                  aria-label="Đã xử lý"
-                  icon={<Check size={14} />}
-                  onClick={() => setReportStatus(report, ReportStatus.RESOLVED)}
-                />
-              </Tooltip>
-              <Tooltip title="Bỏ qua (không vi phạm)">
-                <Button
-                  size="small"
-                  aria-label="Bỏ qua"
-                  icon={<X size={14} />}
-                  onClick={() => setReportStatus(report, ReportStatus.DISMISSED)}
-                />
-              </Tooltip>
-            </Flex>
+              <IconAction
+                title="Đánh dấu đã xử lý"
+                icon={<Check size={14} />}
+                onClick={() => setReportStatus(report, ReportStatus.RESOLVED)}
+              />
+              <IconAction
+                title="Bỏ qua (không vi phạm)"
+                icon={<X size={14} />}
+                onClick={() => setReportStatus(report, ReportStatus.DISMISSED)}
+              />
+            </RowActions>
           ),
       },
-    ],
-    [setReportStatus],
-  );
+    ];
+  }, [runAction]);
 
   return (
-    <Card variant="borderless">
-      <h1 className="text-primary mb-4 text-xl!">Báo cáo vi phạm</h1>
-      <Flex wrap gap={8} align="center" className="mb-4!">
-        <Segmented
-          options={STATUS_FILTERS}
-          value={query.status}
-          onChange={(value) => updateQuery({ status: value as ReportStatus })}
-        />
-        <Select
-          allowClear
-          placeholder="Nguồn"
-          className="min-w-32"
-          options={TARGET_OPTIONS}
-          value={query.targetType}
-          onChange={(value) => updateQuery({ targetType: value })}
-        />
-      </Flex>
-      <Table<Report>
+    <PageCard>
+      <FilterBar<AdvancedFilters>
+        onReload={reload}
+        quickFilters={
+          <Segmented
+            options={STATUS_FILTERS}
+            value={query.status}
+            onChange={(value) => updateQuery({ status: value as ReportStatus })}
+          />
+        }
+        advanced={{
+          values: { targetType: query.targetType },
+          defaultValues: DEFAULT_FILTERS,
+          onApply: updateQuery,
+          fields: (
+            <Form.Item name="targetType" label="Nguồn">
+              <Select allowClear placeholder="Tất cả" options={TARGET_OPTIONS} />
+            </Form.Item>
+          ),
+        }}
+      />
+      <DataTable<Report>
         rowKey="id"
         columns={columns}
         dataSource={items}
         loading={isLoading}
         pagination={pagination}
-        scroll={{ x: 1000 }}
       />
-    </Card>
+    </PageCard>
   );
 }

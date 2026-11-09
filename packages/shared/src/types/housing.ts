@@ -85,12 +85,38 @@ export const FURNISHING_STATUS_LABELS: Record<FurnishingStatus, string> = {
   [FurnishingStatus.EMPTY]: 'Không nội thất',
 };
 
-/** Tiện ích đi kèm tin đăng (điều hòa, nóng lạnh, thang máy...). */
-export interface Amenity {
-  id: string;
-  name: string;
-  icon?: string;
+/** Tiện ích đi kèm tin đăng. Trùng AMENITIES bên api (listing.schema.ts). */
+export enum Amenity {
+  WIFI = 'wifi',
+  AIR_CONDITIONER = 'air-conditioner',
+  WATER_HEATER = 'water-heater',
+  WASHING_MACHINE = 'washing-machine',
+  FRIDGE = 'fridge',
+  KITCHEN = 'kitchen',
+  PRIVATE_WC = 'private-wc',
+  BALCONY = 'balcony',
+  ELEVATOR = 'elevator',
+  PARKING = 'parking',
+  SECURITY = 'security',
+  FREE_HOURS = 'free-hours',
+  PETS = 'pets',
 }
+
+export const AMENITY_LABELS: Record<Amenity, string> = {
+  [Amenity.WIFI]: 'Wifi',
+  [Amenity.AIR_CONDITIONER]: 'Điều hoà',
+  [Amenity.WATER_HEATER]: 'Nóng lạnh',
+  [Amenity.WASHING_MACHINE]: 'Máy giặt',
+  [Amenity.FRIDGE]: 'Tủ lạnh',
+  [Amenity.KITCHEN]: 'Bếp nấu ăn',
+  [Amenity.PRIVATE_WC]: 'WC khép kín',
+  [Amenity.BALCONY]: 'Ban công',
+  [Amenity.ELEVATOR]: 'Thang máy',
+  [Amenity.PARKING]: 'Chỗ để xe',
+  [Amenity.SECURITY]: 'Camera / bảo vệ',
+  [Amenity.FREE_HOURS]: 'Giờ giấc tự do',
+  [Amenity.PETS]: 'Cho nuôi thú cưng',
+};
 
 /** Thông tin người đăng tin (chủ nhà, môi giới...). */
 export interface ListingAuthor {
@@ -154,6 +180,8 @@ export interface SearchListingRequest extends BaseListRequest {
   minArea?: number;
   maxArea?: number;
   bedrooms?: number;
+  /** Tin phải có đủ mọi tiện ích này. Gửi dạng "wifi,parking". */
+  amenities?: Amenity[];
   authorId?: string;
   /** Loại 1 tin khỏi kết quả (dùng cho "tin tương tự"). */
   excludeId?: string;
@@ -186,6 +214,7 @@ export interface CreateListingRequest {
   floorCount?: number;
   direction?: Direction;
   furnishing?: FurnishingStatus;
+  amenities?: Amenity[];
   images: string[];
   address: AddressInfo;
 }

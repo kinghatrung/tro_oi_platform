@@ -1,5 +1,5 @@
 import { PartialType } from '@nestjs/mapped-types';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
   ArrayMaxSize,
   ArrayMinSize,
@@ -21,11 +21,13 @@ import {
 } from 'class-validator';
 
 import {
+  AMENITIES,
   DIRECTIONS,
   FURNISHING_STATUSES,
   LISTING_CATEGORIES,
   LISTING_STATUSES,
   TRANSACTION_TYPES,
+  type Amenity,
   type Direction,
   type FurnishingStatus,
   type ListingCategory,
@@ -87,6 +89,15 @@ export class SearchListingDto {
   @IsInt()
   @Min(0)
   bedrooms?: number;
+
+  /** "wifi,parking" → tin có đủ cả hai. */
+  @IsOptional()
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' ? value.split(',').filter(Boolean) : value,
+  )
+  @IsArray()
+  @IsIn(AMENITIES, { each: true })
+  amenities?: Amenity[];
 
   @IsOptional()
   @IsMongoId()
@@ -209,6 +220,11 @@ export class CreateListingDto {
   @IsOptional()
   @IsIn(FURNISHING_STATUSES)
   furnishing?: FurnishingStatus;
+
+  @IsOptional()
+  @IsArray()
+  @IsIn(AMENITIES, { each: true, message: 'Tiện ích không hợp lệ' })
+  amenities?: Amenity[];
 
   @IsArray()
   @ArrayMinSize(1, { message: 'Cần ít nhất 1 ảnh' })

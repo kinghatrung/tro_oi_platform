@@ -1,15 +1,28 @@
+'use client';
+
 import Link from 'next/link';
 import Image from 'next/image';
 import { Tag } from 'antd';
-import { MapPin } from 'lucide-react';
+import { useCallback } from 'react';
+import { Heart, MapPin } from 'lucide-react';
 import { PRODUCT_CONDITION_LABELS, type ProductItem } from '@tro-oi/shared';
 
 import { NO_IMAGE } from '@/constants';
+import { useSaveToggle } from '@/hooks/useSaveToggle';
 import { CONDITION_TAG_COLORS } from '@/lib/constants/constantsProduct';
+import { useAuthStore } from '@/stores/useAuthStore';
 import { formatRelativeTime, formatVietnameseCurrency } from '@/utils/helpers';
 
-/** Thẻ món đồ trên Chợ ơi. */
+/** Thẻ món đồ trên Chợ ơi, có nút ♡ lưu. */
 export function ProductCard({ product }: { product: ProductItem }) {
+  const isSaved = useAuthStore((state) =>
+    state.favoriteProducts.some((item) => item.id === product.id),
+  );
+  const toggleFavoriteProduct = useAuthStore((state) => state.toggleFavoriteProduct);
+  const handleToggleSave = useSaveToggle(
+    useCallback(() => toggleFavoriteProduct(product), [product, toggleFavoriteProduct]),
+  );
+
   return (
     <Link
       href={`/cho-oi/${product.id}`}
@@ -29,6 +42,15 @@ export function ProductCard({ product }: { product: ProductItem }) {
         >
           {PRODUCT_CONDITION_LABELS[product.condition]}
         </Tag>
+        <button
+          type="button"
+          aria-label={isSaved ? 'Bỏ lưu món đồ' : 'Lưu món đồ'}
+          aria-pressed={isSaved}
+          onClick={handleToggleSave}
+          className="absolute top-2 right-2 flex size-8 cursor-pointer items-center justify-center rounded-full bg-black/20 backdrop-blur-sm transition-all hover:scale-110 hover:bg-black/40 active:scale-95"
+        >
+          <Heart size={18} className={isSaved ? 'fill-price stroke-price' : 'stroke-white'} />
+        </button>
       </div>
       <div className="p-3">
         <p className="text-default line-clamp-2 min-h-12 leading-6">{product.title}</p>

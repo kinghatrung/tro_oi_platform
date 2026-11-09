@@ -6,11 +6,13 @@ import { ADMIN_PAGE_SIZE } from './const';
 
 /**
  * Bảng phân trang phía server cho các trang quản trị.
- * Đổi bộ lọc qua `updateQuery` (tự về trang 1), gọi `reload` sau khi sửa/xoá.
+ * Đổi bộ lọc qua `updateQuery` (tự về trang 1), thao tác trên dòng qua `runAction` (tự reload).
  */
 export function useAdminTable<TItem, TQuery extends BaseListRequest>(
   fetcher: (query: TQuery) => Promise<PagedResponse<TItem>>,
   initialQuery: TQuery,
+  /** Đơn vị ở dòng "Tổng N ...", vd "người dùng". */
+  totalSuffix = 'mục',
 ) {
   const { message } = App.useApp();
   const [query, setQuery] = useState<TQuery>({
@@ -36,18 +38,35 @@ export function useAdminTable<TItem, TQuery extends BaseListRequest>(
     setQuery((current) => ({ ...current, ...changes, page: 1 }));
   }, []);
 
+  /** Chạy thao tác trên 1 dòng (duyệt, khoá, xoá...): báo kết quả rồi tải lại bảng. */
+  const runAction = useCallback(
+    async (action: () => Promise<unknown>, successText: string) => {
+      try {
+        await action();
+        message.success(successText);
+        await reload();
+        return true;
+      } catch (error) {
+        message.error((error as Error).message);
+        return false;
+      }
+    },
+    [message, reload],
+  );
+
   const pagination: TablePaginationConfig = {
     current: query.page,
     pageSize: query.pageSize,
     total: data?.total ?? 0,
-    showSizeChanger: false,
-    showTotal: (total) => `${total} mục`,
-    onChange: (page) => setQuery((current) => ({ ...current, page })),
+    showSizeChanger: true,
+    pageSizeOptions: [10, 20, 50],
+    showTotal: (total) => `Tổng ${total} ${totalSuffix}`,
+    onChange: (page, pageSize) => setQuery((current) => ({ ...current, page, pageSize })),
   };
 
   useEffect(() => {
     void reload();
   }, [reload]);
 
-  return { items: data?.items ?? [], isLoading, query, updateQuery, reload, pagination };
+  return { items: data?.items ?? [], isLoading, query, updateQuery, reload, runAction, pagination };
 }

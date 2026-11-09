@@ -21,7 +21,14 @@ describe('Response format', () => {
       switchToHttp: () => ({ getResponse: () => ({ status }) }),
     } as unknown as ArgumentsHost;
     new HttpExceptionFilter().catch(exception, host);
-    return { status: status.mock.calls[0], body: json.mock.calls[0][0] };
+    return {
+      status: status.mock.calls[0],
+      body: json.mock.calls[0][0] as {
+        code: number;
+        message: string;
+        data: unknown;
+      },
+    };
   };
 
   it('thành công: code = HTTP status, data null khi controller không trả gì', async () => {

@@ -2,32 +2,21 @@
 
 import { useCallback, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import {
-  App,
-  Button,
-  Card,
-  ColorPicker,
-  Flex,
-  Form,
-  Input,
-  Radio,
-  Switch,
-  Tabs,
-  type TabsProps,
-} from 'antd';
+import { App, Button, Col, ColorPicker, Form, Input, Radio, Row, Tabs, type TabsProps } from 'antd';
 import type { Color } from 'antd/es/color-picker';
-import { Save } from 'lucide-react';
-import {
-  AnnouncementType,
-  ThemeMode,
-  type SiteSettings,
-  type UpdateSiteSettingsRequest,
-} from '@tro-oi/shared';
+import { RotateCcw, Save } from 'lucide-react';
+import { AnnouncementType, ThemeMode, type UpdateSiteSettingsRequest } from '@tro-oi/shared';
 
 import { updateSiteSettings } from '@/api/settings';
 import { useSiteSettings } from '@/app/providers';
 
-import { ImageListField, ImageUrlField } from './ImageFields';
+import {
+  FormPageLayout,
+  FormSectionTitle,
+  ImageListField,
+  ImageUrlField,
+  SwitchField,
+} from '@/components/admin';
 
 const COLOR_PRESETS = [
   {
@@ -53,29 +42,6 @@ const ANNOUNCEMENT_OPTIONS = [
   { value: AnnouncementType.SUCCESS, label: 'Tích cực' },
   { value: AnnouncementType.WARNING, label: 'Cảnh báo' },
 ];
-
-/** Hàng Switch có mô tả (tab Tính năng). */
-function SwitchField({
-  name,
-  label,
-  description,
-}: {
-  name: keyof SiteSettings;
-  label: string;
-  description: string;
-}) {
-  return (
-    <Flex justify="space-between" align="center" gap={16} className="border-b border-line py-3">
-      <div>
-        <p className="font-semibold text-ink">{label}</p>
-        <p className="text-sm text-subtle">{description}</p>
-      </div>
-      <Form.Item name={name} valuePropName="checked" noStyle>
-        <Switch />
-      </Form.Item>
-    </Flex>
-  );
-}
 
 /** Thiết lập website: tên, giao diện (logo, màu, theme), trang chủ, thông báo, bật/tắt tính năng. */
 export default function AdminSettingsPage() {
@@ -107,73 +73,105 @@ export default function AdminSettingsPage() {
       {
         key: 'general',
         label: 'Chung',
+        forceRender: true,
         children: (
           <>
-            <Form.Item
-              name="siteName"
-              label="Tên website"
-              rules={[{ required: true, min: 2, max: 40 }]}
-            >
-              <Input placeholder="Trọ ơi" />
-            </Form.Item>
-            <Form.Item
-              name="tagline"
-              label="Khẩu hiệu"
-              extra="Tiêu đề tab trang chủ = Tên website: Khẩu hiệu"
-              rules={[{ max: 80 }]}
-            >
-              <Input />
-            </Form.Item>
-            <Form.Item name="description" label="Mô tả (SEO)" rules={[{ max: 300 }]}>
-              <Input.TextArea rows={3} showCount maxLength={300} />
-            </Form.Item>
-            <Form.Item
-              name="contactEmail"
-              label="Email hỗ trợ"
-              rules={[{ required: true, type: 'email', message: 'Email không hợp lệ' }]}
-            >
-              <Input />
-            </Form.Item>
-            <Form.Item name="contactPhone" label="Hotline" rules={[{ max: 20 }]}>
-              <Input placeholder="Bỏ trống để ẩn" />
-            </Form.Item>
+            <FormSectionTitle title="Thông tin website" />
+            <Row gutter={16}>
+              <Col xs={24} md={12}>
+                <Form.Item
+                  name="siteName"
+                  label="Tên website"
+                  rules={[{ required: true, min: 2, max: 40 }]}
+                >
+                  <Input placeholder="Trọ ơi" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} md={12}>
+                <Form.Item
+                  name="tagline"
+                  label="Khẩu hiệu"
+                  extra="Tiêu đề tab trang chủ = Tên website: Khẩu hiệu"
+                  rules={[{ max: 80 }]}
+                >
+                  <Input />
+                </Form.Item>
+              </Col>
+              <Col span={24}>
+                <Form.Item name="description" label="Mô tả (SEO)" rules={[{ max: 300 }]}>
+                  <Input.TextArea rows={3} showCount maxLength={300} />
+                </Form.Item>
+              </Col>
+            </Row>
+            <FormSectionTitle title="Liên hệ" description="Hiện ở chân trang và trang hỗ trợ" />
+            <Row gutter={16}>
+              <Col xs={24} md={12}>
+                <Form.Item
+                  name="contactEmail"
+                  label="Email hỗ trợ"
+                  rules={[{ required: true, type: 'email', message: 'Email không hợp lệ' }]}
+                >
+                  <Input />
+                </Form.Item>
+              </Col>
+              <Col xs={24} md={12}>
+                <Form.Item name="contactPhone" label="Hotline" rules={[{ max: 20 }]}>
+                  <Input placeholder="Bỏ trống để ẩn" />
+                </Form.Item>
+              </Col>
+            </Row>
           </>
         ),
       },
       {
         key: 'appearance',
         label: 'Giao diện',
+        forceRender: true,
         children: (
           <>
-            <Form.Item name="logoUrl" label="Logo" rules={[{ required: true }]}>
-              <ImageUrlField previewClassName="h-12 w-40" />
-            </Form.Item>
-            <Form.Item
-              name="faviconUrl"
-              label="Favicon (icon trên tab trình duyệt)"
-              rules={[{ required: true }]}
-            >
-              <ImageUrlField previewClassName="size-12" />
-            </Form.Item>
-            <Form.Item
-              name="primaryColor"
-              label="Màu chủ đạo (Trọ ơi)"
-              getValueFromEvent={(color: Color) => color.toHexString()}
-              extra="Áp dụng cho nút, link, điểm nhấn trên website"
-            >
-              <ColorPicker showText presets={COLOR_PRESETS} disabledAlpha />
-            </Form.Item>
-            <Form.Item
-              name="marketplaceColor"
-              label="Màu chủ đạo (Chợ ơi)"
-              getValueFromEvent={(color: Color) => color.toHexString()}
-              extra="Theme riêng cho các trang Chợ ơi"
-            >
-              <ColorPicker showText presets={COLOR_PRESETS} disabledAlpha />
-            </Form.Item>
-            <Form.Item name="defaultTheme" label="Giao diện mặc định">
-              <Radio.Group options={THEME_OPTIONS} optionType="button" buttonStyle="solid" />
-            </Form.Item>
+            <FormSectionTitle title="Nhận diện" />
+            <Row gutter={16}>
+              <Col xs={24} md={12}>
+                <Form.Item name="logoUrl" label="Logo" rules={[{ required: true }]}>
+                  <ImageUrlField previewClassName="h-12 w-40" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} md={12}>
+                <Form.Item
+                  name="faviconUrl"
+                  label="Favicon (icon trên tab trình duyệt)"
+                  rules={[{ required: true }]}
+                >
+                  <ImageUrlField previewClassName="size-12" />
+                </Form.Item>
+              </Col>
+            </Row>
+            <FormSectionTitle title="Màu & theme" description="Áp dụng cho nút, link, điểm nhấn" />
+            <Row gutter={16}>
+              <Col xs={24} md={12}>
+                <Form.Item
+                  name="primaryColor"
+                  label="Màu chủ đạo (Trọ ơi)"
+                  getValueFromEvent={(color: Color) => color.toHexString()}
+                >
+                  <ColorPicker showText presets={COLOR_PRESETS} disabledAlpha />
+                </Form.Item>
+              </Col>
+              <Col xs={24} md={12}>
+                <Form.Item
+                  name="marketplaceColor"
+                  label="Màu chủ đạo (Chợ ơi)"
+                  getValueFromEvent={(color: Color) => color.toHexString()}
+                >
+                  <ColorPicker showText presets={COLOR_PRESETS} disabledAlpha />
+                </Form.Item>
+              </Col>
+              <Col xs={24} md={12}>
+                <Form.Item name="defaultTheme" label="Giao diện mặc định">
+                  <Radio.Group options={THEME_OPTIONS} optionType="button" buttonStyle="solid" />
+                </Form.Item>
+              </Col>
+            </Row>
             <SwitchField
               name="allowThemeToggle"
               label="Cho phép người dùng đổi sáng/tối"
@@ -185,8 +183,10 @@ export default function AdminSettingsPage() {
       {
         key: 'home',
         label: 'Trang chủ & thông báo',
+        forceRender: true,
         children: (
           <>
+            <FormSectionTitle title="Trang chủ" />
             <Form.Item
               name="heroTitle"
               label="Dòng chữ lớn trên banner trang chủ"
@@ -194,23 +194,32 @@ export default function AdminSettingsPage() {
             >
               <Input />
             </Form.Item>
-            <Form.Item
-              name="banners"
-              label="Banner quảng bá (kéo thả không hỗ trợ — xoá/thêm theo thứ tự)"
-            >
+            <Form.Item name="banners" label="Banner quảng bá (hiển thị theo thứ tự)">
               <ImageListField />
             </Form.Item>
+            <FormSectionTitle title="Thanh thông báo" />
             <SwitchField
               name="announcementEnabled"
               label="Hiện thanh thông báo"
               description="Dải thông báo trên cùng mọi trang (bảo trì, khuyến mãi...)"
             />
-            <Form.Item name="announcementType" label="Kiểu thông báo" className="mt-4!">
-              <Radio.Group options={ANNOUNCEMENT_OPTIONS} optionType="button" />
-            </Form.Item>
-            <Form.Item name="announcementText" label="Nội dung thông báo" rules={[{ max: 200 }]}>
-              <Input showCount maxLength={200} />
-            </Form.Item>
+            <Row gutter={16}>
+              <Col xs={24} md={8}>
+                <Form.Item name="announcementType" label="Kiểu thông báo">
+                  <Radio.Group options={ANNOUNCEMENT_OPTIONS} optionType="button" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} md={16}>
+                <Form.Item
+                  name="announcementText"
+                  label="Nội dung thông báo"
+                  rules={[{ max: 200 }]}
+                >
+                  <Input showCount maxLength={200} />
+                </Form.Item>
+              </Col>
+            </Row>
+            <FormSectionTitle title="Chân trang" />
             <Form.Item name="footerText" label="Chữ chân trang" rules={[{ max: 500 }]}>
               <Input.TextArea rows={3} showCount maxLength={500} />
             </Form.Item>
@@ -220,8 +229,10 @@ export default function AdminSettingsPage() {
       {
         key: 'features',
         label: 'Tính năng',
+        forceRender: true,
         children: (
           <>
+            <FormSectionTitle title="Bật / tắt tính năng" />
             <SwitchField
               name="enableMarketplace"
               label="Bật Chợ ơi"
@@ -245,29 +256,33 @@ export default function AdminSettingsPage() {
   );
 
   return (
-    <Card variant="borderless">
-      <Flex justify="space-between" align="center" className="mb-2!">
-        <div>
-          <h1 className="text-primary text-xl!">Thiết lập website</h1>
-          {settings.updatedAt && (
-            <p className="text-xs text-subtle">
-              Cập nhật lần cuối: {new Date(settings.updatedAt).toLocaleString('vi-VN')}
-            </p>
-          )}
-        </div>
-        <Button type="primary" icon={<Save size={16} />} loading={isSaving} onClick={form.submit}>
-          Lưu thay đổi
-        </Button>
-      </Flex>
+    <FormPageLayout
+      title="Thiết lập website"
+      subtitle={
+        settings.updatedAt &&
+        `Cập nhật lần cuối: ${new Date(settings.updatedAt).toLocaleString('vi-VN')}`
+      }
+      footer={
+        <>
+          <Button icon={<RotateCcw size={16} />} onClick={() => form.setFieldsValue(settings)}>
+            Hoàn tác
+          </Button>
+          <Button type="primary" icon={<Save size={16} />} loading={isSaving} onClick={form.submit}>
+            Lưu thay đổi
+          </Button>
+        </>
+      }
+    >
       <Form
         form={form}
         layout="vertical"
         initialValues={settings}
         onFinish={handleSubmit}
-        className="max-w-200"
+        onFinishFailed={() => message.error('Vui lòng kiểm tra lại các trường còn lỗi')}
+        className="max-w-240"
       >
         <Tabs items={tabs} />
       </Form>
-    </Card>
+    </FormPageLayout>
   );
 }

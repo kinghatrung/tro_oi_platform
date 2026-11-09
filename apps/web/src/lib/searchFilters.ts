@@ -1,4 +1,5 @@
 import {
+  Amenity,
   ProductCategory,
   ProductCondition,
   PropertyCategory,
@@ -71,6 +72,9 @@ export function toSearchRequest(
   const sort =
     SORT_OPTIONS.find(({ key }) => key === firstQueryValue(params.sort)) ?? SORT_OPTIONS[0];
   const page = Number(firstQueryValue(params.page));
+  const amenities = (firstQueryValue(params.amenities) ?? '')
+    .split(',')
+    .filter((value): value is Amenity => isEnumValue(Amenity, value));
 
   return {
     isPriceValid: valid,
@@ -85,6 +89,7 @@ export function toSearchRequest(
       minArea: parseNonNegative(params.minArea),
       maxArea: parseNonNegative(params.maxArea),
       bedrooms: parseNonNegative(params.bedrooms),
+      amenities: amenities.length ? amenities : undefined,
       sortBy: sort.sortBy,
       sortDirection: sort.sortDirection,
       page: Number.isInteger(page) && page > 0 ? page : 1,

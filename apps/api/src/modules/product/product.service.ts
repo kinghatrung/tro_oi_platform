@@ -7,7 +7,10 @@ import { InjectModel } from '@nestjs/mongoose';
 import { isValidObjectId, type Model } from 'mongoose';
 
 import type { AuthUser } from '../../common/current-user.decorator.js';
+import { recordModeration } from '../../common/moderation.js';
 import { assertOwnerStatusChange } from '../../common/status-rules.js';
+import { AuditService } from '../audit/audit.service.js';
+import { NotificationService } from '../notification/notification.service.js';
 import { SettingsService } from '../settings/settings.service.js';
 import type {
   CreateProductDto,
@@ -27,6 +30,8 @@ export class ProductService {
     @InjectModel(Product.name)
     private readonly productModel: Model<ProductDocument>,
     private readonly settingsService: SettingsService,
+    private readonly auditService: AuditService,
+    private readonly notificationService: NotificationService,
   ) {}
 
   async search(query: SearchProductDto) {
@@ -92,6 +97,7 @@ export class ProductService {
 
   async update(user: AuthUser, id: string, dto: UpdateProductDto) {
     const doc = await this.findOwned(user, id);
+    const from = doc.status;
     assertOwnerStatusChange(
       doc.status,
       dto.status,
@@ -100,6 +106,7 @@ export class ProductService {
     );
     doc.set(dto);
     await doc.save();
+    await this.moderated(user, doc, from, doc.status);
     await doc.populate('seller', SELLER_FIELDS);
     return toProduct(doc);
   }
@@ -107,7 +114,25 @@ export class ProductService {
   async remove(user: AuthUser, id: string) {
     const doc = await this.findOwned(user, id);
     await doc.deleteOne();
+    await this.moderated(user, doc, doc.status, null);
     return null;
+  }
+
+  private moderated(
+    user: AuthUser,
+    doc: ProductDocument,
+    from: string,
+    to: string | null,
+  ) {
+    return recordModeration(
+      { audit: this.auditService, notification: this.notificationService },
+      user,
+      'product',
+      doc.seller,
+      { id: doc.id as string, title: doc.title },
+      from,
+      to,
+    );
   }
 
   /** Món đồ tồn tại và user là người bán hoặc admin. */

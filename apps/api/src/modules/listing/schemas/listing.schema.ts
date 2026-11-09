@@ -31,12 +31,29 @@ export const DIRECTIONS = [
   'south-west',
 ] as const;
 export const FURNISHING_STATUSES = ['full', 'basic', 'empty'] as const;
+// Trùng enum Amenity bên @tro-oi/shared (housing.ts)
+export const AMENITIES = [
+  'wifi',
+  'air-conditioner',
+  'water-heater',
+  'washing-machine',
+  'fridge',
+  'kitchen',
+  'private-wc',
+  'balcony',
+  'elevator',
+  'parking',
+  'security',
+  'free-hours',
+  'pets',
+] as const;
 
 export type ListingCategory = (typeof LISTING_CATEGORIES)[number];
 export type TransactionType = (typeof TRANSACTION_TYPES)[number];
 export type ListingStatus = (typeof LISTING_STATUSES)[number];
 export type Direction = (typeof DIRECTIONS)[number];
 export type FurnishingStatus = (typeof FURNISHING_STATUSES)[number];
+export type Amenity = (typeof AMENITIES)[number];
 
 @Schema({ _id: false })
 export class GeoPoint {
@@ -85,6 +102,14 @@ export class Listing {
   @Prop({ type: String, enum: LISTING_STATUSES, default: 'active' })
   status: ListingStatus;
 
+  /** Hết hạn hiển thị: đặt lại mỗi lần tin chuyển sang active, quá hạn → 'expired' (ListingService). */
+  @Prop({ index: true })
+  expiresAt?: Date;
+
+  /** Đã báo "sắp hết hạn" trong kỳ hiện tại (reset khi gia hạn). Nội bộ, không trả ra API. */
+  @Prop({ default: false })
+  expiryReminded: boolean;
+
   /** VND. */
   @Prop({ required: true, min: 0 })
   price: number;
@@ -107,6 +132,9 @@ export class Listing {
 
   @Prop({ type: String, enum: FURNISHING_STATUSES })
   furnishing?: FurnishingStatus;
+
+  @Prop({ type: [String], enum: AMENITIES, default: [] })
+  amenities: Amenity[];
 
   @Prop({ type: [String], default: [] })
   images: string[];

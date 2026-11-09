@@ -79,6 +79,8 @@ Response giống `verify-phone`.
 
 Type `User`: `{ id, name, phone?, email?, bio?, avatar?, role, isBlocked, createdAt, updatedAt }`. `role` ∈ `renter | landlord | agent | admin`.
 
+Type `SavedSearch`: `{ id, query, title, createdAt }` — web mở lại bằng `/tim-kiem?{query}`.
+
 | Method | Path                               | Mô tả                                   | Response `data`         |
 | ------ | ---------------------------------- | --------------------------------------- | ----------------------- |
 | GET    | `/users/me` 🔒                     | Thông tin user đang đăng nhập           | `User`                  |
@@ -86,6 +88,12 @@ Type `User`: `{ id, name, phone?, email?, bio?, avatar?, role, isBlocked, create
 | GET    | `/users/me/favorites` 🔒           | Tin đã lưu (chỉ tin còn tồn tại), mới lưu trước | `Listing[]`     |
 | PUT    | `/users/me/favorites/:listingId` 🔒 | Lưu tin (idempotent)                   | `null`                  |
 | DELETE | `/users/me/favorites/:listingId` 🔒 | Bỏ lưu tin (idempotent)                | `null`                  |
+| GET    | `/users/me/favorite-products` 🔒    | Món đồ Chợ ơi đã lưu (chỉ món đang bán), mới lưu trước | `ProductItem[]` |
+| PUT    | `/users/me/favorite-products/:productId` 🔒 | Lưu món đồ (idempotent, 404 nếu món không còn bán) | `null` |
+| DELETE | `/users/me/favorite-products/:productId` 🔒 | Bỏ lưu món đồ (idempotent)       | `null`                  |
+| GET    | `/users/me/saved-searches` 🔒      | Tìm kiếm đã lưu, mới lưu trước          | `SavedSearch[]`         |
+| POST   | `/users/me/saved-searches` 🔒      | `{ query (≤1000, query string /tim-kiem không có page), title (≤200) }`. Trùng `query` → trả bản đã có; tối đa 20 (400) | `SavedSearch` |
+| DELETE | `/users/me/saved-searches/:id` 🔒  | Xoá tìm kiếm đã lưu (idempotent)        | `null`                  |
 | GET    | `/users/:id`                       | Hồ sơ công khai (ẩn `phone`, `email`)   | `User`                  |
 
 `PATCH /users/me` body — Type `UpdateProfileRequest` (tất cả tuỳ chọn):
@@ -113,11 +121,12 @@ Type `Listing` (rút gọn):
   "bedrooms": 1, "bathrooms": 1, "floorCount": 3,
   "direction": "east | west | south | north | north-east | north-west | south-east | south-west",
   "furnishing": "full | basic | empty",
+  "amenities": ["wifi", "air-conditioner", "parking"],
   "images": ["http://localhost:5000/uploads/abc.jpg"],
   "address": { "street": "...", "ward": "...", "district": "Cầu Giấy", "city": "Hà Nội", "fullAddress": "...", "geo": { "latitude": 21.03, "longitude": 105.8 } },
   "author": { "id": "...", "name": "...", "avatar": "...", "role": "landlord", "phone": "+84...", "joinedAt": "...", "listingCount": 4 },
   "isFeatured": false, "viewCount": 128, "favoriteCount": 3,
-  "createdAt": "...", "updatedAt": "..."
+  "expiresAt": "...", "createdAt": "...", "updatedAt": "..."
 }
 ```
 
@@ -126,6 +135,8 @@ Type `Listing` (rút gọn):
 - `author.listingCount` chỉ có ở `GET /listings/:id`.
 - `viewCount`: mỗi lần gọi `GET /listings/:id` +1 (không đổi `updatedAt`).
 - `favoriteCount` (số người đã lưu) chỉ có ở `GET /listings/mine` — dùng cho Kênh người đăng.
+- `amenities` ∈ `wifi | air-conditioner | water-heater | washing-machine | fridge | kitchen | private-wc | balcony | elevator | parking | security | free-hours | pets` (luôn là mảng, có thể rỗng).
+- `expiresAt`: tin hiển thị 30 ngày (`LISTING_TTL_DAYS`) kể từ lần gần nhất chuyển sang `active` (đăng không cần duyệt / admin duyệt / hiện lại / gia hạn). Quá hạn → API tự chuyển `expired` (kiểm tra lúc khởi động + mỗi giờ). Chủ tin gia hạn bằng `PATCH /listings/:id { status: 'active' }`. Tin `active` cũ chưa có hạn được cấp 1 kỳ khi API khởi động. Còn ≤ 3 ngày → gửi thông báo "Tin sắp hết hạn" (1 lần mỗi kỳ); hết hạn → thông báo "Tin đã hết hạn" (xem [Notifications](#notifications--notifications)).
 
 | Method | Path                 | Mô tả                                               | Response `data`             |
 | ------ | -------------------- | --------------------------------------------------- | --------------------------- |
@@ -149,6 +160,7 @@ Type `Listing` (rút gọn):
 | `minPrice`/`maxPrice` | number |      | VND                                             |
 | `minArea`/`maxArea`   | number |      | m²                                              |
 | `bedrooms`      | number |             | ≥ giá trị này                                   |
+| `amenities`     | string |             | Danh sách ngăn bởi dấu phẩy, vd `wifi,parking` — tin phải có **đủ** mọi tiện ích. Giá trị lạ → 400 |
 | `authorId`      | string |             | Tin của 1 người đăng                            |
 | `excludeId`     | string |             | Loại 1 tin (dùng cho "tin tương tự")            |
 | `page`          | number | 1           | ≥ 1                                             |
@@ -179,10 +191,13 @@ Response: `{ "items": Listing[], "total": 120, "page": 1, "pageSize": 10 }`.
 | `bedrooms`, `bathrooms`, `floorCount` | int |  | ≥ 0                         |
 | `direction`   | enum          |          |                              |
 | `furnishing`  | enum          |          |                              |
+| `amenities`   | enum[]        |          | Giá trị như trên (sai → 400 "Tiện ích không hợp lệ") |
 | `images`      | string[]      | ✔        | 1–20 URL (lấy từ `/uploads`) |
 | `address`     | object        | ✔        | `city`, `district` bắt buộc; `street`, `ward`, `fullAddress`, `geo` tuỳ chọn |
 
 `PATCH /listings/:id`: mọi field của create đều tuỳ chọn, thêm `status`. Chủ tin chỉ chuyển `active ↔ closed` và **không** đổi được tin `pending` (403); admin đổi mọi trạng thái (duyệt = `pending → active`).
+
+Admin đổi trạng thái / xoá tin **của người khác** (Trọ ơi và Chợ ơi) → ghi nhật ký (`/admin/audit-logs`) + gửi thông báo cho chủ tin: duyệt / từ chối (`pending →` khác `active`) / ẩn / hiện lại / xoá. Chỉ sửa nội dung (không đổi trạng thái) thì không ghi. Logic: `apps/api/src/common/moderation.ts` (có test).
 
 ---
 
@@ -234,6 +249,21 @@ Mỗi người chỉ có 1 báo cáo **đang mở** cho 1 tin (trùng → 409). 
 
 ---
 
+## Notifications — `/notifications`
+
+Type `AppNotification`: `{ id, kind: info | success | warning | error, title, message?, link? (đường dẫn web), read, createdAt }`. Mongo tự xoá thông báo sau 90 ngày (TTL index).
+
+| Method | Path | Mô tả | `data` |
+| --- | --- | --- | --- |
+| GET | `/notifications` 🔒 | Thông báo của tôi, mới trước: `page`, `pageSize` (≤50, mặc định 20) | `NotificationPage` = `PagedResponse<AppNotification>` + `unread` |
+| GET | `/notifications/unread-count` 🔒 | Số chưa đọc | `{ count }` |
+| PATCH | `/notifications/read-all` 🔒 | Đánh dấu tất cả đã đọc | `null` |
+| PATCH | `/notifications/:id/read` 🔒 | Đánh dấu 1 thông báo (chỉ của mình; id lạ → bỏ qua) | `null` |
+
+Nguồn thông báo hiện có: admin duyệt/từ chối/ẩn/hiện lại/xoá tin hoặc món đồ; tin Trọ ơi sắp hết hạn / đã hết hạn.
+
+---
+
 ## Settings — `/settings`
 
 ### `GET /settings` (công khai)
@@ -258,6 +288,9 @@ Mọi route: `JwtAuthGuard` + `AdminGuard` (không phải admin → 403). Sửa/
 | GET | `/admin/reports` | `status`, `targetType`, `page`, `pageSize` | `PagedResponse<Report>` (kèm `targetTitle`, `reporter`) |
 | PATCH | `/admin/reports/:id` | `{ status: open / resolved / dismissed }` | `null` |
 | PUT | `/admin/settings` | Mọi field `SiteSettings` (trừ `updatedAt`) đều tuỳ chọn, chỉ field gửi lên bị ghi | `SiteSettings` |
+| GET | `/admin/audit-logs` | Nhật ký thao tác admin, mới trước: `targetType` (`listing / product / user / report / settings`), `page`, `pageSize` | `PagedResponse<AuditLog>` |
+
+Type `AuditLog`: `{ id, action (nhãn tiếng Việt), targetType, targetId?, targetTitle?, actor: { id, name, avatar, role } | null, createdAt }`. Được ghi khi: kiểm duyệt tin người khác (xem Listings), `PATCH /admin/users/:id` (chỉ ghi phần thực sự đổi: cấp/gỡ quyền quản trị, khoá/mở khoá), `PATCH /admin/reports/:id`, `PUT /admin/settings`. Ghi nhật ký lỗi không làm hỏng thao tác chính (chỉ log cảnh báo).
 
 ---
 

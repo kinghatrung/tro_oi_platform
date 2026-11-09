@@ -14,6 +14,7 @@ export const config = {
   matcher: [
     '/ca-nhan/:path*',
     '/yeu-thich/:path*',
+    '/thong-bao/:path*',
     '/dang-tin/:path*',
     '/kenh-nguoi-dang/:path*',
     '/tin-nhan/:path*',

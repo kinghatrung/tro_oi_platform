@@ -12,6 +12,9 @@ export const SELLER_MENU = [
   { key: '/ca-nhan', label: 'Trang cá nhân', icon: <UserRound size={18} /> },
 ];
 
+/** Số ngày tin hiển thị sau mỗi lần gia hạn — khớp LISTING_TTL_DAYS ở apps/api listing.service.ts. */
+export const LISTING_TTL_DAYS = 30;
+
 /** Màu Tag (preset AntD) theo trạng thái tin. */
 export const STATUS_TAG_COLORS: Record<ListingStatus, string> = {
   [ListingStatus.ACTIVE]: 'success',
