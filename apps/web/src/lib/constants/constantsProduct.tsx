@@ -54,3 +54,11 @@ export const PRODUCT_SORT_OPTIONS = [
   { value: 'price-asc', label: 'Giá thấp → cao', sortBy: 'price', sortDirection: 'asc' },
   { value: 'price-desc', label: 'Giá cao → thấp', sortBy: 'price', sortDirection: 'desc' },
 ] as const;
+
+/** Câu hỏi nhanh khi chat về món đồ. */
+export const PRODUCT_QUESTIONS: string[] = [
+  'Món này còn không ạ?',
+  'Giá có thương lượng được không?',
+  'Đồ còn bảo hành hay lỗi gì không ạ?',
+  'Mình xem / nhận đồ ở đâu ạ?',
+];

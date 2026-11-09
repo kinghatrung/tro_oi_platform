@@ -56,6 +56,8 @@ export enum AuditTargetType {
   USER = 'user',
   REPORT = 'report',
   SETTINGS = 'settings',
+  /** targetId = người được đánh giá. */
+  REVIEW = 'review',
 }
 
 export const AUDIT_TARGET_LABELS: Record<AuditTargetType, string> = {
@@ -64,6 +66,7 @@ export const AUDIT_TARGET_LABELS: Record<AuditTargetType, string> = {
   [AuditTargetType.USER]: 'Người dùng',
   [AuditTargetType.REPORT]: 'Báo cáo',
   [AuditTargetType.SETTINGS]: 'Thiết lập',
+  [AuditTargetType.REVIEW]: 'Đánh giá',
 };
 
 /** GET /admin/audit-logs. */

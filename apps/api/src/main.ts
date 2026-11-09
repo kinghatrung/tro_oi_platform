@@ -7,18 +7,18 @@ import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module.js';
 import { HttpExceptionFilter } from './common/http-exception.filter.js';
 import { ResponseInterceptor } from './common/response.interceptor.js';
+import { ChatIoAdapter } from './modules/chat/chat-io.adapter.js';
 import { UPLOAD_DIR } from './modules/upload/upload.controller.js';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   const config = app.get(ConfigService);
 
-  app.enableCors({
-    origin: config
-      .get<string>('WEB_ORIGIN', 'http://localhost:3001')
-      .split(','),
-    credentials: true,
-  });
+  const origins = config
+    .get<string>('WEB_ORIGIN', 'http://localhost:3001')
+    .split(',');
+  app.enableCors({ origin: origins, credentials: true });
+  app.useWebSocketAdapter(new ChatIoAdapter(app, origins));
   app.use(cookieParser());
 
   //bật trên toán bộ  app

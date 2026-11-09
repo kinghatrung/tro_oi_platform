@@ -7,7 +7,6 @@ Thư mục này là **nguồn sự thật duy nhất** cho người và AI khi l
 | [coding-rules.md](coding-rules.md)             | Quy tắc code bắt buộc (chung, web, api) + checklist trước commit |
 | [project-structure.md](project-structure.md)   | Cấu trúc monorepo, route web, component, luồng dữ liệu, env     |
 | [api.md](api.md)                               | Hợp đồng REST API: endpoint, request, response, auth, lỗi       |
-| [chat-plan.md](chat-plan.md)                   | **Kế hoạch** chat realtime (WebSocket) — UI đã có, backend chưa làm |
 
 ## Quy tắc bắt buộc về tài liệu
 

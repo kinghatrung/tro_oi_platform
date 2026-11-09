@@ -70,7 +70,8 @@ src/
     │   ├── admin.guard.ts      # chỉ role admin — dùng SAU JwtAuthGuard
     │   └── schemas/user.schema.ts  # User (phone, name, email, bio, avatar, role, isBlocked, favoriteListingIds, favoriteProductIds, savedSearches)
     ├── user/                   # /users: me, favorites, favorite-products, saved-searches, hồ sơ công khai
-    ├── listing/                # /listings (Trọ ơi): tìm kiếm, stats, CRUD, duyệt tin theo settings, hết hạn + nhắc hạn
+    ├── listing/                # /listings (Trọ ơi): tìm kiếm, stats, CRUD, duyệt tin theo settings, hết hạn + nhắc hạn,
+    │                           #   báo tin mới khớp tìm kiếm đã lưu (saved-search-match.ts, có test)
     │   ├── listing.filter.ts   # build Mongo filter/sort từ query (có unit test)
     │   └── listing.mapper.ts   # toListing(): document → Listing (shared type)
     ├── product/                # /products (Chợ ơi): tìm kiếm, CRUD, duyệt tin theo settings
@@ -78,14 +79,16 @@ src/
     │   └── product.mapper.ts   # toProduct()
     ├── report/                 # POST /reports — người dùng báo cáo tin vi phạm
     ├── settings/               # GET /settings — thiết lập website (singleton, cache bộ nhớ)
+    ├── chat/                   # /conversations (REST) + ChatGateway Socket.IO /chat, ChatIoAdapter (CORS) — chat tin Trọ ơi & món Chợ ơi
+    ├── review/                 # /reviews — đánh giá người dùng (chỉ giữa 2 người đã nhắn tin)
     ├── notification/           # /notifications — thông báo của người dùng (NotificationService.notify dùng ở listing/product)
     ├── audit/                  # AuditService: nhật ký thao tác admin (đọc qua GET /admin/audit-logs)
     ├── admin/                  # /admin/* — thống kê, người dùng, tin, báo cáo, lưu thiết lập, nhật ký
     └── upload/                 # POST /uploads (multer, lưu apps/api/uploads/)
 ```
 
-- Collections: `users`, `listings`, `products`, `reports`, `settings`, `notifications` (TTL 90 ngày), `audit_logs`.
-- Quan hệ: `Listing.author`, `Product.seller`, `Report.reporter`, `Notification.user`, `AuditLog.actor → User._id`; `User.favoriteListingIds → Listing._id[]`, `User.favoriteProductIds → Product._id[]`; `Report.targetId → Listing | Product`. `User.savedSearches` là mảng con nhúng.
+- Collections: `users`, `listings`, `products`, `reports`, `settings`, `notifications` (TTL 90 ngày), `audit_logs`, `conversations`, `messages`, `reviews`.
+- Quan hệ: `Listing.author`, `Product.seller`, `Report.reporter`, `Notification.user`, `AuditLog.actor`, `Conversation.starter/owner`, `Message.sender`, `Review.reviewer/target → User._id`; `Conversation.target → Listing | Product` (refPath `targetModel`); `User.favoriteListingIds → Listing._id[]`, `User.favoriteProductIds → Product._id[]`; `Report.targetId → Listing | Product`. `User.savedSearches` là mảng con nhúng.
 - **Tài khoản admin:** `yarn workspace api seed` luôn đảm bảo SĐT `0900000000` là admin (dev-login được). Production: đặt `role: 'admin'` cho user thật bằng mongosh, rồi dùng trang `/quan-tri/nguoi-dung` để cấp quyền cho người khác.
 - Chi tiết endpoint: [api.md](api.md).
 
@@ -102,12 +105,12 @@ src/
 │   ├── page.tsx                       # Trang chủ (server, fetch listings + stats)
 │   ├── (auth)/dang-nhap/              # Đăng nhập OTP (Firebase) / dev-login
 │   ├── (chat)/tin-nhan/               # Chat (UI): layout riêng chỉ có header, full màn hình, không cuộn trang;
-│   │                                  #   page + useChat.ts (điểm nối backend, xem chat-plan.md). Cần đăng nhập (proxy.ts)
+│   │                                  #   page + useChat.ts (REST src/api/chat.ts + socket src/lib/socket.ts). Cần đăng nhập (proxy.ts)
 │   ├── cho-oi/page.tsx                # Chợ ơi: đầu trang giống trang chủ (Header), dưới ô tìm: danh mục, lọc + lưới, CTA
 │   └── (public)/                      # layout: SubHeader + Breadcrumb + Footer
 │       ├── tim-kiem/                  # Tìm kiếm (server, filter qua URL) + loading.tsx skeleton
 │       ├── phong-tro/[slug]/          # Chi tiết tin, slug = listing id
-│       ├── nguoi-dung/[id]/           # Hồ sơ công khai người đăng
+│       ├── nguoi-dung/[id]/           # Hồ sơ công khai người đăng + đánh giá (ProfileReviews)
 │       ├── cho-oi/[id]/               # Chi tiết món đồ Chợ ơi
 │       └── (private)/                 # cần đăng nhập (chặn ở src/proxy.ts), layout force-dynamic
 │           ├── ca-nhan/               # Hồ sơ của tôi + xem tin (ProfileEditModal.tsx)
@@ -132,13 +135,15 @@ src/
 │       ├── thiet-lap/                 #   Thiết lập website trong FormPageLayout (tab Chung, Giao diện, Trang chủ & thông báo, Tính năng)
 │       └── useAdminTable.ts           #   hook bảng phân trang phía server + runAction (báo kết quả, tự reload)
 ├── proxy.ts                           # Next 16 proxy (middleware): thiếu cookie accessToken → /dang-nhap?redirect=
-├── api/                               # axiosClient (token cookie, ApiError) + 1 file / domain: auth, users, listings, products, reports, settings, admin, uploads, notifications
+├── api/                               # axiosClient (token cookie, ApiError) + 1 file / domain: auth, users, listings, products, reports, settings, admin, uploads, notifications, chat, reviews
 ├── stores/useAuthStore.ts             # user, favorites, favoriteProducts, savedSearches, login/logout/toggleFavorite(Product)/toggleSavedSearch + hook useRequireUser()
+├── stores/useChatStore.ts             # tổng tin nhắn chưa đọc + trạng thái kết nối socket (MessagesButton ghi, trang /tin-nhan đọc)
+├── lib/socket.ts                      # getChatSocket(): 1 kết nối Socket.IO /chat dùng chung, token đọc lại mỗi lần kết nối
 ├── stores/useNotificationStore.ts     # số chưa đọc + thông báo mới nhất (chuông), markRead/markAllRead dùng chung với /thong-bao
 ├── hooks/useSaveToggle.ts             # handler nút Lưu (tin, món đồ, tìm kiếm): chưa đăng nhập → /dang-nhap, lỗi → toast
 ├── lib/viewHistory.ts                 # lịch sử xem tin (localStorage, 15 tin): recordView() ở trang chi tiết, readViewHistory() cho trang chủ
 ├── components/
-│   ├── layout/                        # Header (banner: trang chủ, Chợ ơi), SubHeader, Navbar (+ NotificationBell: hỏi số chưa đọc mỗi 60s), Container, Footer
+│   ├── layout/                        # Header (banner: trang chủ, Chợ ơi), SubHeader, Navbar (+ NotificationBell: hỏi số chưa đọc mỗi 60s; MessagesButton: mở socket chat, badge tin nhắn), Container, Footer
 │   ├── common/                        # UI thuần dùng lại (xem bảng dưới)
 │   ├── chat/                          # UI chat thuần: ConversationList, ChatWindow, MessageBubble, ChatComposer
 │   └── sections/                      # Khối giao diện theo trang
@@ -161,17 +166,17 @@ src/
 | `/`                     | Server        | `GET /listings` (mua bán, cho thuê mới), `GET /listings/stats`; "Tin bạn đã xem" đọc localStorage phía client |
 | `/tim-kiem`             | Server        | `GET /listings` từ searchParams: `keyword, city, district, transaction, category, minPrice, maxPrice (triệu), minArea, maxArea, bedrooms, amenities (wifi,parking), sort, page`. Nút "Lưu tìm kiếm" → `POST/DELETE /users/me/saved-searches` |
 | `/phong-tro/[id]`       | Server        | `GET /listings/:id`, tin tương tự, tin khác của người đăng |
-| `/nguoi-dung/[id]`      | Server        | `GET /users/:id`, `GET /listings?authorId=`           |
+| `/nguoi-dung/[id]`      | Server        | `GET /users/:id`, `GET /listings?authorId=`, `GET /reviews?userId=`; client: `GET /reviews/mine`, `PUT/DELETE /reviews` |
 | `/dang-nhap`            | Client        | `POST /auth/verify-phone` hoặc `/auth/dev-login`      |
 | `/ca-nhan` 🔒           | Client        | store user, `GET /listings/mine`, `PATCH /users/me` |
 | `/kenh-nguoi-dang` 🔒   | Client        | `GET /listings/mine` → thống kê                      |
-| `/tin-nhan` 🔒          | Client        | `GET /listings/:id` (mở chat theo `?listingId=`); tin nhắn **chỉ lưu cục bộ** cho tới khi làm backend chat |
+| `/tin-nhan` 🔒          | Client        | `GET /conversations`, `POST /conversations` (mở theo `?listingId=` hoặc `?productId=`, `?text=` điền sẵn), `GET /conversations/:id/messages`; gửi/nhận/đã đọc qua Socket.IO `/chat` |
 | `/kenh-nguoi-dang/tin-dang` 🔒 | Client | `GET /listings/mine`, `PATCH/DELETE /listings/:id` |
 | `/yeu-thich` 🔒         | Client        | store favorites + favoriteProducts + savedSearches (`GET /users/me/favorites`, `/favorite-products`, `/saved-searches`) |
 | `/thong-bao` 🔒         | Client        | `GET /notifications`, `PATCH /notifications/:id/read`, `/read-all` |
 | `/dang-tin` 🔒          | Client        | `POST /uploads`, `POST /listings`, `PATCH /listings/:id` |
 | `/cho-oi`               | Server        | `GET /products` từ searchParams: `keyword, category, condition, city, district, price (khoảng), sort, page`. Tắt Chợ ơi → trang báo tạm đóng |
-| `/cho-oi/[id]`          | Server        | `GET /products/:id`, đồ tương tự                      |
+| `/cho-oi/[id]`          | Server        | `GET /products/:id`, đồ tương tự; nút "Chat với người đăng" → `/tin-nhan?productId=` |
 | `/cho-oi/dang-ban` 🔒   | Client        | `POST /uploads`, `POST/PATCH /products`               |
 | `/kenh-nguoi-dang/do-ban` 🔒 | Client   | `GET /products/mine`, `PATCH/DELETE /products/:id`    |
 | `/quan-tri/*` 🔒 admin  | Client        | `/admin/*`, `PATCH/DELETE /listings|products/:id`, `PUT /admin/settings` |
@@ -275,12 +280,11 @@ Web dùng qua `transpilePackages: ['@tro-oi/shared']`; package trỏ thẳng `sr
 ## Chưa làm (backlog)
 
 - Tin tức, việc làm, khảo sát: mới có type ở shared.
-- Chat cho Chợ ơi (chat hiện chỉ gắn với tin Trọ ơi).
 - Settings cache trong bộ nhớ 1 process API — chạy nhiều instance cần cache dùng chung.
-- Chat realtime: **UI xong**, backend + WebSocket theo [chat-plan.md](chat-plan.md).
-- Đánh giá người dùng (đã gỡ UI đánh giá vì chưa có backend).
+- Chat: chưa gửi ảnh, "đang nhập...", thông báo đẩy; room Socket.IO trong bộ nhớ 1 process — nhiều instance API cần `@socket.io/redis-adapter`.
+- Báo tin mới khớp tìm kiếm đã lưu quét mọi user có tìm kiếm đã lưu mỗi lần có tin mới — nhiều user cần job nền.
+- Đánh giá: chưa có điểm sao trên thẻ người đăng (AgentCard), chưa có báo cáo đánh giá vi phạm (admin xoá trực tiếp trên hồ sơ).
 - Thông báo chỉ đến khi mở web (chuông hỏi mỗi 60s) — chưa có push realtime / email / SMS; admin từ chối tin chưa nhập được lý do.
-- Thông báo khi có tin mới khớp tìm kiếm đã lưu.
 - Ảnh bìa hồ sơ riêng (đang dùng dải màu chung), ứng dụng mobile / link tải app.
 - Đăng nhập Google/Facebook (nút hiển thị nhưng chưa nối).
 - Video cho tin đăng.

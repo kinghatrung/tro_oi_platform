@@ -260,7 +260,51 @@ Type `AppNotification`: `{ id, kind: info | success | warning | error, title, me
 | PATCH | `/notifications/read-all` 🔒 | Đánh dấu tất cả đã đọc | `null` |
 | PATCH | `/notifications/:id/read` 🔒 | Đánh dấu 1 thông báo (chỉ của mình; id lạ → bỏ qua) | `null` |
 
-Nguồn thông báo hiện có: admin duyệt/từ chối/ẩn/hiện lại/xoá tin hoặc món đồ; tin Trọ ơi sắp hết hạn / đã hết hạn.
+Nguồn thông báo hiện có: admin duyệt/từ chối/ẩn/hiện lại/xoá tin hoặc món đồ; tin Trọ ơi sắp hết hạn / đã hết hạn; có đánh giá mới về mình; **tin mới khớp tìm kiếm đã lưu** (khi tin Trọ ơi lần đầu hiển thị — đăng không cần duyệt hoặc vừa được duyệt; mỗi người tối đa 1 thông báo / tin, không gửi cho chính tác giả; logic so khớp `listing/saved-search-match.ts` cùng ngữ nghĩa bộ lọc `/tim-kiem`, có test).
+
+---
+
+## Chat — `/conversations` + Socket.IO `/chat`
+
+Chat 1-1 giữa **người hỏi** (`starter`) và **chủ tin / người bán** (`owner`), gắn với 1 tin Trọ ơi hoặc 1 món đồ Chợ ơi. Mỗi người chỉ có 1 cuộc trò chuyện cho 1 tin/món đồ.
+
+Type `Conversation`: `{ id, listing: { type: listing | product, id, title, image?, price, transaction? }, otherUser: { id, name, avatar, role }, lastMessage?: ChatMessage, unreadCount, updatedAt }` — `otherUser`, `unreadCount` tính theo người gọi. `listing.id = ""` khi tin đã bị xoá. Type `ChatMessage`: `{ id, conversationId, senderId, content, createdAt }`.
+
+### REST (🔒)
+
+| Method | Path | Body / Query | `data` |
+| --- | --- | --- | --- |
+| GET | `/conversations` | | `Conversation[]` (mới nhắn trước, tối đa 100) |
+| GET | `/conversations/unread-count` | | `{ count }` — tổng tin chưa đọc |
+| POST | `/conversations` | `{ listingId }` **hoặc** `{ productId }` | `Conversation` — find-or-create. 400: thiếu/thừa id, tự nhắn tin của mình; 404: tin/món không còn hiển thị |
+| GET | `/conversations/:id/messages` | `before?` (ISO), `limit` (1–50, mặc định 30) | `ChatMessage[]` cũ → mới. 403 nếu không phải thành viên |
+| PATCH | `/conversations/:id/read` | | `null` — về 0 chưa đọc của người gọi |
+
+### Socket.IO — namespace `/chat`
+
+Kết nối: `` io(`${API_URL}/chat`, { auth: { token: accessToken } }) ``. Token sai / tài khoản bị khoá → `connect_error` với message `unauthorized`. CORS theo `WEB_ORIGIN` (`ChatIoAdapter`). Ack **không** theo `ApiResponse` (interceptor/filter HTTP bỏ qua WebSocket).
+
+| Hướng | Event | Payload | Ghi chú |
+| --- | --- | --- | --- |
+| client → server | `message:send` | `{ conversationId, content }` | ack `{ ok: true, message }` / `{ ok: false, error }`. Nội dung trim, 1–1000 ký tự; tối đa 10 tin / 10 giây mỗi kết nối |
+| client → server | `conversation:read` | `{ conversationId }` | ack `{ ok }` |
+| server → client | `message:new` | `{ message, conversation }` | gửi tới mọi tab của cả 2 người; `conversation` theo góc nhìn người nhận |
+| server → client | `conversation:read` | `{ conversationId }` | gửi tới các tab của chính người vừa đọc (đồng bộ badge) |
+
+---
+
+## Reviews — `/reviews`
+
+Type `Review`: `{ id, rating (1–5), comment?, reviewer: { id, name, avatar, role } | null, createdAt, updatedAt }`. Mỗi người viết 1 đánh giá cho 1 người khác (gửi lại = sửa).
+
+| Method | Path | Mô tả | `data` |
+| --- | --- | --- | --- |
+| GET | `/reviews` | `userId` (bắt buộc), `page`, `pageSize` (≤50, mặc định 10). Công khai | `ReviewPage` = `PagedResponse<Review>` + `average` (1 chữ số thập phân, `null` khi chưa có) + `count` |
+| GET | `/reviews/mine` 🔒 | `userId` | `{ canReview, review: Review \| null }` |
+| PUT | `/reviews` 🔒 | `{ userId, rating (int 1–5), comment? (≤1000) }` — viết mới / sửa. Lần đầu → thông báo cho người được đánh giá | `Review` |
+| DELETE | `/reviews/:id` 🔒 | Người viết hoặc admin (admin xoá → ghi nhật ký `targetType: review`, `targetId` = người được đánh giá) | `null` |
+
+**Điều kiện đánh giá** (`canReview`): không phải chính mình **và** 2 người từng nhắn tin qua lại (có cuộc trò chuyện đã có tin nhắn, ai hỏi ai cũng được). Không đủ → 403.
 
 ---
 
@@ -288,9 +332,9 @@ Mọi route: `JwtAuthGuard` + `AdminGuard` (không phải admin → 403). Sửa/
 | GET | `/admin/reports` | `status`, `targetType`, `page`, `pageSize` | `PagedResponse<Report>` (kèm `targetTitle`, `reporter`) |
 | PATCH | `/admin/reports/:id` | `{ status: open / resolved / dismissed }` | `null` |
 | PUT | `/admin/settings` | Mọi field `SiteSettings` (trừ `updatedAt`) đều tuỳ chọn, chỉ field gửi lên bị ghi | `SiteSettings` |
-| GET | `/admin/audit-logs` | Nhật ký thao tác admin, mới trước: `targetType` (`listing / product / user / report / settings`), `page`, `pageSize` | `PagedResponse<AuditLog>` |
+| GET | `/admin/audit-logs` | Nhật ký thao tác admin, mới trước: `targetType` (`listing / product / user / report / settings / review`), `page`, `pageSize` | `PagedResponse<AuditLog>` |
 
-Type `AuditLog`: `{ id, action (nhãn tiếng Việt), targetType, targetId?, targetTitle?, actor: { id, name, avatar, role } | null, createdAt }`. Được ghi khi: kiểm duyệt tin người khác (xem Listings), `PATCH /admin/users/:id` (chỉ ghi phần thực sự đổi: cấp/gỡ quyền quản trị, khoá/mở khoá), `PATCH /admin/reports/:id`, `PUT /admin/settings`. Ghi nhật ký lỗi không làm hỏng thao tác chính (chỉ log cảnh báo).
+Type `AuditLog`: `{ id, action (nhãn tiếng Việt), targetType, targetId?, targetTitle?, actor: { id, name, avatar, role } | null, createdAt }`. Được ghi khi: kiểm duyệt tin người khác (xem Listings), `PATCH /admin/users/:id` (chỉ ghi phần thực sự đổi: cấp/gỡ quyền quản trị, khoá/mở khoá), `PATCH /admin/reports/:id`, `PUT /admin/settings`, admin xoá đánh giá (`DELETE /reviews/:id`). Ghi nhật ký lỗi không làm hỏng thao tác chính (chỉ log cảnh báo).
 
 ---
 

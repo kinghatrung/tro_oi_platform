@@ -13,5 +13,6 @@ export * from './PropertyOverview';
 export * from './SearchFilters';
 export * from './ProfileHeader';
 export * from './ProfileListings';
+export * from './ProfileReviews';
 export * from './MarketplaceFilters';
 export * from './ProductDetail';

@@ -31,6 +31,11 @@ export class HttpExceptionFilter implements ExceptionFilter {
   private readonly logger = new Logger(HttpExceptionFilter.name);
 
   catch(exception: unknown, host: ArgumentsHost) {
+    // WebSocket: gateway tự trả lỗi trong ack, ở đây chỉ ghi log
+    if (host.getType() !== 'http') {
+      this.logger.error(exception);
+      return;
+    }
     const response = host.switchToHttp().getResponse<Response>();
     const code =
       exception instanceof HttpException

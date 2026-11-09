@@ -13,3 +13,4 @@ export * from './types/settings';
 export * from './types/report';
 export * from './types/admin';
 export * from './types/notification';
+export * from './types/review';

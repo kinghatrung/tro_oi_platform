@@ -1,0 +1,33 @@
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+import {
+  Schema as MongooseSchema,
+  Types,
+  type HydratedDocument,
+} from 'mongoose';
+
+export const MESSAGE_MAX_LENGTH = 1000;
+
+@Schema({
+  timestamps: { createdAt: true, updatedAt: false },
+  collection: 'messages',
+})
+export class Message {
+  @Prop({
+    type: MongooseSchema.Types.ObjectId,
+    ref: 'Conversation',
+    required: true,
+  })
+  conversation: Types.ObjectId;
+
+  @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'User', required: true })
+  sender: Types.ObjectId;
+
+  @Prop({ required: true, maxlength: MESSAGE_MAX_LENGTH })
+  content: string;
+
+  createdAt: Date;
+}
+
+export type MessageDocument = HydratedDocument<Message>;
+export const MessageSchema = SchemaFactory.createForClass(Message);
+MessageSchema.index({ conversation: 1, createdAt: -1 });

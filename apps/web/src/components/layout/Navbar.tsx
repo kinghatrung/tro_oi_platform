@@ -8,7 +8,6 @@ import { Avatar, Button, Flex, Space, type MenuProps } from 'antd';
 import {
   Bell,
   Heart,
-  MessageCircle,
   Menu,
   UserRound,
   BedDouble,
@@ -28,6 +27,7 @@ import { useSiteSettings } from '@/app/providers';
 import { ButtonDropdown, CardDropdown, AreaPicker, ThemeToggle } from '@/components/common';
 import { useAuthStore } from '@/stores/useAuthStore';
 
+import { MessagesButton } from './MessagesButton';
 import { NotificationBell } from './NotificationBell';
 
 const CATEGORY_ICONS: Record<PropertyCategory, React.ReactNode> = {
@@ -219,9 +219,7 @@ function Navbar() {
             <Button icon={<Heart size={20} />} />
           </Link>
           {user && <NotificationBell />}
-          <Link href="/tin-nhan">
-            <Button icon={<MessageCircle size={16} />}>Tin nhắn</Button>
-          </Link>
+          <MessagesButton isLoggedIn={Boolean(user)} />
           {!user && (
             <Link href="/dang-nhap">
               <Button>Đăng nhập</Button>

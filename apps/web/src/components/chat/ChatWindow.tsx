@@ -5,14 +5,32 @@ import Image from 'next/image';
 import { Fragment, useEffect, useRef } from 'react';
 import { Alert, Avatar, Button, Divider, Flex } from 'antd';
 import { ChevronLeft, UserRound } from 'lucide-react';
-import { USER_ROLE_LABELS, type ChatMessage, type Conversation } from '@tro-oi/shared';
+import {
+  ChatTargetType,
+  USER_ROLE_LABELS,
+  type ChatMessage,
+  type Conversation,
+  type ConversationListing,
+} from '@tro-oi/shared';
 
 import { EmptyState, EmptyVariant } from '@/components/common';
 import { NO_IMAGE } from '@/constants';
-import { formatListingPrice } from '@/utils/helpers';
+import { formatListingPrice, formatVietnameseCurrency } from '@/utils/helpers';
 
 import { ChatComposer } from './ChatComposer';
 import { MessageBubble } from './MessageBubble';
+
+const isProduct = (item: ConversationListing) => item.type === ChatTargetType.PRODUCT;
+
+const targetHref = (item: ConversationListing) =>
+  isProduct(item) ? `/cho-oi/${item.id}` : `/phong-tro/${item.id}`;
+
+const targetPrice = (item: ConversationListing) => {
+  if (isProduct(item) || !item.transaction) {
+    return item.price === 0 ? 'Cho tặng' : formatVietnameseCurrency(item.price);
+  }
+  return formatListingPrice(item.price, item.transaction);
+};
 
 interface ChatWindowProps {
   conversation?: Conversation;
@@ -88,7 +106,7 @@ export function ChatWindow({
 
       {/* Tin đăng đang trao đổi */}
       <Link
-        href={`/phong-tro/${listing.id}`}
+        href={listing.id ? targetHref(listing) : '#'}
         className="flex items-center gap-3 border-b border-line bg-soft px-3 py-2"
       >
         <div className="relative h-10 w-12 shrink-0 overflow-hidden rounded">
@@ -102,9 +120,7 @@ export function ChatWindow({
         </div>
         <div className="min-w-0">
           <p className="truncate text-sm text-ink">{listing.title}</p>
-          <p className="text-sm font-semibold text-price">
-            {formatListingPrice(listing.price, listing.transaction)}
-          </p>
+          <p className="text-sm font-semibold text-price">{listing.id && targetPrice(listing)}</p>
         </div>
       </Link>
 
@@ -112,7 +128,7 @@ export function ChatWindow({
         <Alert
           banner
           type="warning"
-          message="Chat realtime chưa kết nối máy chủ — tin nhắn chưa được gửi đi."
+          message="Mất kết nối máy chủ chat — đang thử kết nối lại, tin gửi lúc này có thể thất bại."
         />
       )}
 

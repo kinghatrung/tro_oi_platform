@@ -9,10 +9,12 @@ import { map } from 'rxjs';
 
 export const DEFAULT_SUCCESS_MESSAGE = 'Thành công';
 
-/** Bọc mọi response thành công theo ApiResponse: { code, message, data }. */
+/** Bọc mọi response HTTP thành công theo ApiResponse: { code, message, data }. */
 @Injectable()
 export class ResponseInterceptor implements NestInterceptor {
   intercept(context: ExecutionContext, next: CallHandler) {
+    // Ack Socket.IO (ChatGateway) có format riêng { ok, ... }
+    if (context.getType() !== 'http') return next.handle();
     const response = context.switchToHttp().getResponse<Response>();
     return next.handle().pipe(
       map((data: unknown) => ({

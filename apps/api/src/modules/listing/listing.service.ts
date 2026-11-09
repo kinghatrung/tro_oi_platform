@@ -1,12 +1,13 @@
 import {
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
   type OnModuleDestroy,
   type OnModuleInit,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { isValidObjectId, type Model } from 'mongoose';
+import { isValidObjectId, type Model, type Types } from 'mongoose';
 
 import type { AuthUser } from '../../common/current-user.decorator.js';
 import { recordModeration } from '../../common/moderation.js';
@@ -22,6 +23,7 @@ import type {
 import { buildListingQuery } from './listing.filter.js';
 import { AUTHOR_FIELDS, toListing, withFullAddress } from './listing.mapper.js';
 import { User, type UserDocument } from '../auth/schemas/user.schema.js';
+import { matchesSavedSearch } from './saved-search-match.js';
 import { Listing, type ListingDocument } from './schemas/listing.schema.js';
 
 /** Trạng thái chủ tin tự chuyển được: hiển thị ↔ ẩn, hết hạn → hiển thị (gia hạn). */
@@ -43,6 +45,7 @@ const formatDate = (date: Date) =>
 @Injectable()
 export class ListingService implements OnModuleInit, OnModuleDestroy {
   private expireTimer?: NodeJS.Timeout;
+  private readonly logger = new Logger(ListingService.name);
 
   constructor(
     @InjectModel(Listing.name)
@@ -255,6 +258,7 @@ export class ListingService implements OnModuleInit, OnModuleDestroy {
       status: requireListingApproval ? 'pending' : 'active',
       ...(!requireListingApproval && { expiresAt: nextExpiry() }),
     });
+    if (doc.status === 'active') void this.alertSavedSearches(doc, doc.author);
     await doc.populate('author', AUTHOR_FIELDS);
     return toListing(doc);
   }
@@ -280,6 +284,9 @@ export class ListingService implements OnModuleInit, OnModuleDestroy {
     });
     await doc.save();
     await this.moderated(user, doc, from, doc.status);
+    if (from === 'pending' && doc.status === 'active') {
+      void this.alertSavedSearches(doc, doc.author); // tin vừa được duyệt = tin mới
+    }
     await doc.populate('author', AUTHOR_FIELDS);
     return toListing(doc);
   }
@@ -289,6 +296,53 @@ export class ListingService implements OnModuleInit, OnModuleDestroy {
     await doc.deleteOne();
     await this.moderated(user, doc, doc.status, null);
     return null;
+  }
+
+  /**
+   * Tin mới hiển thị (đăng không cần duyệt / vừa được duyệt) → báo người có tìm kiếm đã lưu khớp tin
+   * (1 thông báo / người). Chạy nền, lỗi chỉ ghi log.
+   */
+  // shortcut: quét mọi user có tìm kiếm đã lưu mỗi lần có tin mới — nhiều user thì chuyển sang job nền
+  private async alertSavedSearches(
+    doc: ListingDocument,
+    authorId: Types.ObjectId,
+  ) {
+    try {
+      const users = await this.userModel
+        .find(
+          {
+            'savedSearches.0': { $exists: true },
+            _id: { $ne: authorId },
+            isBlocked: { $ne: true },
+          },
+          'savedSearches',
+        )
+        .exec();
+      await this.notificationService.notify(
+        users.flatMap((user) => {
+          const search = user.savedSearches.find((item) =>
+            matchesSavedSearch(doc, item.query),
+          );
+          return search
+            ? [
+                {
+                  user: user._id,
+                  input: {
+                    kind: 'info' as const,
+                    title: 'Có tin mới khớp tìm kiếm của bạn',
+                    message: `"${doc.title}" · ${search.title}`,
+                    link: `/phong-tro/${doc.id as string}`,
+                  },
+                },
+              ]
+            : [];
+        }),
+      );
+    } catch (error) {
+      this.logger.warn(
+        `Không gửi được thông báo tìm kiếm đã lưu: ${(error as Error).message}`,
+      );
+    }
   }
 
   private moderated(

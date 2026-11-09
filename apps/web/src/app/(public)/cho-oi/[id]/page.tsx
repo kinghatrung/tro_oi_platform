@@ -51,7 +51,9 @@ export default async function ProductDetailPage({ params }: PageProps) {
       </Col>
 
       <Col lg={9} xs={24}>
-        {product.seller && <AgentCard author={product.seller} />}
+        {product.seller && (
+          <AgentCard author={product.seller} chatHref={`/tin-nhan?productId=${product.id}`} />
+        )}
       </Col>
 
       {similar.items.length > 0 && (

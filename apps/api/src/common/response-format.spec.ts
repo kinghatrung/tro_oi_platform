@@ -18,6 +18,7 @@ describe('Response format', () => {
     const json = jest.fn();
     const status = jest.fn(() => ({ json }));
     const host = {
+      getType: () => 'http',
       switchToHttp: () => ({ getResponse: () => ({ status }) }),
     } as unknown as ArgumentsHost;
     new HttpExceptionFilter().catch(exception, host);
@@ -33,6 +34,7 @@ describe('Response format', () => {
 
   it('thành công: code = HTTP status, data null khi controller không trả gì', async () => {
     const context = {
+      getType: () => 'http',
       switchToHttp: () => ({ getResponse: () => ({ statusCode: 201 }) }),
     } as unknown as ExecutionContext;
     const handle = (value: unknown) =>
@@ -48,6 +50,18 @@ describe('Response format', () => {
       data: { id: '1' },
     });
     await expect(handle(undefined)).resolves.toMatchObject({ data: null });
+  });
+
+  it('WebSocket (ack của ChatGateway): giữ nguyên, không bọc ApiResponse', async () => {
+    const context = { getType: () => 'ws' } as unknown as ExecutionContext;
+    const ack = { ok: true };
+    await expect(
+      lastValueFrom(
+        new ResponseInterceptor().intercept(context, {
+          handle: () => of(ack),
+        } as CallHandler),
+      ),
+    ).resolves.toBe(ack);
   });
 
   it('lỗi có message riêng: giữ message, gộp mảng validate', () => {

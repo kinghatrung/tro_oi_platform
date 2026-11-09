@@ -5,8 +5,9 @@ import { Row, Col } from 'antd';
 
 import { ApiError } from '@/api/axiosClient';
 import { searchListings } from '@/api/listings';
+import { getReviews } from '@/api/reviews';
 import { getUser } from '@/api/users';
-import { ProfileHeader, ProfileListings } from '@/components/sections';
+import { ProfileHeader, ProfileListings, ProfileReviews } from '@/components/sections';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -26,13 +27,14 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   return { title: `${user.name}` };
 }
 
-/** Hồ sơ công khai của người đăng tin + các tin đang hiển thị. */
+/** Hồ sơ công khai của người đăng tin + các tin đang hiển thị + đánh giá. */
 export default async function PublicProfilePage({ params }: PageProps) {
   const { id } = await params;
-  const [user, listings] = await Promise.all([
+  const [user, listings, reviews] = await Promise.all([
     getUserOrNotFound(id),
     // shortcut: chỉ lấy 50 tin mới nhất, thêm phân trang khi có người đăng nhiều hơn
     searchListings({ authorId: id, pageSize: 50 }),
+    getReviews(id),
   ]);
 
   return (
@@ -43,6 +45,10 @@ export default async function PublicProfilePage({ params }: PageProps) {
 
       <Col span={24}>
         <ProfileListings readOnly listings={listings.items} />
+      </Col>
+
+      <Col span={24}>
+        <ProfileReviews userId={id} initial={reviews} />
       </Col>
     </Row>
   );

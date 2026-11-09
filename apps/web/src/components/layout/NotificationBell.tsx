@@ -20,7 +20,7 @@ export function NotificationBell() {
   const unread = useNotificationStore((state) => state.unread);
   const latest = useNotificationStore((state) => state.latest);
 
-  // shortcut: hỏi số chưa đọc mỗi 60s — khi có WebSocket (chat-plan.md) thì server đẩy realtime
+  // shortcut: hỏi số chưa đọc mỗi 60s — cần realtime thì phát "notification:new" qua socket /chat
   useEffect(() => {
     const poll = () =>
       // Lỗi mạng tạm thời: bỏ qua, lượt sau hỏi lại (401 đã được axiosClient xử lý)
