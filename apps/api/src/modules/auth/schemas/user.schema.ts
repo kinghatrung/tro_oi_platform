@@ -41,6 +41,10 @@ export class User {
   @Prop()
   avatar?: string;
 
+  /** Ảnh bìa hồ sơ (rỗng = dải màu mặc định). */
+  @Prop()
+  coverImage?: string;
+
   @Prop({ type: String, enum: USER_ROLES, default: 'renter' })
   role: UserRole;
 
@@ -82,6 +86,7 @@ export function toUser(user: UserDocument) {
     email: user.email,
     bio: user.bio,
     avatar: user.avatar,
+    coverImage: user.coverImage || undefined,
     role: user.role,
     isBlocked: user.isBlocked ?? false,
     createdAt: user.createdAt.toISOString(),

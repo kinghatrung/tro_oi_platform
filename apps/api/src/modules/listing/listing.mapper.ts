@@ -30,6 +30,7 @@ export function toListing(
     id: doc.id as string,
     title: doc.title,
     description: doc.description,
+    videoUrl: doc.videoUrl || undefined,
     category: doc.category,
     transaction: doc.transaction,
     status: doc.status,

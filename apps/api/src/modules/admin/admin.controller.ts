@@ -17,6 +17,8 @@ import { AdminGuard } from '../auth/admin.guard.js';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard.js';
 import { AuditLogQueryDto } from '../audit/audit.dto.js';
 import { AuditService } from '../audit/audit.service.js';
+import { UpsertPageDto } from '../page/page.dto.js';
+import { PageService } from '../page/page.service.js';
 import { ReportQueryDto, UpdateReportDto } from '../report/report.dto.js';
 import { ReportService } from '../report/report.service.js';
 import { UpdateSettingsDto } from '../settings/update-settings.dto.js';
@@ -39,6 +41,7 @@ export class AdminController {
     private readonly adminService: AdminService,
     private readonly reportService: ReportService,
     private readonly auditService: AuditService,
+    private readonly pageService: PageService,
   ) {}
 
   @Get('stats')
@@ -90,6 +93,20 @@ export class AdminController {
     @Body() dto: UpdateSettingsDto,
   ) {
     return this.adminService.updateSettings(admin.sub, dto);
+  }
+
+  @Get('pages/:slug')
+  getPage(@Param('slug') slug: string) {
+    return this.pageService.getForAdmin(slug);
+  }
+
+  @Put('pages/:slug')
+  updatePage(
+    @CurrentUser() admin: AuthUser,
+    @Param('slug') slug: string,
+    @Body() dto: UpsertPageDto,
+  ) {
+    return this.pageService.upsert(admin.sub, slug, dto);
   }
 
   @Get('audit-logs')

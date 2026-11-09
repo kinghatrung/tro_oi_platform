@@ -22,6 +22,8 @@ export interface User {
   phone?: string;
   bio?: string;
   avatar?: string;
+  /** Ảnh bìa hồ sơ (không có → dải màu mặc định). */
+  coverImage?: string;
   role: UserRole;
   /** Bị admin khoá: không đăng nhập/thao tác được. */
   isBlocked?: boolean;
@@ -37,6 +39,8 @@ export interface UpdateProfileRequest {
   email?: string;
   bio?: string;
   avatar?: string;
+  /** "" = gỡ ảnh bìa. */
+  coverImage?: string;
 }
 
 /** Bộ lọc /tim-kiem đã lưu (GET /users/me/saved-searches). */

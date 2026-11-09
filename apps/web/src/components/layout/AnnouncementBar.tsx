@@ -10,5 +10,5 @@ interface AnnouncementBarProps {
 
 /** Thanh thông báo toàn site — admin bật/tắt và soạn nội dung ở trang thiết lập. */
 export function AnnouncementBar({ text, type }: AnnouncementBarProps) {
-  return <Alert banner closable showIcon type={type} message={text} className="text-center!" />;
+  return <Alert banner closable showIcon type={type} title={text} className="text-center!" />;
 }

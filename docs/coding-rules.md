@@ -131,6 +131,7 @@ export async function getListing(id: string) {
 - `tsconfig` đặt `useDefineForClassFields: false` — **không bỏ**: nếu bật, mọi DTO có sẵn field `undefined`, `doc.set(dto)` / `{...current, ...dto}` sẽ ghi đè dữ liệu cũ.
 - Kiểm tra quyền sở hữu (author/admin) trong service, ném `ForbiddenException`.
 - WebSocket (`ChatGateway`): `ResponseInterceptor` / `HttpExceptionFilter` bỏ qua context không phải HTTP, `ValidationPipe` không chạy → handler tự kiểm tra payload, bắt mọi lỗi và trả ack `{ ok: false, error }` (lỗi không phải `HttpException` thì không lộ chi tiết). Luôn lấy user từ `socket.data.userId` (đã xác thực lúc kết nối), không tin id client gửi.
+- Đổi cách thu thập / lưu / chia sẻ dữ liệu người dùng (field mới, cookie, dịch vụ bên thứ ba, thời hạn lưu) → cập nhật bản nháp `apps/web/src/lib/constants/policyTemplates.ts` và báo admin rà soát lại trang Chính sách bảo mật đã đăng.
 - Thao tác của admin lên dữ liệu người khác phải ghi nhật ký: tin/món đồ đi qua `recordModeration()` (`common/moderation.ts`, kèm thông báo chủ tin), còn lại gọi `AuditService.log()`. Gửi thông báo qua `NotificationService.notify()`. Hai hàm này không ném lỗi, để thao tác chính không hỏng.
 - id không hợp lệ (`!isValidObjectId`) → `NotFoundException`, không để Mongoose CastError thành 500.
 - Secret/config chỉ đọc qua `ConfigService`; thêm biến mới → cập nhật `.env.example` + `project-structure.md`.

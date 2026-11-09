@@ -30,6 +30,7 @@ const TARGET_HREF: Partial<Record<AuditTargetType, (id: string) => string>> = {
   [AuditTargetType.PRODUCT]: (id) => `/cho-oi/${id}`,
   [AuditTargetType.USER]: (id) => `/nguoi-dung/${id}`,
   [AuditTargetType.REVIEW]: (id) => `/nguoi-dung/${id}`,
+  [AuditTargetType.PAGE]: (id) => `/${id}`,
 };
 
 const COLUMNS: TableColumnsType<AuditLog> = [

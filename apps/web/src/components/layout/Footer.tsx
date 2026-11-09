@@ -2,12 +2,17 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Col, Flex, Row, Space } from 'antd';
 
+import { getPublishedPages } from '@/api/pages';
 import { CATEGORIES } from '@/constants';
 import { loadSiteSettings } from '@/lib/siteSettings';
 
-/** Footer: giới thiệu, link theo loại hình, liên hệ. */
+/** Footer: giới thiệu, link theo loại hình, liên hệ, trang chính sách đã đăng. */
 export default async function Footer() {
-  const settings = await loadSiteSettings();
+  const [settings, pages] = await Promise.all([
+    loadSiteSettings(),
+    // Không tải được danh sách trang → chỉ ẩn link, footer vẫn hiển thị
+    getPublishedPages().catch(() => []),
+  ]);
 
   return (
     <footer className="w-full border-t border-line bg-surface">
@@ -78,11 +83,24 @@ export default async function Footer() {
       </div>
 
       <div className="border-t border-line">
-        <div className="mx-auto w-full max-w-300 px-4 py-6">
+        <div className="mx-auto flex w-full max-w-300 flex-wrap items-start justify-between gap-x-8 gap-y-3 px-4 py-6">
           <p className="text-xs leading-5 text-subtle whitespace-pre-line">
             {settings.footerText ||
               `© ${new Date().getFullYear()} ${settings.siteName}. Thông tin tin đăng do người dùng cung cấp.`}
           </p>
+          {pages.length > 0 && (
+            <nav aria-label="Chính sách" className="flex shrink-0 gap-4">
+              {pages.map((page) => (
+                <Link
+                  key={page.slug}
+                  href={`/${page.slug}`}
+                  className="text-xs text-body! hover:text-ink"
+                >
+                  {page.title}
+                </Link>
+              ))}
+            </nav>
+          )}
         </div>
       </div>
     </footer>

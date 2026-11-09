@@ -128,7 +128,7 @@ export function ChatWindow({
         <Alert
           banner
           type="warning"
-          message="Mất kết nối máy chủ chat — đang thử kết nối lại, tin gửi lúc này có thể thất bại."
+          title="Mất kết nối máy chủ chat — đang thử kết nối lại, tin gửi lúc này có thể thất bại."
         />
       )}
 

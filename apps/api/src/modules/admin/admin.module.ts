@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 
 import { AuditModule } from '../audit/audit.module.js';
 import { AuthModule } from '../auth/auth.module.js';
+import { PageModule } from '../page/page.module.js';
 import { ListingModule } from '../listing/listing.module.js';
 import { ProductModule } from '../product/product.module.js';
 import { ReportModule } from '../report/report.module.js';
@@ -14,6 +15,7 @@ import { AdminService } from './admin.service.js';
     AuditModule,
     AuthModule,
     ListingModule,
+    PageModule,
     ProductModule,
     ReportModule,
     SettingsModule,

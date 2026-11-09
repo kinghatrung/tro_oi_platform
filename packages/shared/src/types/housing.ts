@@ -137,6 +137,8 @@ export interface Listing {
   id: string;
   title: string;
   description?: string;
+  /** Link YouTube. */
+  videoUrl?: string;
   category: PropertyCategory;
   transaction: TransactionType;
   status: ListingStatus;
@@ -205,6 +207,8 @@ export interface ListingStat {
 export interface CreateListingRequest {
   title: string;
   description?: string;
+  /** Link YouTube; "" = gỡ video khi sửa. */
+  videoUrl?: string;
   category: PropertyCategory;
   transaction: TransactionType;
   price: number;

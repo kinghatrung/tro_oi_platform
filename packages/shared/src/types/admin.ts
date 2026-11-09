@@ -58,6 +58,8 @@ export enum AuditTargetType {
   SETTINGS = 'settings',
   /** targetId = người được đánh giá. */
   REVIEW = 'review',
+  /** targetId = slug trang (cũng là URL). */
+  PAGE = 'page',
 }
 
 export const AUDIT_TARGET_LABELS: Record<AuditTargetType, string> = {
@@ -67,6 +69,7 @@ export const AUDIT_TARGET_LABELS: Record<AuditTargetType, string> = {
   [AuditTargetType.REPORT]: 'Báo cáo',
   [AuditTargetType.SETTINGS]: 'Thiết lập',
   [AuditTargetType.REVIEW]: 'Đánh giá',
+  [AuditTargetType.PAGE]: 'Trang chính sách',
 };
 
 /** GET /admin/audit-logs. */

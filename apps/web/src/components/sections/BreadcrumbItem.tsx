@@ -33,6 +33,8 @@ const ROUTE_LABELS: Record<string, { title: string; linkable?: boolean }> = {
   'ca-nhan': { title: 'Trang cá nhân' },
   'yeu-thich': { title: 'Tin đã lưu' },
   'thong-bao': { title: 'Thông báo' },
+  'dieu-khoan-su-dung': { title: 'Điều khoản sử dụng' },
+  'chinh-sach-bao-mat': { title: 'Chính sách bảo mật' },
   'dang-tin': { title: 'Đăng tin' },
   'kenh-nguoi-dang': { title: 'Kênh người đăng' },
   'tin-dang': { title: 'Quản lý tin' },

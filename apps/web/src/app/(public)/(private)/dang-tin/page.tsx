@@ -20,6 +20,7 @@ import {
   type UploadFile,
 } from 'antd';
 import { ImagePlus } from 'lucide-react';
+import { FaYoutube } from 'react-icons/fa';
 import {
   ListingStatus,
   TransactionType,
@@ -31,6 +32,7 @@ import { createListing, getMyListings, updateListing } from '@/api/listings';
 import { antdUploadRequest } from '@/api/uploads';
 import { FormSection } from '@/components/common';
 import { AMENITY_ITEMS } from '@/lib/constants/constantsRoom';
+import { YOUTUBE_URL_PATTERN } from '@/lib/youtube';
 import { useRequireUser } from '@/stores/useAuthStore';
 import { formatListingPrice, formatNumber } from '@/utils/helpers';
 
@@ -119,7 +121,13 @@ export default function PostListingPage() {
           oldAddress?.city === formValues.address.city &&
           oldAddress?.district === formValues.address.district;
         const address = { ...formValues.address, geo: isSameArea ? oldAddress?.geo : undefined };
-        const body = { ...formValues, address, images };
+        // "" = gỡ video khi sửa tin (ô trống → undefined sẽ không xoá được video cũ)
+        const body = {
+          ...formValues,
+          address,
+          images,
+          videoUrl: formValues.videoUrl?.trim() ?? '',
+        };
         const saved = editing ? await updateListing(editing.id, body) : await createListing(body);
         if (saved.status === ListingStatus.PENDING) {
           message.info('Tin đã gửi, đang chờ quản trị viên duyệt');
@@ -228,6 +236,24 @@ export default function PostListingPage() {
                   </div>
                 )}
               </Upload>
+              <Form.Item
+                name="videoUrl"
+                label="Video YouTube (tuỳ chọn)"
+                className="mt-4! mb-0!"
+                rules={[
+                  {
+                    pattern: YOUTUBE_URL_PATTERN,
+                    message:
+                      'Dán link YouTube dạng youtube.com/watch?v=..., youtu.be/... hoặc shorts',
+                  },
+                ]}
+              >
+                <Input
+                  allowClear
+                  prefix={<FaYoutube size={16} className="text-red-500" />}
+                  placeholder="https://youtu.be/..."
+                />
+              </Form.Item>
             </FormSection>
 
             <FormSection

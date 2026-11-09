@@ -1,5 +1,6 @@
 import type {
   AdminListingQuery,
+  AdminPage,
   AdminProductQuery,
   AdminReportQuery,
   AdminStats,
@@ -10,10 +11,12 @@ import type {
   AuditLog,
   AuditLogQuery,
   Listing,
+  PageSlug,
   PagedResponse,
   ProductItem,
   Report,
   ReportStatus,
+  UpsertPageRequest,
   User,
 } from '@tro-oi/shared';
 
@@ -67,5 +70,15 @@ export async function searchAuditLogs(params: AuditLogQuery) {
   const res = (await axiosClient.get('/admin/audit-logs', { params })) as ApiResponse<
     PagedResponse<AuditLog>
   >;
+  return res.data;
+}
+
+export async function getAdminPage(slug: PageSlug) {
+  const res = (await axiosClient.get(`/admin/pages/${slug}`)) as ApiResponse<AdminPage>;
+  return res.data;
+}
+
+export async function updateAdminPage(slug: PageSlug, body: UpsertPageRequest) {
+  const res = (await axiosClient.put(`/admin/pages/${slug}`, body)) as ApiResponse<AdminPage>;
   return res.data;
 }

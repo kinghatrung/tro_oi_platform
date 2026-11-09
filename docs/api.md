@@ -77,7 +77,7 @@ Response giống `verify-phone`.
 
 ## Users — `/users`
 
-Type `User`: `{ id, name, phone?, email?, bio?, avatar?, role, isBlocked, createdAt, updatedAt }`. `role` ∈ `renter | landlord | agent | admin`.
+Type `User`: `{ id, name, phone?, email?, bio?, avatar?, coverImage?, role, isBlocked, createdAt, updatedAt }`. `role` ∈ `renter | landlord | agent | admin`.
 
 Type `SavedSearch`: `{ id, query, title, createdAt }` — web mở lại bằng `/tim-kiem?{query}`.
 
@@ -104,6 +104,7 @@ Type `SavedSearch`: `{ id, query, title, createdAt }` — web mở lại bằng 
 | `email`  | string | email hợp lệ           |
 | `bio`    | string | ≤ 500 ký tự            |
 | `avatar` | string | URL                    |
+| `coverImage` | string | URL ảnh bìa (`/uploads`); `""` = gỡ ảnh bìa |
 
 ---
 
@@ -113,7 +114,7 @@ Type `Listing` (rút gọn):
 
 ```jsonc
 {
-  "id": "6720...", "title": "...", "description": "...",
+  "id": "6720...", "title": "...", "description": "...", "videoUrl": "https://youtu.be/...",
   "category": "phong-tro | can-ho | nguyen-can | o-ghep",
   "transaction": "rent-room | buy-room",
   "status": "draft | pending | active | expired | closed",
@@ -135,6 +136,7 @@ Type `Listing` (rút gọn):
 - `author.listingCount` chỉ có ở `GET /listings/:id`.
 - `viewCount`: mỗi lần gọi `GET /listings/:id` +1 (không đổi `updatedAt`).
 - `favoriteCount` (số người đã lưu) chỉ có ở `GET /listings/mine` — dùng cho Kênh người đăng.
+- `videoUrl`: link YouTube (không có video → không có field).
 - `amenities` ∈ `wifi | air-conditioner | water-heater | washing-machine | fridge | kitchen | private-wc | balcony | elevator | parking | security | free-hours | pets` (luôn là mảng, có thể rỗng).
 - `expiresAt`: tin hiển thị 30 ngày (`LISTING_TTL_DAYS`) kể từ lần gần nhất chuyển sang `active` (đăng không cần duyệt / admin duyệt / hiện lại / gia hạn). Quá hạn → API tự chuyển `expired` (kiểm tra lúc khởi động + mỗi giờ). Chủ tin gia hạn bằng `PATCH /listings/:id { status: 'active' }`. Tin `active` cũ chưa có hạn được cấp 1 kỳ khi API khởi động. Còn ≤ 3 ngày → gửi thông báo "Tin sắp hết hạn" (1 lần mỗi kỳ); hết hạn → thông báo "Tin đã hết hạn" (xem [Notifications](#notifications--notifications)).
 
@@ -184,6 +186,7 @@ Response: `{ "items": Listing[], "total": 120, "page": 1, "pageSize": 10 }`.
 | ------------- | ------------- | -------- | ---------------------------- |
 | `title`       | string        | ✔        | 10–150 ký tự                 |
 | `description` | string        |          | ≤ 5000 ký tự                 |
+| `videoUrl`    | string        |          | Link YouTube **https**: `youtube.com/watch?v=`, `youtu.be/`, `/shorts/`, `/embed/` (id 11 ký tự). `""` = gỡ video khi sửa |
 | `category`    | enum          | ✔        |                              |
 | `transaction` | enum          | ✔        |                              |
 | `price`       | number        | ✔        | ≥ 0 (VND)                    |
@@ -308,6 +311,21 @@ Type `Review`: `{ id, rating (1–5), comment?, reviewer: { id, name, avatar, ro
 
 ---
 
+## Pages — `/pages` (trang chính sách)
+
+Trang nội dung do admin soạn: `slug` ∈ `dieu-khoan-su-dung | chinh-sach-bao-mat` (cũng là URL trên web). `content` rỗng = chưa đăng.
+
+| Method | Path | Mô tả | `data` |
+| --- | --- | --- | --- |
+| GET | `/pages` | Trang đã đăng (link chân trang) | `PageSummary[]` = `{ slug, title, updatedAt }[]` |
+| GET | `/pages/:slug` | Trang đã đăng, nội dung đã tách khối. Chưa đăng / slug lạ → 404 | `PublicPage` = `PageSummary` + `blocks` |
+| GET | `/admin/pages/:slug` 🛡 | Văn bản gốc để soạn (chưa có → tiêu đề mặc định, `content: ""`, `updatedAt: null`) | `AdminPage` |
+| PUT | `/admin/pages/:slug` 🛡 | `{ title (2–100), content (≤ 50.000) }`. `content: ""` = gỡ trang. Còn chuỗi `[[` (ô bản nháp chưa điền) → 400. Ghi nhật ký `targetType: page` | `AdminPage` |
+
+`blocks` (`ContentBlock[]`): `{ type: h2 | h3 | p, text }` hoặc `{ type: ul, items }` — tách từ văn bản: `#`/`##` = h2, `###` = h3, `-`/`*` = gạch đầu dòng, dòng trống = đoạn mới (`page/page-content.ts`, có test). Web render chữ thuần, không HTML.
+
+---
+
 ## Settings — `/settings`
 
 ### `GET /settings` (công khai)
@@ -332,7 +350,7 @@ Mọi route: `JwtAuthGuard` + `AdminGuard` (không phải admin → 403). Sửa/
 | GET | `/admin/reports` | `status`, `targetType`, `page`, `pageSize` | `PagedResponse<Report>` (kèm `targetTitle`, `reporter`) |
 | PATCH | `/admin/reports/:id` | `{ status: open / resolved / dismissed }` | `null` |
 | PUT | `/admin/settings` | Mọi field `SiteSettings` (trừ `updatedAt`) đều tuỳ chọn, chỉ field gửi lên bị ghi | `SiteSettings` |
-| GET | `/admin/audit-logs` | Nhật ký thao tác admin, mới trước: `targetType` (`listing / product / user / report / settings / review`), `page`, `pageSize` | `PagedResponse<AuditLog>` |
+| GET | `/admin/audit-logs` | Nhật ký thao tác admin, mới trước: `targetType` (`listing / product / user / report / settings / review / page`), `page`, `pageSize` | `PagedResponse<AuditLog>` |
 
 Type `AuditLog`: `{ id, action (nhãn tiếng Việt), targetType, targetId?, targetTitle?, actor: { id, name, avatar, role } | null, createdAt }`. Được ghi khi: kiểm duyệt tin người khác (xem Listings), `PATCH /admin/users/:id` (chỉ ghi phần thực sự đổi: cấp/gỡ quyền quản trị, khoá/mở khoá), `PATCH /admin/reports/:id`, `PUT /admin/settings`, admin xoá đánh giá (`DELETE /reviews/:id`). Ghi nhật ký lỗi không làm hỏng thao tác chính (chỉ log cảnh báo).
 

@@ -17,6 +17,7 @@ import {
   Max,
   MaxLength,
   Min,
+  ValidateIf,
   ValidateNested,
 } from 'class-validator';
 
@@ -37,6 +38,10 @@ import {
 
 /** URL tuyệt đối http(s) hoặc đường dẫn gốc "/..." (ảnh mẫu của web). */
 export const IMAGE_URL_PATTERN = /^(https?:\/\/|\/)\S+$/;
+
+/** Link YouTube: watch?v=, youtu.be/, shorts/, embed/ (id 11 ký tự). Web nhúng qua youtube-nocookie. */
+export const YOUTUBE_URL_PATTERN =
+  /^https:\/\/(www\.|m\.)?(youtube\.com\/(watch\?v=|shorts\/|embed\/)|youtu\.be\/)[\w-]{11}([?&#]\S*)?$/;
 
 export const LISTING_SORT_FIELDS = ['createdAt', 'price', 'area'] as const;
 
@@ -182,6 +187,15 @@ export class CreateListingDto {
   @IsString()
   @MaxLength(5000)
   description?: string;
+
+  /** Link YouTube; "" = gỡ video khi sửa tin. */
+  @IsOptional()
+  @ValidateIf((_, value) => value !== '')
+  @Matches(YOUTUBE_URL_PATTERN, {
+    message:
+      'Link video phải là link YouTube (youtube.com/watch?v=..., youtu.be/..., shorts)',
+  })
+  videoUrl?: string;
 
   @IsIn(LISTING_CATEGORIES)
   category: ListingCategory;

@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import { Button, Avatar, Flex, Space } from 'antd';
 import { Calendar, Settings, UserRound, Info } from 'lucide-react';
 import { USER_ROLE_LABELS, type User } from '@tro-oi/shared';
@@ -14,8 +15,19 @@ interface ProfileHeaderProps {
 export function ProfileHeader({ user, onEditProfile }: ProfileHeaderProps) {
   return (
     <>
-      {/* shortcut: ảnh bìa chung theo màu thương hiệu, thêm field coverUrl cho User khi cần ảnh bìa riêng */}
-      <div className="h-40 w-full rounded-t-lg bg-linear-to-r from-brand-dark via-brand to-[#d9f5f3]" />
+      {/* Chưa có ảnh bìa → dải màu thương hiệu */}
+      <div className="relative h-40 w-full overflow-hidden rounded-t-lg bg-linear-to-r from-brand-dark via-brand to-[#d9f5f3] md:h-56">
+        {user.coverImage && (
+          <Image
+            src={user.coverImage}
+            alt=""
+            fill
+            priority
+            sizes="(max-width: 1200px) 100vw, 1200px"
+            className="object-cover"
+          />
+        )}
+      </div>
 
       <div className="p-5 rounded-b-lg bg-surface">
         <Flex gap={20}>

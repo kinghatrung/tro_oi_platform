@@ -93,6 +93,10 @@ export class Listing {
   @Prop()
   description?: string;
 
+  /** Link YouTube (rỗng = không có video). */
+  @Prop()
+  videoUrl?: string;
+
   @Prop({ type: String, enum: LISTING_CATEGORIES, required: true })
   category: ListingCategory;
 

@@ -5,6 +5,7 @@ import {
   Length,
   Matches,
   MaxLength,
+  ValidateIf,
 } from 'class-validator';
 
 import { IMAGE_URL_PATTERN } from '../../listing/dto/listing.dto.js';
@@ -27,4 +28,10 @@ export class UpdateProfileDto {
   @IsOptional()
   @Matches(IMAGE_URL_PATTERN, { message: 'URL ảnh đại diện không hợp lệ' })
   avatar?: string;
+
+  /** Ảnh bìa hồ sơ; "" = gỡ, dùng lại dải màu mặc định. */
+  @IsOptional()
+  @ValidateIf((_, value) => value !== '')
+  @Matches(IMAGE_URL_PATTERN, { message: 'URL ảnh bìa không hợp lệ' })
+  coverImage?: string;
 }

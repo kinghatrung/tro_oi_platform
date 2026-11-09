@@ -14,3 +14,4 @@ export * from './types/report';
 export * from './types/admin';
 export * from './types/notification';
 export * from './types/review';
+export * from './types/page';

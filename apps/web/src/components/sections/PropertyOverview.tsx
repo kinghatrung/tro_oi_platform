@@ -47,6 +47,7 @@ import {
   SAMPLE_QUESTIONS,
 } from '@/lib/constants/constantsRoom';
 import { recordView } from '@/lib/viewHistory';
+import { youtubeEmbedUrl } from '@/lib/youtube';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { formatListingPrice, formatRelativeTime } from '@/utils/helpers';
 
@@ -95,6 +96,7 @@ export function PropertyOverview({ listing, similarListings = [] }: PropertyOver
   const geo = listing.address?.geo;
   const features = useMemo(() => buildPropertyFeatures(listing), [listing]);
   const amenities = AMENITY_ITEMS.filter(({ value }) => listing.amenities?.includes(value));
+  const videoEmbed = youtubeEmbedUrl(listing.videoUrl);
   const lightboxSimilar = useMemo(
     () =>
       similarListings.map((item) => ({
@@ -410,6 +412,21 @@ export function PropertyOverview({ listing, similarListings = [] }: PropertyOver
               </li>
             ))}
           </ul>
+        </Card>
+      )}
+
+      {videoEmbed && (
+        <Card variant="borderless">
+          <p className="text-primary mb-3">Video</p>
+          <iframe
+            src={videoEmbed}
+            title={`Video: ${listing.title}`}
+            className="aspect-video w-full rounded-lg border-0"
+            loading="lazy"
+            referrerPolicy="strict-origin-when-cross-origin"
+            allow="accelerometer; encrypted-media; gyroscope; picture-in-picture; web-share"
+            allowFullScreen
+          />
         </Card>
       )}
 

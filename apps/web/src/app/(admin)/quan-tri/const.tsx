@@ -1,4 +1,13 @@
-import { Flag, History, LayoutDashboard, Settings, ShoppingBag, House, Users } from 'lucide-react';
+import {
+  FileText,
+  Flag,
+  History,
+  LayoutDashboard,
+  Settings,
+  ShoppingBag,
+  House,
+  Users,
+} from 'lucide-react';
 
 export const ADMIN_BASE = '/quan-tri';
 
@@ -10,6 +19,11 @@ export const ADMIN_MENU = [
   { key: `${ADMIN_BASE}/tin-cho`, label: 'Tin Chợ ơi', icon: <ShoppingBag size={18} /> },
   { key: `${ADMIN_BASE}/bao-cao`, label: 'Báo cáo vi phạm', icon: <Flag size={18} /> },
   { key: `${ADMIN_BASE}/nhat-ky`, label: 'Nhật ký thao tác', icon: <History size={18} /> },
+  {
+    key: `${ADMIN_BASE}/trang-chinh-sach`,
+    label: 'Trang chính sách',
+    icon: <FileText size={18} />,
+  },
   { key: `${ADMIN_BASE}/thiet-lap`, label: 'Thiết lập website', icon: <Settings size={18} /> },
 ];
 
