@@ -166,7 +166,7 @@ src/
 ├── components/
 │   ├── layout/                        # Header (banner: trang chủ, Chợ ơi), SubHeader, Navbar (+ NotificationBell: nhận "notification:new" qua socket (badge + toast), hỏi lại khi kết nối lại và mỗi 5 phút dự phòng; MessagesButton: mở socket chat, badge tin nhắn; co theo màn: < lg ẩn ô khu vực + cặp "Trọ ơi!/Chợ ơi!" (Chợ ơi vào từ menu danh mục), < sm ẩn sáng/tối, Tin đã lưu, chuông, Đăng nhập; Tin nhắn / Đăng tin thành nút chỉ-icon), Container, Footer
 │   ├── common/                        # UI thuần dùng lại (xem bảng dưới)
-│   ├── chat/                          # UI chat thuần: ConversationList, ChatWindow (dòng "đang nhập…"), MessageBubble (ảnh → ImageLightbox), ChatComposer (đính kèm ≤4 ảnh qua POST /uploads, báo typing ≤1 lần/2,5s)
+│   ├── chat/                          # UI chat thuần: ConversationList, ChatWindow (dòng "đang nhập…"), MessageBubble (ảnh → ImageLightbox; cột phải ghi người gửi + giờ, gõ tin ở đó = trả lời kèm đúng ảnh đang xem), ChatComposer (đính kèm ≤4 ảnh qua POST /uploads, báo typing ≤1 lần/2,5s)
 │   └── sections/                      # Khối giao diện theo trang
 ├── constants/index.ts                 # CATEGORIES, PROVINCES (re-export), FEATURED_CITIES (lưới trang chủ), SORT_OPTIONS, NO_IMAGE
 ├── constants/vietnam-territory.json  # đường bao lãnh thổ VN gồm Hoàng Sa, Trường Sa (TỰ SINH bởi yarn geo:territory)
@@ -196,7 +196,7 @@ src/
 | `/tim-kiem`             | Server        | `GET /listings` từ searchParams: `keyword, city, ward, transaction, category, minPrice, maxPrice (triệu), minArea, maxArea, bedrooms, amenities (wifi,parking), sort, page`. Khu vực: `city` (1 trong 34 tỉnh) + `ward` (phường/xã, khớp chính xác). Nút "Lưu tìm kiếm" → `POST/DELETE /users/me/saved-searches` |
 | `/phong-tro/[id]`       | Server        | `GET /listings/:id`, tin tương tự, tin khác của người đăng |
 | `/nguoi-dung/[id]`      | Server        | `GET /users/:id`, `GET /listings?authorId=`, `GET /reviews?userId=`; client: `GET /reviews/mine`, `PUT/DELETE /reviews` |
-| `/dang-nhap`            | Client        | `POST /auth/verify-phone` hoặc `/auth/dev-login`      |
+| `/dang-nhap`            | Client        | `POST /auth/verify-phone` hoặc `/auth/dev-login`; `GET /pages` → dòng "Bằng việc tiếp tục, bạn đồng ý với…" link các trang chính sách đã đăng |
 | `/ca-nhan` 🔒           | Client        | store user, `GET /listings/mine`, `PATCH /users/me`; "Dữ liệu & tài khoản" (`AccountSection`): `GET /users/me/export` → file JSON, `DELETE /users/me` (gõ "XOA TAI KHOAN") → đăng xuất |
 | `/kenh-nguoi-dang` 🔒   | Client        | `GET /listings/mine` + `GET /products/mine` → lời chào, số liệu, tin xem nhiều nhất, "Cần chú ý" (tin hết hạn / còn ≤ 7 ngày / chờ duyệt), tóm tắt đồ bán Chợ ơi. bản đồ các tin có vị trí (`address.geo`). Khung toàn màn hình (DashboardShell), sidebar có thẻ người dùng |
 | `/tin-nhan` 🔒          | Client        | `GET /conversations`, `POST /conversations` (mở theo `?listingId=` hoặc `?productId=`, `?text=` điền sẵn), `GET /conversations/:id/messages`; gửi/nhận/đã đọc qua Socket.IO `/chat` |
@@ -338,7 +338,7 @@ Web dùng qua `transpilePackages: ['@tro-oi/shared']`; package trỏ thẳng `sr
 
 ## Chưa làm (backlog)
 
-- Tin tức, việc làm, khảo sát: mới có type ở shared.
+- Tin tức, việc làm: mới có type ở shared. (Khảo sát: quyết định không làm — type `survey.ts` còn để lại, không phát triển.)
 - Báo tin mới khớp tìm kiếm đã lưu so khớp từng tìm kiếm bằng JS (không dùng index) — rất nhiều user cần lưu bộ lọc có cấu trúc để query thẳng Mongo. Tìm kiếm đã lưu dạng cũ có `district=` bị bỏ qua tham số đó.
 - Ứng dụng mobile / link tải app.
 - Đăng nhập Google/Facebook (nút hiển thị nhưng chưa nối).
@@ -347,9 +347,10 @@ Web dùng qua `transpilePackages: ['@tro-oi/shared']`; package trỏ thẳng `sr
 - Email gửi mọi thông báo khi người dùng có email và bật (kể cả "tin mới khớp tìm kiếm") — nhiều thì cần gom thành bản tin ngày. Chưa có link huỷ nhận 1 chạm trong email.
 - Tự xoá tài khoản chưa xoá file ảnh đã upload (ổ đĩa / S3) — cần job dọn ảnh không còn tham chiếu. Tải dữ liệu gom trong 1 request (tài khoản rất nhiều tin nhắn → job nền + link tải). Admin vẫn thấy tài khoản đã xoá trong danh sách người dùng (tên "Người dùng đã xoá", SĐT `deleted:<id>`).
 - Xoá đánh giá vi phạm chỉ qua trang báo cáo / hồ sơ; chưa có hàng đợi kiểm duyệt đánh giá trước khi hiện.
-- Video tin đăng chỉ nhận link YouTube (chưa upload file video), Chợ ơi chưa có video.
+- Video tin đăng chỉ nhận link YouTube (chưa upload file video). Chợ ơi không có video (quyết định không làm).
 - Lịch sử xem tin chỉ lưu trên trình duyệt (localStorage), không đồng bộ theo tài khoản.
 - Bản đồ quản trị tối đa 5000 điểm mới nhất mỗi nguồn (`MAP_LIMIT`). Món Chợ ơi đăng trước khi có ô ghim vị trí không có toạ độ → không lên bản đồ tới khi người bán sửa và ghim (seed mới đã có toạ độ).
 - Địa chỉ cũ không tự xác định được phường (vd quận cũ tách thành nhiều phường như "Quận 1") cần chủ tin sửa tay; API chưa kiểm tra `ward` thuộc đúng tỉnh.
 - Redis adapter và lưu S3 mới test bằng mock/unit test, chưa chạy với Redis/S3 thật.
-- Trang chính sách: hạ tầng xong, **nội dung cần người có chuyên môn pháp lý rà soát** rồi admin đăng ở `/quan-tri/trang-chinh-sach`. Đăng nhập chưa có dòng "đồng ý điều khoản".
+- API chưa giới hạn tần suất gọi (rate limit) và chưa có header bảo mật (helmet). Chưa có CI; web chưa có test tự động, test e2e API chỉ kiểm tra `GET /settings`.
+- Trang chính sách: mẫu `policyTemplates.ts` đã điền đủ (mô tả đúng hệ thống + cam kết chung theo pháp luật VN, ngày hiệu lực = ngày chèn, liên hệ lấy từ thiết lập) và đã đăng ở DB dev. **Chưa có tên / địa chỉ đơn vị vận hành**; nên nhờ người có chuyên môn pháp lý rà soát trước khi vận hành chính thức. Website rao vặt / sàn kết nối có thể thuộc diện phải thông báo hoặc đăng ký với Bộ Công Thương (thương mại điện tử) — cần xác minh.

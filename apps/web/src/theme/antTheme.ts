@@ -709,5 +709,12 @@ export const theme: ThemeConfig = {
 
       colorLinkHover: "#0F8F8C",
     },
+
+    // ----------------------------------------
+    // Rate — sao chưa chọn mặc định lấy colorFillContent (xanh rất nhạt) → gần như vô hình trên nền trắng
+    // ----------------------------------------
+    Rate: {
+      starBg: "#d6dede",
+    },
   },
 };

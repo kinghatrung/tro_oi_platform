@@ -9,6 +9,7 @@ import { getAdminPage, updateAdminPage } from '@/api/admin';
 import { useSiteSettings } from '@/app/providers';
 import { FormPageLayout } from '@/components/admin';
 import { POLICY_TEMPLATES } from '@/lib/constants/policyTemplates';
+import { formatVietnamDate } from '@/utils/helpers';
 
 const PAGE_OPTIONS = [
   { value: PageSlug.TERMS, label: 'Điều khoản sử dụng' },
@@ -115,6 +116,8 @@ export default function AdminPolicyPagesPage() {
         content: POLICY_TEMPLATES[slug]({
           siteName: settings.siteName,
           contactEmail: settings.contactEmail,
+          contactPhone: settings.contactPhone,
+          effectiveDate: formatVietnamDate(Date.now()),
         }),
       });
       syncDraft(); // setFieldsValue không kích hoạt onValuesChange
@@ -208,8 +211,8 @@ export default function AdminPolicyPagesPage() {
           type="warning"
           showIcon
           className="mb-4!"
-          title="Bản nháp mẫu không phải văn bản pháp lý"
-          description="Bản nháp chỉ mô tả đúng cách website đang hoạt động (dữ liệu thu thập, cookie, dịch vụ bên thứ ba, thời hạn lưu). Hãy nhờ người có chuyên môn pháp lý rà soát và điền các mục [[...]] trước khi đăng — hệ thống không cho đăng khi còn mục chưa điền."
+          title="Nên rà soát pháp lý trước khi vận hành chính thức"
+          description="Bản mẫu mô tả đúng cách website đang hoạt động (dữ liệu thu thập, cookie, dịch vụ bên thứ ba, thời hạn lưu) và các cam kết chung theo pháp luật Việt Nam, nhưng chưa có tên / địa chỉ đơn vị vận hành. Hãy bổ sung và nhờ người có chuyên môn pháp lý rà soát. Có thể thêm ô [[...]] để đánh dấu chỗ cần điền — hệ thống không cho đăng khi còn ô chưa điền."
         />
         <Form form={form} layout="vertical" onFinish={handleSubmit} onValuesChange={syncDraft}>
           <Form.Item

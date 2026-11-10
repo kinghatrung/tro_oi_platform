@@ -118,7 +118,7 @@ export function ProfileReviews({ userId, initial }: ProfileReviewsProps) {
           form={form}
           layout="vertical"
           onFinish={handleSubmit}
-          className="mb-6 rounded-lg bg-soft p-4"
+          className="mb-6 rounded-lg border border-line p-4!"
         >
           <p className="mb-2 font-semibold text-ink">
             {mine.review ? 'Đánh giá của bạn' : 'Viết đánh giá'}
@@ -128,9 +128,9 @@ export function ProfileReviews({ userId, initial }: ProfileReviewsProps) {
             rules={[{ required: true, message: 'Chọn số sao' }]}
             className="mb-2!"
           >
-            <Rate />
+            <Rate className="text-2xl!" />
           </Form.Item>
-          <Form.Item name="comment" className="mb-3!">
+          <Form.Item name="comment" className="mb-7!">
             <Input.TextArea
               maxLength={1000}
               showCount

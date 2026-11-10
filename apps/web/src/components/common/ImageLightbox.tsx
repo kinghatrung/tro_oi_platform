@@ -67,8 +67,10 @@ export interface ImageLightboxProps {
   isLiked?: boolean;
   /** Triggered when user clicks the favorite button */
   onLikeToggle?: (isLiked: boolean) => void;
-  /** Triggered when user sends a message or selects a question chip */
-  onSendMessage?: (message: string) => void;
+  /** Gửi tin / bấm câu hỏi mẫu — kèm vị trí ảnh đang xem (chat dùng để trả lời đúng ảnh) */
+  onSendMessage?: (message: string, imageIndex: number) => void;
+  /** Placeholder ô nhắn tin (mặc định cho trang tin đăng). */
+  messagePlaceholder?: string;
   /** Triggered on share action */
   onShare?: () => void;
   /** Triggered on report action */
@@ -124,6 +126,7 @@ export function ImageLightbox({
   isLiked: isLikedProp = false,
   onLikeToggle,
   onSendMessage,
+  messagePlaceholder = 'Nhắn tin hỏi mua hàng...',
   onShare,
   onReport,
   onHelp,
@@ -282,7 +285,7 @@ export function ImageLightbox({
   const handleSendMessage = (textToSend?: string) => {
     const content = textToSend || messageInput.trim();
     if (!content) return;
-    onSendMessage?.(content);
+    onSendMessage?.(content, currentIndex);
     if (!textToSend) setMessageInput('');
   };
 
@@ -465,7 +468,7 @@ export function ImageLightbox({
           )}
 
           {/* LISTING TITLE & HEART */}
-          {(propertyTitle || isLiked !== undefined) && (
+          {(propertyTitle || onLikeToggle) && (
             <div className="flex flex-col gap-1">
               <div className="flex items-start justify-between gap-3">
                 {propertyTitle && (
@@ -473,16 +476,18 @@ export function ImageLightbox({
                     {propertyTitle}
                   </p>
                 )}
-                <button
-                  onClick={handleLikeClick}
-                  aria-label="Yêu thích"
-                  className="p-2 rounded-full hover:bg-gray-100 text-subtle transition-colors shrink-0 cursor-pointer"
-                >
-                  <Heart
-                    size={22}
-                    className={isLiked ? 'fill-red-500 text-red-500' : 'text-subtle'}
-                  />
-                </button>
+                {onLikeToggle && (
+                  <button
+                    onClick={handleLikeClick}
+                    aria-label="Yêu thích"
+                    className="p-2 rounded-full hover:bg-gray-100 text-subtle transition-colors shrink-0 cursor-pointer"
+                  >
+                    <Heart
+                      size={22}
+                      className={isLiked ? 'fill-red-500 text-red-500' : 'text-subtle'}
+                    />
+                  </button>
+                )}
               </div>
 
               {/* TAGS / BADGES */}
@@ -544,7 +549,7 @@ export function ImageLightbox({
           <div className="relative flex items-center text-ink bg-[#f7f8f8] rounded-full px-4 py-1 border border-line focus-within:border-brand transition-all">
             <Input
               variant="borderless"
-              placeholder="Nhắn tin hỏi mua hàng..."
+              placeholder={messagePlaceholder}
               value={messageInput}
               onChange={(e) => setMessageInput(e.target.value)}
               onPressEnter={() => handleSendMessage()}

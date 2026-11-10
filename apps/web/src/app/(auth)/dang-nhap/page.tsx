@@ -1,16 +1,17 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { App, Button, Card, Flex, Typography, Divider, Form, Input } from 'antd';
 import { FcGoogle } from 'react-icons/fc';
 import { FaFacebookF } from 'react-icons/fa6';
 import { ChevronLeft } from 'lucide-react';
 import { RecaptchaVerifier, signInWithPhoneNumber, type ConfirmationResult } from 'firebase/auth';
-import type { AuthResponse } from '@tro-oi/shared';
+import type { AuthResponse, PageSummary } from '@tro-oi/shared';
 
 import { devLogin, verifyPhone } from '@/api/auth';
+import { getPublishedPages } from '@/api/pages';
 import { FloatingInput } from '@/components/common';
 import { getFirebaseAuth } from '@/lib/firebase';
 import { useAuthStore } from '@/stores/useAuthStore';
@@ -46,7 +47,14 @@ function SignInPage() {
   const redirectTo = safeRedirect(useSearchParams().get('redirect'));
   const { message } = App.useApp();
   const login = useAuthStore((state) => state.login);
-  const { contactEmail } = useSiteSettings();
+  const { contactEmail, siteName } = useSiteSettings();
+  // Chỉ nhắc tới trang chính sách đã đăng (chưa đăng → 404), như chân trang
+  const [policyPages, setPolicyPages] = useState<PageSummary[]>([]);
+  useEffect(() => {
+    getPublishedPages()
+      .then(setPolicyPages)
+      .catch(() => undefined);
+  }, []);
   const [form] = Form.useForm<{ phone: string; otp?: string }>();
   const [step, setStep] = useState<LoginStep>('phone');
   const [isLoading, setIsLoading] = useState(false);
@@ -193,6 +201,21 @@ function SignInPage() {
           </Flex>
         </Form>
         <div id="recaptcha-container" />
+
+        {policyPages.length > 0 && (
+          <p className="mt-4 text-center text-xs text-subtle">
+            Bằng việc tiếp tục, bạn đồng ý với{' '}
+            {policyPages.map((page, index) => (
+              <Fragment key={page.slug}>
+                {index > 0 && ' và '}
+                <Link href={`/${page.slug}`} target="_blank" className="font-semibold">
+                  {page.title}
+                </Link>
+              </Fragment>
+            ))}{' '}
+            của {siteName}.
+          </p>
+        )}
 
         <Flex justify="space-between" align="center" className="mt-10!">
           <a href={`mailto:${contactEmail}`}>Liên hệ hỗ trợ</a>

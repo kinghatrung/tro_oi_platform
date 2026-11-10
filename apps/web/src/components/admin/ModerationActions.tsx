@@ -34,7 +34,7 @@ export function ModerationActions({
       cancelText: 'Huỷ',
       okButtonProps: { danger: true },
       content: (
-        <div className="mt-2 flex flex-col gap-1.5">
+        <div className="mt-2 mb-6 flex flex-col gap-1.5">
           <label htmlFor="moderation-note" className="text-sm text-body">
             Lý do (gửi kèm thông báo cho người đăng)
           </label>

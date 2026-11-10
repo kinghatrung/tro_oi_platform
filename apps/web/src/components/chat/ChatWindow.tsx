@@ -89,7 +89,7 @@ export function ChatWindow({
   return (
     <Flex vertical className="h-full">
       {/* Người nhận */}
-      <Flex align="center" gap={12} className="border-b border-line px-3 py-2">
+      <Flex align="center" gap={12} className="border-b border-line px-4! py-3!">
         {onBack && (
           <Button
             type="text"
@@ -113,14 +113,14 @@ export function ChatWindow({
       {/* Tin đăng đang trao đổi */}
       <Link
         href={listing.id ? targetHref(listing) : '#'}
-        className="flex items-center gap-3 border-b border-line bg-soft px-3 py-2"
+        className="flex items-center gap-3 border-b border-line bg-soft px-4 py-3"
       >
-        <div className="relative h-10 w-12 shrink-0 overflow-hidden rounded">
+        <div className="relative h-11 w-14 shrink-0 overflow-hidden rounded-lg">
           <Image
             src={listing.image || NO_IMAGE}
             alt=""
             fill
-            sizes="48px"
+            sizes="56px"
             className="object-cover"
           />
         </div>
@@ -164,7 +164,12 @@ export function ChatWindow({
                       {dayLabel(message.createdAt)}
                     </Divider>
                   )}
-                  <MessageBubble message={message} isMine={message.senderId === currentUserId} />
+                  <MessageBubble
+                    message={message}
+                    isMine={message.senderId === currentUserId}
+                    senderName={message.senderId === currentUserId ? 'bạn' : otherUser.name}
+                    onReplyImage={(content, imageUrl) => onSend(content, [imageUrl])}
+                  />
                 </Fragment>
               );
             })}
