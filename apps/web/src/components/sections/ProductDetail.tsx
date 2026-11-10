@@ -1,7 +1,7 @@
 'use client';
 
 import clsx from 'clsx';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { App, Button, Card, Descriptions, Flex, Image, Tag } from 'antd';
 import { Clock, Eye, Flag, Heart, Link2, MapPin } from 'lucide-react';
@@ -16,6 +16,7 @@ import { ReportModal } from '@/components/common';
 import { NO_IMAGE } from '@/constants';
 import { useSaveToggle } from '@/hooks/useSaveToggle';
 import { CONDITION_TAG_COLORS } from '@/lib/constants/constantsProduct';
+import { recordProductView } from '@/lib/viewHistory';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { formatRelativeTime, formatVietnameseCurrency } from '@/utils/helpers';
 
@@ -38,6 +39,10 @@ export function ProductDetail({ product }: { product: ProductItem }) {
   const location = [product.address?.ward ?? product.address?.district, product.address?.city]
     .filter(Boolean)
     .join(', ');
+
+  useEffect(() => {
+    recordProductView(product); // "Đồ bạn đã xem" ở trang Chợ ơi
+  }, [product]);
 
   const handleCopyLink = useCallback(async () => {
     try {

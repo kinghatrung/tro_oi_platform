@@ -298,7 +298,7 @@ export function PropertyOverview({ listing, similarListings = [] }: PropertyOver
           <div
             ref={scrollRef}
             onScroll={checkScrollPosition}
-            className="flex gap-2 overflow-x-auto scroll-smooth [scrollbar-width:none]"
+            className="flex gap-2 overflow-x-auto scroll-smooth no-scrollbar"
           >
             {images.map((src, i) => (
               <div

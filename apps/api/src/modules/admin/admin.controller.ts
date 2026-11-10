@@ -68,6 +68,12 @@ export class AdminController {
     return this.adminService.listListings(query);
   }
 
+  /** Tin có toạ độ cho bản đồ quản trị (lọc như /admin/listings, không phân trang). */
+  @Get('listings/map')
+  listingMap(@Query() query: AdminListingQueryDto) {
+    return this.adminService.listingMap(query);
+  }
+
   @Get('products')
   listProducts(@Query() query: AdminProductQueryDto) {
     return this.adminService.listProducts(query);

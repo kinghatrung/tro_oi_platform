@@ -9,6 +9,7 @@ import dynamic from 'next/dynamic';
 export const VietnamMap = dynamic(() => import('./VietnamMap').then((mod) => mod.VietnamMap), {
   ssr: false,
 });
+export type { MapMarker } from './VietnamMap';
 
 export * from './FloatingInput';
 export * from './CardItem';

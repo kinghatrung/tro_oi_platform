@@ -34,8 +34,18 @@ import type {
   AdminUpdateUserDto,
   AdminUserQueryDto,
 } from './admin.dto.js';
+import {
+  buildDailySeries,
+  dailyCountPipeline,
+  dailyWindowStart,
+  DAILY_DAYS,
+} from './admin.stats.js';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+/** Số tỉnh trong "tỉnh có nhiều tin nhất". */
+const TOP_CITY_COUNT = 6;
+/** Số tin tối đa trả cho bản đồ quản trị. */
+const MAP_LIMIT = 5000;
 
 const REPORT_ACTIONS: Record<UpdateReportDto['status'], string> = {
   resolved: 'Xử lý báo cáo',
@@ -61,32 +71,90 @@ export class AdminService {
   ) {}
 
   async stats() {
-    const groupByStatus = [{ $group: { _id: '$status', count: { $sum: 1 } } }];
-    const [users, blocked, newUsers, listingRows, productRows, openReports] =
-      await Promise.all([
-        this.userModel.countDocuments().exec(),
-        this.userModel.countDocuments({ isBlocked: true }).exec(),
-        this.userModel
-          .countDocuments({
-            createdAt: { $gte: new Date(Date.now() - 7 * DAY_MS) },
-          })
-          .exec(),
-        this.listingModel
-          .aggregate<{ _id: string; count: number }>(groupByStatus)
-          .exec(),
-        this.productModel
-          .aggregate<{ _id: string; count: number }>(groupByStatus)
-          .exec(),
-        this.reportService.countOpen(),
-      ]);
+    const now = new Date();
+    const since = dailyWindowStart(now, DAILY_DAYS);
+    const groupBy = (field: string) => [
+      { $group: { _id: `$${field}`, count: { $sum: 1 } } },
+    ];
+    const sumViews = [{ $group: { _id: null, views: { $sum: '$viewCount' } } }];
+    type CountRow = { _id: string; count: number };
+
+    const [
+      users,
+      blocked,
+      newUsers,
+      userRoleRows,
+      listingRows,
+      listingCategoryRows,
+      listingCityRows,
+      listingViews,
+      productRows,
+      productCategoryRows,
+      productViews,
+      dailyUsers,
+      dailyListings,
+      dailyProducts,
+      openReports,
+    ] = await Promise.all([
+      this.userModel.countDocuments().exec(),
+      this.userModel.countDocuments({ isBlocked: true }).exec(),
+      this.userModel
+        .countDocuments({
+          createdAt: { $gte: new Date(now.getTime() - 7 * DAY_MS) },
+        })
+        .exec(),
+      this.userModel.aggregate<CountRow>(groupBy('role')).exec(),
+      this.listingModel.aggregate<CountRow>(groupBy('status')).exec(),
+      this.listingModel.aggregate<CountRow>(groupBy('category')).exec(),
+      // Tỉnh có nhiều tin đang hiển thị nhất
+      this.listingModel
+        .aggregate<CountRow>([
+          { $match: { status: 'active' } },
+          ...groupBy('address.city'),
+          { $sort: { count: -1 } },
+          { $limit: TOP_CITY_COUNT },
+        ])
+        .exec(),
+      this.listingModel.aggregate<{ views: number }>(sumViews).exec(),
+      this.productModel.aggregate<CountRow>(groupBy('status')).exec(),
+      this.productModel.aggregate<CountRow>(groupBy('category')).exec(),
+      this.productModel.aggregate<{ views: number }>(sumViews).exec(),
+      this.userModel.aggregate<CountRow>(dailyCountPipeline(since)).exec(),
+      this.listingModel.aggregate<CountRow>(dailyCountPipeline(since)).exec(),
+      this.productModel.aggregate<CountRow>(dailyCountPipeline(since)).exec(),
+      this.reportService.countOpen(),
+    ]);
     const sum = (rows: { count: number }[]) =>
       rows.reduce((total, row) => total + row.count, 0);
 
     return {
-      users: { total: users, blocked, newLast7Days: newUsers },
-      listings: { total: sum(listingRows), byStatus: toStatusMap(listingRows) },
-      products: { total: sum(productRows), byStatus: toStatusMap(productRows) },
+      users: {
+        total: users,
+        blocked,
+        newLast7Days: newUsers,
+        byRole: toStatusMap(userRoleRows),
+      },
+      listings: {
+        total: sum(listingRows),
+        byStatus: toStatusMap(listingRows),
+        byCategory: toStatusMap(listingCategoryRows),
+        topCities: listingCityRows
+          .filter((row) => row._id)
+          .map((row) => ({ city: row._id, count: row.count })),
+        views: listingViews[0]?.views ?? 0,
+      },
+      products: {
+        total: sum(productRows),
+        byStatus: toStatusMap(productRows),
+        byCategory: toStatusMap(productCategoryRows),
+        views: productViews[0]?.views ?? 0,
+      },
       reports: { open: openReports },
+      daily: buildDailySeries(now, DAILY_DAYS, {
+        users: dailyUsers,
+        listings: dailyListings,
+        products: dailyProducts,
+      }),
     };
   }
 
@@ -222,6 +290,39 @@ export class AdminService {
       page: query.page,
       pageSize: query.pageSize,
     };
+  }
+
+  /**
+   * Điểm trên bản đồ quản trị: tin có toạ độ, lọc như listListings nhưng không phân trang,
+   * chỉ trả trường cần vẽ ghim.
+   */
+  async listingMap(query: AdminListingQueryDto) {
+    const { filter } = buildListingQuery(query);
+    if (query.status) filter.status = query.status;
+    else delete filter.status;
+    filter['address.geo.latitude'] = { $exists: true };
+
+    // shortcut: tối đa MAP_LIMIT tin mới nhất; nhiều hơn thì chuyển sang tile vector / lọc theo khung nhìn
+    const docs = await this.listingModel
+      .find(filter)
+      .sort({ createdAt: -1 })
+      .limit(MAP_LIMIT)
+      .select(
+        'title price transaction status category address.city address.ward address.geo',
+      )
+      .lean()
+      .exec();
+    return docs.map((doc) => ({
+      id: String(doc._id),
+      title: doc.title,
+      price: doc.price,
+      transaction: doc.transaction,
+      status: doc.status,
+      category: doc.category,
+      city: doc.address?.city,
+      ward: doc.address?.ward,
+      geo: doc.address!.geo!,
+    }));
   }
 
   /** Tin Chợ ơi mọi trạng thái. */

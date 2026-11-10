@@ -12,6 +12,15 @@ export const PRODUCT_CATEGORIES = [
   'appliance',
   'vehicle',
   'study',
+  'kitchen',
+  'fashion',
+  'decor',
+  'sport',
+  'hobby',
+  'toy',
+  'baby',
+  'beauty',
+  'pet',
   'other',
 ] as const;
 export const PRODUCT_CONDITIONS = ['new', 'like-new', 'good', 'fair'] as const;

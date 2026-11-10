@@ -1,5 +1,6 @@
 import type {
   AdminListingQuery,
+  ListingMapPoint,
   AdminPage,
   AdminProductQuery,
   AdminReportQuery,
@@ -44,6 +45,14 @@ export async function updateAdminUser(id: string, body: AdminUpdateUserRequest) 
 export async function searchAdminListings(params: AdminListingQuery) {
   const res = (await axiosClient.get('/admin/listings', { params })) as ApiResponse<
     PagedResponse<Listing>
+  >;
+  return res.data;
+}
+
+/** Tin có toạ độ cho bản đồ quản trị (bỏ qua page/pageSize). */
+export async function getAdminListingMap(params: AdminListingQuery) {
+  const res = (await axiosClient.get('/admin/listings/map', { params })) as ApiResponse<
+    ListingMapPoint[]
   >;
   return res.data;
 }

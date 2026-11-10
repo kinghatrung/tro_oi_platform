@@ -112,7 +112,7 @@ src/
 ├── app/
 │   ├── layout.tsx                     # đọc thiết lập website + cookie theme → metadata, data-theme, --brand
 │   ├── providers.tsx                  # Client: SiteSettings context (useSiteSettings), theme (useThemeMode), ConfigProvider
-│   ├── not-found.tsx, error.tsx       # trang 404 (có header/footer) và trang lỗi (nút Thử lại)
+│   ├── not-found.tsx, error.tsx       # trang 404 (có header/footer) và trang lỗi "cúp điện" (SVG động — keyframes error-swing/flicker trong globals.css; nút Thử lại gọi `retry()` để fetch lại, mã lỗi digest + email liên hệ)
 │   ├── page.tsx                       # Trang chủ (server, fetch listings + stats)
 │   ├── (auth)/dang-nhap/              # Đăng nhập OTP (Firebase) / dev-login
 │   ├── (chat)/tin-nhan/               # Chat (UI): layout riêng chỉ có header, full màn hình, không cuộn trang;
@@ -129,19 +129,21 @@ src/
 │           ├── yeu-thich/             # Đã lưu: tab Tin Trọ ơi + Đồ Chợ ơi + Tìm kiếm
 │           ├── thong-bao/             # Tất cả thông báo (phân trang), đánh dấu đã đọc
 │           ├── dang-tin/              # Đăng / sửa tin (?id=): 6 bước (Hình ảnh có link video YouTube; Vị trí: tỉnh → phường/xã + GeoField ghim bản đồ) + PostSidebar (xem trước, checklist), CategoryPicker
-│           ├── cho-oi/dang-ban/       # Đăng / sửa món đồ Chợ ơi (?id=)
-│           └── kenh-nguoi-dang/       # Kênh người đăng: layout sidebar (SellerSidebar)
-│               ├── page.tsx           #   Tổng quan: thống kê tin/lượt xem/lượt lưu, top tin
-│               ├── tin-dang/          #   Quản lý tin: bảng lọc (cả Chờ duyệt)/tìm/sắp xếp, cột Hết hạn, sửa/ẩn/gia hạn/xoá
-│               ├── do-ban/            #   Đồ đang bán (Chợ ơi): đã bán, ẩn/hiện, sửa, xoá
-│               ├── useMyListings.ts   #   hook dùng chung: GET /listings/mine + ẩn/hiện/xoá
-│               └── const.tsx          #   menu sidebar, màu Tag theo trạng thái
+│           └── cho-oi/dang-ban/       # Đăng / sửa món đồ Chợ ơi (?id=)
+│   └── (seller)/kenh-nguoi-dang/      # Kênh người đăng toàn màn hình (cần đăng nhập, chặn ở src/proxy.ts), layout force-dynamic
+│       ├── SellerShell.tsx            #   DashboardShell + thẻ người dùng đầu sidebar
+│       ├── page.tsx                   #   Tổng quan: lời chào, số liệu, bản đồ tin đăng (VietnamMap markers), tin xem nhiều nhất, Cần chú ý, đồ bán Chợ ơi
+│       ├── tin-dang/                  #   Quản lý tin: bảng lọc (cả Chờ duyệt)/tìm/sắp xếp, cột Hiệu quả + Thời hạn, sửa/ẩn/gia hạn/xoá
+│       ├── do-ban/                    #   Đồ đang bán (Chợ ơi): đã bán, ẩn/hiện, sửa, xoá
+│       ├── useMyListings.ts           #   hook dùng chung: GET /listings/mine + ẩn/hiện/xoá
+│       └── const.tsx                  #   menu sidebar, màu Tag theo trạng thái
 │   └── (admin)/quan-tri/              # Trang quản trị toàn màn hình, chỉ admin (UI dùng chung ở components/admin)
-│       ├── AdminShell.tsx             #   Khung: Sider 256/72px thu gọn được (≥ xl), Drawer (< xl), AdminTopBar + breadcrumb
+│       ├── AdminShell.tsx             #   Chặn không phải admin, rồi DashboardShell (components/admin/layout)
 │       ├── const.tsx                  #   ADMIN_MENU (key = URL), ADMIN_BASE
-│       ├── page.tsx                   #   Tổng quan (GET /admin/stats): StatCards + StatusBreakdown
+│       ├── page.tsx                   #   Tổng quan (GET /admin/stats): chọn kỳ 7/30/90 ngày, việc cần xử lý (chờ duyệt, báo cáo), 4 thẻ số liệu + sparkline, biểu đồ hoạt động theo ngày (xem dạng bảng được), cơ cấu: vai trò (thanh phân đoạn), trạng thái tin (thanh mảnh + danh sách có icon, màu trạng thái), loại hình / danh mục (cột), tỉnh (lollipop nhấn tỉnh đứng đầu)
 │       ├── nguoi-dung/                #   Người dùng: FilterBar (từ khoá + lọc nâng cao vai trò/trạng thái), UserFormDrawer sửa vai trò/khoá
 │       ├── tin-tro/, tin-cho/         #   Duyệt / ẩn / xoá tin Trọ ơi, Chợ ơi (ModerationActions)
+│       ├── ban-do/                    #   Bản đồ tin Trọ ơi (GET /admin/listings/map): lọc trạng thái / loại hình / tỉnh, ghim gom cụm
 │       ├── bao-cao/                   #   Báo cáo vi phạm: ẩn tin + đóng báo cáo / bỏ qua
 │       ├── nhat-ky/                   #   Nhật ký thao tác admin (lọc nhanh theo loại đối tượng)
 │       ├── trang-chinh-sach/          #   Soạn & đăng Điều khoản / Chính sách bảo mật (chèn bản nháp mẫu, chặn đăng khi còn [[...]];
@@ -156,7 +158,7 @@ src/
 ├── stores/useNotificationStore.ts     # số chưa đọc + thông báo mới nhất (chuông), markRead/markAllRead dùng chung với /thong-bao
 ├── hooks/useSaveToggle.ts             # handler nút Lưu (tin, món đồ, tìm kiếm): chưa đăng nhập → /dang-nhap, lỗi → toast
 ├── lib/youtube.ts                     # YOUTUBE_URL_PATTERN (trùng api) + youtubeEmbedUrl(): link → iframe youtube-nocookie
-├── lib/viewHistory.ts                 # lịch sử xem tin (localStorage, 15 tin): recordView() ở trang chi tiết, readViewHistory() cho trang chủ
+├── lib/viewHistory.ts                 # lịch sử đã xem (localStorage, 15 mục): recordView()/readViewHistory() cho tin Trọ ơi, recordProductView()/readProductHistory() cho món Chợ ơi
 ├── components/
 │   ├── layout/                        # Header (banner: trang chủ, Chợ ơi), SubHeader, Navbar (+ NotificationBell: hỏi số chưa đọc mỗi 60s; MessagesButton: mở socket chat, badge tin nhắn), Container, Footer
 │   ├── common/                        # UI thuần dùng lại (xem bảng dưới)
@@ -189,13 +191,13 @@ src/
 | `/nguoi-dung/[id]`      | Server        | `GET /users/:id`, `GET /listings?authorId=`, `GET /reviews?userId=`; client: `GET /reviews/mine`, `PUT/DELETE /reviews` |
 | `/dang-nhap`            | Client        | `POST /auth/verify-phone` hoặc `/auth/dev-login`      |
 | `/ca-nhan` 🔒           | Client        | store user, `GET /listings/mine`, `PATCH /users/me` |
-| `/kenh-nguoi-dang` 🔒   | Client        | `GET /listings/mine` → thống kê                      |
+| `/kenh-nguoi-dang` 🔒   | Client        | `GET /listings/mine` + `GET /products/mine` → lời chào, số liệu, tin xem nhiều nhất, "Cần chú ý" (tin hết hạn / còn ≤ 7 ngày / chờ duyệt), tóm tắt đồ bán Chợ ơi. bản đồ các tin có vị trí (`address.geo`). Khung toàn màn hình (DashboardShell), sidebar có thẻ người dùng |
 | `/tin-nhan` 🔒          | Client        | `GET /conversations`, `POST /conversations` (mở theo `?listingId=` hoặc `?productId=`, `?text=` điền sẵn), `GET /conversations/:id/messages`; gửi/nhận/đã đọc qua Socket.IO `/chat` |
 | `/kenh-nguoi-dang/tin-dang` 🔒 | Client | `GET /listings/mine`, `PATCH/DELETE /listings/:id` |
 | `/yeu-thich` 🔒         | Client        | store favorites + favoriteProducts + savedSearches (`GET /users/me/favorites`, `/favorite-products`, `/saved-searches`) |
 | `/thong-bao` 🔒         | Client        | `GET /notifications`, `PATCH /notifications/:id/read`, `/read-all` |
 | `/dang-tin` 🔒          | Client        | `POST /uploads`, `POST /listings`, `PATCH /listings/:id` |
-| `/cho-oi`               | Server        | `GET /products` từ searchParams: `keyword, category, condition, city, ward, price (khoảng), sort, page`. Tắt Chợ ơi → trang báo tạm đóng |
+| `/cho-oi`               | Server        | Bố cục như trang chủ Trọ ơi: dải danh mục icon 3D (`public/images/cho-oi/<category>.png`, Fluent Emoji — MIT; tràn khung → nút mũi tên cuộn) → "Đồ bạn đã xem" (localStorage) → tab "Dành cho bạn" (client: danh mục xem nhiều nhất + đồ mới) / "Mới nhất" (`GET /products` từ searchParams: `keyword, category, condition, city, ward, price (khoảng, `cho-tang` = 0đ), sort, page` + ô lọc tình trạng/giá/sắp xếp). Có query → mở sẵn tab "Mới nhất". Tắt Chợ ơi → trang báo tạm đóng |
 | `/dieu-khoan-su-dung`, `/chinh-sach-bao-mat` | Server | `GET /pages/:slug` (404 → notFound). Chân trang lấy link từ `GET /pages` |
 | `/cho-oi/[id]`          | Server        | `GET /products/:id`, đồ tương tự; nút "Chat với người đăng" → `/tin-nhan?productId=` |
 | `/cho-oi/dang-ban` 🔒   | Client        | `POST /uploads`, `POST/PATCH /products`               |
@@ -211,17 +213,17 @@ Breadcrumb (`BreadcrumbItem`) tự sinh từ URL theo `ROUTE_LABELS` — thêm r
 | Component          | Vai trò                                                                 |
 | ------------------ | ----------------------------------------------------------------------- |
 | `CardItem`         | Thẻ tin đăng (`listing: Listing`, `column` = dạng hàng ngang), nút Lưu nối store |
-| `CarouselItem`     | Carousel thẻ tin, 5 thẻ / slide                                          |
+| `CarouselItem`     | Carousel 5 thẻ / slide; `renderItem` vẽ thẻ (CardItem hoặc ProductCard)  |
 | `SearchResultsList`| Toolbar sort + view mode (list/grid) + danh sách + phân trang URL       |
 | `HeaderToolbar`    | Sort dropdown + toggle list/grid                                         |
 | `PaginationControl`| Phân trang đồng bộ `?page=`                                              |
 | `AreaPicker`       | Popup chọn tỉnh/thành + quận → điều hướng `/tim-kiem`                    |
 | `ButtonDropdown`, `CardDropdown` | Nút mở dropdown / khung popup có header-footer             |
 | `FloatingInput`    | Input label nổi                                                          |
-| `LocationCard`   | Ảnh khu vực                                                              |
-| `VietnamMap`     | Bản đồ duy nhất của web (MapLibre, client-only): `value` = ghim, có `onChange` → bấm/kéo ghim để chọn vị trí. Cao mặc định `h-120` (480px); modal chi tiết tin `75vh`. Style chủ quyền ở `lib/vietnamMapStyle.ts` |
+| `LocationCard`   | Ảnh khu vực + số lượng (`unit`: "tin đăng" / "món đồ"); ghép thành lưới 1 lớn + 4 nhỏ bằng `LocationMosaic` (sections/LocationGrid) |
+| `VietnamMap`     | Bản đồ duy nhất của web (MapLibre, client-only): `value` = ghim, có `onChange` → bấm/kéo ghim để chọn vị trí; `markers` = nhiều ghim chỉ xem: nguồn GeoJSON gom cụm (bấm cụm → phóng to; cụm trùng toạ độ không tách được → popup danh sách), bấm ghim → popup tiêu đề/dòng phụ/link, tự thu phóng vừa hết. Cao mặc định `h-120` (480px); modal chi tiết tin `75vh`. Style chủ quyền ở `lib/vietnamMapStyle.ts` |
 | `ImageLightbox`    | Xem ảnh toàn màn hình + thông tin tin đăng                               |
-| `ProductCard`      | Thẻ món đồ Chợ ơi                                                        |
+| `ProductCard`      | Thẻ món đồ Chợ ơi, cùng kiểu thẻ tin Trọ ơi (thời gian + số ảnh trên ảnh) |
 | `NotificationList` | Danh sách thông báo (icon theo `kind`, chấm = chưa đọc) — chuông Navbar và `/thong-bao` |
 | `ReportModal`      | Báo cáo tin (Trọ ơi/Chợ ơi) → `POST /reports`. Tự gọi API (ngoại lệ có chủ đích) |
 | `ThemeToggle`      | Nút sáng/tối (ẩn khi admin tắt `allowThemeToggle`)                       |
@@ -232,7 +234,8 @@ Breadcrumb (`BreadcrumbItem`) tự sinh từ URL theo `ROUTE_LABELS` — thêm r
 
 | Component | Vai trò |
 | --- | --- |
-| `layout/AdminSidebar` | Logo (thu gọn → favicon) + Menu; dùng chung cho Sider và Drawer |
+| `layout/DashboardShell` | Khung toàn màn hình dùng chung Quản trị + Kênh người đăng: Sider 256/72px thu gọn được (≥ xl), Drawer (< xl), AdminTopBar + breadcrumb; props `base`, `title`, `menu`, `sidebarExtra` |
+| `layout/AdminSidebar` | Logo (thu gọn → favicon) + nhãn `badge` + `extra` (vd thẻ người dùng) + Menu; dùng chung cho Sider và Drawer |
 | `layout/AdminTopBar` | Nút thu gọn/mở sidebar (màn nhỏ: mở Drawer) + breadcrumb | xem website, sáng/tối, menu tài khoản |
 | `PageCard` | Khung trang danh sách, cao đúng bằng Content (trang không cuộn) |
 | `FilterBar` | [từ khoá] [lọc nhanh] … [phễu lọc nâng cao (popover Form, số bộ lọc đang bật)] [Tìm kiếm] [Làm mới] |
@@ -244,7 +247,7 @@ Breadcrumb (`BreadcrumbItem`) tự sinh từ URL theo `ROUTE_LABELS` — thêm r
 | `FormPageLayout` | Trang form dài, cùng bố cục AppDrawer (dùng ở Thiết lập website) |
 | `FormSectionTitle`, `SwitchField` | Tiêu đề nhóm trường; hàng Switch có mô tả |
 | `ImageUrlField`, `ImageListField` | Control Form.Item cho 1 ảnh / danh sách ảnh (tải lên + dán URL) |
-| `StatCards`, `StatusBreakdown` | Thẻ số liệu; thanh tỉ lệ theo trạng thái (trang Tổng quan) |
+| `DashboardCharts` | Biểu đồ SVG tự vẽ cho Tổng quan: `LineChart` (nhiều chuỗi, đường dọc + tooltip theo chuột / phím ←→), `ChartLegend`, `SegmentedBar` (cao: in % trong khối / mảnh), `PartLegend`, `CompositionList` (thanh mảnh + dòng icon/số/%), `ColumnChart`, `Lollipop` (nhấn mục đầu), `Sparkline`. Màu chuỗi `--series-1..4` (+ `--series-4-ink` cho chữ trên khối vàng) và màu trạng thái `--status-good/warning/serious` trong globals.css (đã kiểm tra mù màu, có bộ cho nền tối) |
 
 Trang danh sách mới: `useAdminTable` + `PageCard` > `FilterBar` + `DataTable`; form ngắn → `AppDrawer`, form dài → `FormPageLayout`.
 

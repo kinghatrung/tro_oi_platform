@@ -6,7 +6,7 @@ import { useMemo, useState } from 'react';
 import { Button, Flex, Space, Tabs, type TabsProps } from 'antd';
 import { TransactionType, type Listing, type ListingStat } from '@tro-oi/shared';
 
-import { CarouselItem } from '@/components/common';
+import { CardItem, CarouselItem } from '@/components/common';
 import { CATEGORIES } from '@/constants';
 
 import { LocationGrid } from './LocationGrid';
@@ -66,7 +66,11 @@ export function SectionNews({
         </Flex>
       )}
 
-      {stats ? <Tabs items={tabItems} /> : <CarouselItem items={items} />}
+      {stats ? (
+        <Tabs items={tabItems} />
+      ) : (
+        <CarouselItem items={items} renderItem={(listing) => <CardItem listing={listing} />} />
+      )}
 
       {buttonText && (
         <Link href={buttonHref} className={clsx('mx-auto block w-fit', classButton)}>

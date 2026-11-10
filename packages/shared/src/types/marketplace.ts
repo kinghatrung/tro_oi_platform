@@ -7,6 +7,15 @@ export enum ProductCategory {
   APPLIANCE = 'appliance',
   VEHICLE = 'vehicle',
   STUDY = 'study',
+  KITCHEN = 'kitchen',
+  FASHION = 'fashion',
+  DECOR = 'decor',
+  SPORT = 'sport',
+  HOBBY = 'hobby',
+  TOY = 'toy',
+  BABY = 'baby',
+  BEAUTY = 'beauty',
+  PET = 'pet',
   OTHER = 'other',
 }
 
@@ -17,6 +26,15 @@ export const PRODUCT_CATEGORY_LABELS: Record<ProductCategory, string> = {
   [ProductCategory.APPLIANCE]: 'Đồ gia dụng',
   [ProductCategory.VEHICLE]: 'Xe cộ',
   [ProductCategory.STUDY]: 'Sách & đồ dùng học tập',
+  [ProductCategory.KITCHEN]: 'Đồ bếp',
+  [ProductCategory.FASHION]: 'Thời trang',
+  [ProductCategory.DECOR]: 'Trang trí & cây cảnh',
+  [ProductCategory.SPORT]: 'Thể thao & dã ngoại',
+  [ProductCategory.HOBBY]: 'Nhạc cụ & sở thích',
+  [ProductCategory.TOY]: 'Đồ chơi & game',
+  [ProductCategory.BABY]: 'Mẹ & bé',
+  [ProductCategory.BEAUTY]: 'Làm đẹp',
+  [ProductCategory.PET]: 'Đồ thú cưng',
   [ProductCategory.OTHER]: 'Khác',
 };
 

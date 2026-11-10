@@ -15,12 +15,12 @@ import {
   Tooltip,
   type TableColumnsType,
 } from 'antd';
-import { Eye, EyeOff, Pencil, Plus, RotateCw, Trash2 } from 'lucide-react';
+import { Eye, EyeOff, Heart, Pencil, Plus, RotateCw, Trash2 } from 'lucide-react';
 import { LISTING_STATUS_LABELS, ListingStatus, type Listing } from '@tro-oi/shared';
 
 import { EmptyState, EmptyVariant } from '@/components/common';
 import { NO_IMAGE } from '@/constants';
-import { formatListingPrice, formatRelativeTime } from '@/utils/helpers';
+import { formatListingPrice, formatNumber, formatRelativeTime } from '@/utils/helpers';
 
 import { LISTING_TTL_DAYS, STATUS_TAG_COLORS } from '../const';
 import { useMyListings } from '../useMyListings';
@@ -71,8 +71,10 @@ export default function SellerListingsPage() {
       {
         title: 'Tin đăng',
         key: 'listing',
+        // Rộng cố định: không có width thì cột co lại, nội dung tràn đè lên cột Trạng thái
+        width: 300,
         render: (_, listing) => (
-          <Flex gap={12} align="center" className="min-w-70">
+          <Flex gap={12} align="center">
             <div className="relative h-16 w-20 shrink-0 overflow-hidden rounded-md">
               <Image
                 src={listing.images[0] || NO_IMAGE}
@@ -101,43 +103,43 @@ export default function SellerListingsPage() {
       {
         title: 'Trạng thái',
         dataIndex: 'status',
-        width: 130,
+        width: 120,
         render: (status: ListingStatus) => (
           <Tag color={STATUS_TAG_COLORS[status]}>{LISTING_STATUS_LABELS[status]}</Tag>
         ),
       },
       {
-        title: 'Lượt xem',
-        dataIndex: 'viewCount',
-        width: 110,
-        align: 'right',
+        title: 'Hiệu quả',
+        key: 'performance',
+        width: 140,
         sorter: (a, b) => (a.viewCount ?? 0) - (b.viewCount ?? 0),
-        render: (value?: number) => value ?? 0,
+        render: (_, listing) => (
+          <div className="flex flex-col gap-1 text-sm text-body">
+            <span className="flex items-center gap-1.5">
+              <Eye size={15} /> {formatNumber(listing.viewCount ?? 0)} lượt xem
+            </span>
+            <span className="flex items-center gap-1.5">
+              <Heart size={15} /> {formatNumber(listing.favoriteCount ?? 0)} lượt lưu
+            </span>
+          </div>
+        ),
       },
       {
-        title: 'Lượt lưu',
-        dataIndex: 'favoriteCount',
-        width: 110,
-        align: 'right',
-        sorter: (a, b) => (a.favoriteCount ?? 0) - (b.favoriteCount ?? 0),
-        render: (value?: number) => value ?? 0,
-      },
-      {
-        title: 'Ngày đăng',
-        dataIndex: 'createdAt',
-        width: 130,
+        title: 'Thời hạn',
+        key: 'dates',
+        width: 150,
         defaultSortOrder: 'descend',
         sorter: (a, b) => a.createdAt.localeCompare(b.createdAt),
-        render: (value: string) => formatRelativeTime(value),
-      },
-      {
-        title: 'Hết hạn',
-        dataIndex: 'expiresAt',
-        width: 120,
-        render: (value: string | undefined, listing) =>
-          listing.status === ListingStatus.ACTIVE && value
-            ? new Date(value).toLocaleDateString('vi-VN')
-            : '—',
+        render: (_, listing) => (
+          <div className="flex flex-col gap-1 text-sm">
+            <span className="text-body">Đăng {formatRelativeTime(listing.createdAt)}</span>
+            <span className="text-subtle">
+              {listing.status === ListingStatus.ACTIVE && listing.expiresAt
+                ? `Hết hạn ${new Date(listing.expiresAt).toLocaleDateString('vi-VN')}`
+                : '—'}
+            </span>
+          </div>
+        ),
       },
       {
         title: 'Thao tác',
@@ -227,7 +229,7 @@ export default function SellerListingsPage() {
         dataSource={visibleListings}
         loading={!listings}
         pagination={{ pageSize: PAGE_SIZE, hideOnSinglePage: true }}
-        scroll={{ x: 900 }}
+        scroll={{ x: 870 }}
         locale={{
           emptyText: (
             <EmptyState

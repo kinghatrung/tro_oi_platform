@@ -19,6 +19,17 @@
   --line: #f0f0f0;
   --line-strong: #e0e0e0;
   --price: #f0325e;
+  /* Màu chuỗi dữ liệu biểu đồ (categorical, đã kiểm tra mù màu với nền sáng/tối) — chỉ tô mark, không tô chữ */
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+  --series-3: #1baf7a;
+  --series-4: #eda100;
+  /* Chữ in trên khối --series-4: gần đen ở nền sáng, trắng ở nền tối */
+  --series-4-ink: #0b0b0b;
+  /* Màu trạng thái (cố định 2 chế độ) — luôn đi kèm icon + nhãn, không dùng làm màu chuỗi */
+  --status-good: #0ca30c;
+  --status-warning: #fab219;
+  --status-serious: #ec835a;
   color-scheme: light;
 }
 
@@ -35,6 +46,11 @@
   --line: #263233;
   --line-strong: #344243;
   --price: #ff5c80;
+  --series-1: #3987e5;
+  --series-2: #d95926;
+  --series-3: #199e70;
+  --series-4: #c98500;
+  --series-4-ink: #ffffff;
   color-scheme: dark;
 }
 
@@ -516,6 +532,60 @@ select {
 * {
   scrollbar-width: thin;
   scrollbar-color: color-mix(in srgb, var(--subtle) 45%, transparent) transparent;
+}
+
+/* Trang lỗi (app/error.tsx): dây điện đung đưa quanh đỉnh cột, tia lửa nhấp nháy */
+@keyframes error-swing {
+  0%,
+  100% {
+    transform: rotate(-5deg);
+  }
+  50% {
+    transform: rotate(6deg);
+  }
+}
+
+@keyframes error-flicker {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  40% {
+    opacity: 0.1;
+  }
+  55% {
+    opacity: 0.9;
+  }
+  70% {
+    opacity: 0.15;
+  }
+}
+
+.error-swing {
+  transform-box: view-box;
+  transform-origin: 266px 72px;
+  animation: error-swing 2.8s ease-in-out infinite;
+}
+
+.error-flicker {
+  animation: error-flicker 1.3s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .error-swing,
+  .error-flicker {
+    animation: none;
+  }
+}
+
+/* Ẩn thanh cuộn nhưng vẫn cuộn được (dải danh mục, hàng ảnh thu nhỏ...). Phải là class ở đây:
+   utility Tailwind [scrollbar-width:none] nằm trong @layer nên thua rule `*` ở trên. */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }
 
 /* Trình duyệt chưa hỗ trợ scrollbar-color (Safari cũ) */

@@ -225,7 +225,7 @@ File tĩnh từ thư mục `apps/api/uploads/` (không commit vào git) — ch�
 
 Type `ProductItem`: `{ id, title, description, category, condition, status, price, isNegotiable, images, address: { city, ward?, district? (dữ liệu cũ) }, seller: { id, name, avatar, phone, joinedAt }, viewCount, createdAt, updatedAt }`.
 
-- `category` ∈ `furniture | electronics | appliance | vehicle | study | other`; `condition` ∈ `new | like-new | good | fair`; `status` ∈ `pending | active | sold | closed`. `price = 0` = cho tặng.
+- `category` ∈ `furniture | electronics | appliance | vehicle | study | kitchen | fashion | decor | sport | hobby | toy | baby | beauty | pet | other`; `condition` ∈ `new | like-new | good | fair`; `status` ∈ `pending | active | sold | closed`. `price = 0` = cho tặng.
 
 | Method | Path | Mô tả | `data` |
 | --- | --- | --- | --- |
@@ -343,10 +343,11 @@ Mọi route: `JwtAuthGuard` + `AdminGuard` (không phải admin → 403). Sửa/
 
 | Method | Path | Mô tả | `data` |
 | --- | --- | --- | --- |
-| GET | `/admin/stats` | Số người dùng (tổng, bị khoá, mới 7 ngày), tin theo trạng thái, báo cáo đang mở | `AdminStats` |
+| GET | `/admin/stats` | Người dùng (tổng, bị khoá, mới 7 ngày, `byRole`); tin Trọ ơi (`byStatus`, `byCategory`, `topCities` 6 tỉnh nhiều tin đang hiển thị nhất, `views` tổng lượt xem); tin Chợ ơi (`byStatus`, `byCategory`, `views`); báo cáo đang mở; `daily` = 90 ngày gần nhất `{ date: YYYY-MM-DD, users, listings, products }` số bản ghi mới mỗi ngày theo **giờ Việt Nam**, cũ → mới, ngày trống = 0 | `AdminStats` |
 | GET | `/admin/users` | `keyword` (tên / SĐT — gõ `09…` được / email), `role`, `isBlocked`, `page`, `pageSize` | `PagedResponse<AdminUser>` (kèm `listingCount`, `productCount`) |
 | PATCH | `/admin/users/:id` | `{ role?, isBlocked? }` — không tự sửa chính mình (400) | `User` |
 | GET | `/admin/listings` | Như `GET /listings` + `status` (bỏ trống = mọi trạng thái) | `PagedResponse<Listing>` |
+| GET | `/admin/listings/map` | Tin **có toạ độ** (`address.geo`) cho bản đồ quản trị: lọc như `/admin/listings` (`status`, `category`, `city`, `keyword`...), **không phân trang**, tối đa 5000 tin mới nhất. Mỗi phần tử `{ id, title, price, transaction, status, category, city, ward, geo }` | `ListingMapPoint[]` |
 | GET | `/admin/products` | Như `GET /products` + `status` | `PagedResponse<ProductItem>` |
 | GET | `/admin/reports` | `status`, `targetType`, `page`, `pageSize` | `PagedResponse<Report>` (kèm `targetTitle`, `reporter`) |
 | PATCH | `/admin/reports/:id` | `{ status: open / resolved / dismissed }` | `null` |

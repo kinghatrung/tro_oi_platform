@@ -9,6 +9,7 @@ export * from './ImageFields';
 export * from './ModerationActions';
 export * from './PageCard';
 export * from './RowActions';
-export * from './StatCards';
+export * from './DashboardCharts';
 export * from './layout/AdminSidebar';
 export * from './layout/AdminTopBar';
+export * from './layout/DashboardShell';
