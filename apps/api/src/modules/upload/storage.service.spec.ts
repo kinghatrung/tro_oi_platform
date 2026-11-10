@@ -52,4 +52,20 @@ describe('StorageService', () => {
       'S3_PUBLIC_URL',
     );
   });
+
+  it('isStoredUrl: chỉ nhận URL uploads/ của chính hệ thống', () => {
+    const storage = new StorageService(configOf(S3_ENV));
+    expect(
+      storage.isStoredUrl('https://cdn.example.com/uploads/1-ab.jpg'),
+    ).toBe(true);
+    expect(storage.isStoredUrl('https://evil.example/uploads/1.jpg')).toBe(
+      false,
+    );
+    expect(
+      storage.isStoredUrl('https://cdn.example.com/uploads/../secret'),
+    ).toBe(false);
+    expect(storage.isStoredUrl('https://cdn.example.com/other/1.jpg')).toBe(
+      false,
+    );
+  });
 });

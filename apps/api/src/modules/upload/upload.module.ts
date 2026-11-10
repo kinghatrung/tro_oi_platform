@@ -8,5 +8,6 @@ import { UploadController } from './upload.controller.js';
   imports: [AuthModule],
   controllers: [UploadController],
   providers: [StorageService],
+  exports: [StorageService], // ChatModule kiểm tra URL ảnh trong tin nhắn
 })
 export class UploadModule {}

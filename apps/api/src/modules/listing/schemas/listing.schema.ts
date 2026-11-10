@@ -112,6 +112,10 @@ export class Listing {
   @Prop({ index: true })
   expiresAt?: Date;
 
+  /** Lý do admin từ chối / ẩn gần nhất — chủ tin xem ở Kênh người đăng; xoá khi hiển thị lại. */
+  @Prop()
+  moderationNote?: string;
+
   /** Đã báo "sắp hết hạn" trong kỳ hiện tại (reset khi gia hạn). Nội bộ, không trả ra API. */
   @Prop({ default: false })
   expiryReminded: boolean;

@@ -11,6 +11,7 @@ import { ListingModule } from './modules/listing/listing.module.js';
 import { NotificationModule } from './modules/notification/notification.module.js';
 import { PageModule } from './modules/page/page.module.js';
 import { ProductModule } from './modules/product/product.module.js';
+import { RealtimeModule } from './modules/realtime/realtime.module.js';
 import { ReviewModule } from './modules/review/review.module.js';
 import { ReportModule } from './modules/report/report.module.js';
 import { SettingsModule } from './modules/settings/settings.module.js';
@@ -30,6 +31,7 @@ import { UserModule } from './modules/user/user.module.js';
         uri: config.getOrThrow<string>('MONGODB_URI'),
       }),
     }),
+    RealtimeModule,
     AuthModule,
     UserModule,
     ListingModule,

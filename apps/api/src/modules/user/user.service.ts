@@ -55,13 +55,12 @@ export class UserService {
     return toUser(user);
   }
 
-  /** Hồ sơ công khai: ẩn phone/email. */
+  /** Hồ sơ công khai: ẩn phone/email; tài khoản đã tự xoá → 404. */
   async getPublic(id: string) {
-    const {
-      phone: _phone,
-      email: _email,
-      ...profile
-    } = toUser(await this.findOrThrow(id));
+    const user = await this.findOrThrow(id);
+    if (user.deletedAt)
+      throw new NotFoundException('Không tìm thấy người dùng');
+    const { phone: _phone, email: _email, ...profile } = toUser(user);
     return profile;
   }
 

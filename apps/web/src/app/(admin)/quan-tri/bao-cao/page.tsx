@@ -3,12 +3,13 @@
 import Link from 'next/link';
 import { useMemo } from 'react';
 import { Form, Segmented, Select, Tag, type TableColumnsType } from 'antd';
-import { Check, EyeOff, X } from 'lucide-react';
+import { Check, EyeOff, Trash2, X } from 'lucide-react';
 import {
   ListingStatus,
   ProductStatus,
   REPORT_REASON_LABELS,
   REPORT_STATUS_LABELS,
+  reportReasonLabel,
   ReportStatus,
   ReportTargetType,
   type AdminReportQuery,
@@ -18,6 +19,7 @@ import {
 import { searchAdminReports, updateAdminReport } from '@/api/admin';
 import { updateListing } from '@/api/listings';
 import { updateProduct } from '@/api/products';
+import { deleteReview } from '@/api/reviews';
 import { DataTable, FilterBar, IconAction, PageCard, RowActions } from '@/components/admin';
 import { formatRelativeTime } from '@/utils/helpers';
 
@@ -32,21 +34,28 @@ const STATUS_COLORS: Record<ReportStatus, string> = {
   [ReportStatus.RESOLVED]: 'success',
   [ReportStatus.DISMISSED]: 'default',
 };
-const TARGET_OPTIONS = [
-  { value: ReportTargetType.LISTING, label: 'Trọ ơi' },
-  { value: ReportTargetType.PRODUCT, label: 'Chợ ơi' },
-];
+const TARGET_LABELS: Record<ReportTargetType, string> = {
+  [ReportTargetType.LISTING]: 'Trọ ơi',
+  [ReportTargetType.PRODUCT]: 'Chợ ơi',
+  [ReportTargetType.REVIEW]: 'Đánh giá',
+};
+const TARGET_OPTIONS = Object.values(ReportTargetType).map((value) => ({
+  value,
+  label: TARGET_LABELS[value],
+}));
 const INITIAL_QUERY: AdminReportQuery = { status: ReportStatus.OPEN };
 
 type AdvancedFilters = Pick<AdminReportQuery, 'targetType'>;
 const DEFAULT_FILTERS: AdvancedFilters = { targetType: undefined };
 
 const targetHref = (report: Report) =>
-  report.targetType === ReportTargetType.LISTING
-    ? `/phong-tro/${report.targetId}`
-    : `/cho-oi/${report.targetId}`;
+  ({
+    [ReportTargetType.LISTING]: `/phong-tro/${report.targetId}`,
+    [ReportTargetType.PRODUCT]: `/cho-oi/${report.targetId}`,
+    [ReportTargetType.REVIEW]: `/nguoi-dung/${report.targetUserId}#danh-gia`,
+  })[report.targetType];
 
-/** Xử lý báo cáo vi phạm: ẩn tin bị báo cáo, đánh dấu đã xử lý hoặc bỏ qua. */
+/** Xử lý báo cáo vi phạm: ẩn tin / xoá đánh giá bị báo cáo, đánh dấu đã xử lý hoặc bỏ qua. */
 export default function AdminReportsPage() {
   const { items, isLoading, query, updateQuery, reload, runAction, pagination } = useAdminTable(
     searchAdminReports,
@@ -59,13 +68,27 @@ export default function AdminReportsPage() {
       runAction(
         async () => {
           if (hideTarget) {
-            await (report.targetType === ReportTargetType.LISTING
-              ? updateListing(report.targetId, { status: ListingStatus.CLOSED })
-              : updateProduct(report.targetId, { status: ProductStatus.CLOSED }));
+            // Lý do ẩn = lý do bị báo cáo → đi kèm thông báo cho người đăng
+            const moderationNote = `Bị báo cáo: ${REPORT_REASON_LABELS[report.reason]}`;
+            if (report.targetType === ReportTargetType.REVIEW) await deleteReview(report.targetId);
+            else if (report.targetType === ReportTargetType.LISTING)
+              await updateListing(report.targetId, {
+                status: ListingStatus.CLOSED,
+                moderationNote,
+              });
+            else
+              await updateProduct(report.targetId, {
+                status: ProductStatus.CLOSED,
+                moderationNote,
+              });
           }
           await updateAdminReport(report.id, status);
         },
-        hideTarget ? 'Đã ẩn tin và đóng báo cáo' : 'Đã cập nhật báo cáo',
+        hideTarget
+          ? report.targetType === ReportTargetType.REVIEW
+            ? 'Đã xoá đánh giá và đóng báo cáo'
+            : 'Đã ẩn tin và đóng báo cáo'
+          : 'Đã cập nhật báo cáo',
       );
 
     return [
@@ -74,13 +97,13 @@ export default function AdminReportsPage() {
         key: 'target',
         render: (_, report) => (
           <div className="min-w-56">
-            <Tag>{report.targetType === ReportTargetType.LISTING ? 'Trọ ơi' : 'Chợ ơi'}</Tag>
+            <Tag>{TARGET_LABELS[report.targetType]}</Tag>
             {report.targetTitle ? (
               <Link href={targetHref(report)} target="_blank" className="font-semibold">
                 {report.targetTitle}
               </Link>
             ) : (
-              <span className="text-subtle">(Tin đã bị xoá)</span>
+              <span className="text-subtle">(Đã bị xoá)</span>
             )}
           </div>
         ),
@@ -90,7 +113,9 @@ export default function AdminReportsPage() {
         key: 'reason',
         render: (_, report) => (
           <div className="min-w-48">
-            <p className="font-medium text-ink">{REPORT_REASON_LABELS[report.reason]}</p>
+            <p className="font-medium text-ink">
+              {reportReasonLabel(report.targetType, report.reason)}
+            </p>
             {report.note && <p className="text-xs text-body whitespace-pre-line">{report.note}</p>}
           </div>
         ),
@@ -128,15 +153,24 @@ export default function AdminReportsPage() {
         render: (_, report) =>
           report.status === ReportStatus.OPEN && (
             <RowActions>
-              {report.targetTitle && (
-                <IconAction
-                  title="Ẩn tin vi phạm"
-                  icon={<EyeOff size={14} />}
-                  danger
-                  confirm={{ title: 'Ẩn tin này và đóng báo cáo?', okText: 'Ẩn tin' }}
-                  onClick={() => setReportStatus(report, ReportStatus.RESOLVED, true)}
-                />
-              )}
+              {report.targetTitle &&
+                (report.targetType === ReportTargetType.REVIEW ? (
+                  <IconAction
+                    title="Xoá đánh giá vi phạm"
+                    icon={<Trash2 size={14} />}
+                    danger
+                    confirm={{ title: 'Xoá đánh giá này và đóng báo cáo?', okText: 'Xoá' }}
+                    onClick={() => setReportStatus(report, ReportStatus.RESOLVED, true)}
+                  />
+                ) : (
+                  <IconAction
+                    title="Ẩn tin vi phạm"
+                    icon={<EyeOff size={14} />}
+                    danger
+                    confirm={{ title: 'Ẩn tin này và đóng báo cáo?', okText: 'Ẩn tin' }}
+                    onClick={() => setReportStatus(report, ReportStatus.RESOLVED, true)}
+                  />
+                ))}
               <IconAction
                 title="Đánh dấu đã xử lý"
                 icon={<Check size={14} />}

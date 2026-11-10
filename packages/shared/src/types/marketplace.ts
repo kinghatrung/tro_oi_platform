@@ -97,6 +97,8 @@ export interface ProductItem {
   seller?: ProductSeller;
   /** Lượt xem trang chi tiết. */
   viewCount?: number;
+  /** Lý do quản trị viên từ chối / ẩn gần nhất (xoá khi hiển thị lại). */
+  moderationNote?: string;
   /** ISO 8601. */
   createdAt: string;
   /** ISO 8601. */
@@ -134,4 +136,6 @@ export interface CreateProductRequest {
 /** Payload cập nhật món đồ. */
 export type UpdateProductRequest = Partial<CreateProductRequest> & {
   status?: ProductStatus;
+  /** Chỉ admin: lý do từ chối / ẩn — gửi kèm thông báo cho chủ tin. */
+  moderationNote?: string;
 };

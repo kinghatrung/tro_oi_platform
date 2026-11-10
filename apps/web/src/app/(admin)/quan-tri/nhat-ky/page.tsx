@@ -50,7 +50,12 @@ const COLUMNS: TableColumnsType<AuditLog> = [
     title: 'Thao tác',
     dataIndex: 'action',
     width: 200,
-    render: (action: string) => <span className="font-medium text-ink">{action}</span>,
+    render: (action: string, log) => (
+      <div className="max-w-64">
+        <span className="font-medium text-ink">{action}</span>
+        {log.note && <p className="line-clamp-3 text-xs text-body">Lý do: {log.note}</p>}
+      </div>
+    ),
   },
   {
     title: 'Đối tượng',

@@ -4,6 +4,7 @@ import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
 
 import { User } from '../auth/schemas/user.schema.js';
+import { AccountService } from './account.service.js';
 import { UserController } from './user.controller.js';
 import { UserService } from './user.service.js';
 
@@ -15,6 +16,7 @@ describe('UserController', () => {
       controllers: [UserController],
       providers: [
         { provide: UserService, useValue: {} },
+        { provide: AccountService, useValue: {} },
         { provide: JwtService, useValue: {} },
         { provide: ConfigService, useValue: {} },
         // JwtAuthGuard đọc User model để kiểm tra tài khoản bị khoá

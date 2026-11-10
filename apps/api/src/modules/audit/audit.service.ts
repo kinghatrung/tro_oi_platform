@@ -15,6 +15,8 @@ export interface AuditEntry {
   targetType: AuditTargetType;
   targetId?: string;
   targetTitle?: string;
+  /** Lý do admin nhập (từ chối / ẩn tin). */
+  note?: string;
 }
 
 @Injectable()
@@ -57,6 +59,7 @@ export class AuditService {
           targetType: doc.targetType,
           targetId: doc.targetId,
           targetTitle: doc.targetTitle,
+          note: doc.note,
           actor: actor && {
             id: actor.id as string,
             name: actor.name,

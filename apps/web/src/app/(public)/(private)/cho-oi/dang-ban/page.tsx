@@ -24,7 +24,7 @@ import { ProductStatus, type CreateProductRequest, type ProductItem } from '@tro
 
 import { createProduct, getMyProducts, updateProduct } from '@/api/products';
 import { antdUploadRequest } from '@/api/uploads';
-import { FormSection } from '@/components/common';
+import { FormSection, GeoField } from '@/components/common';
 import { PROVINCES } from '@/constants';
 import { useWards } from '@/hooks/useWards';
 import {
@@ -277,6 +277,16 @@ export default function PostProductPage() {
                   disabled={!city}
                   placeholder={city ? 'Chọn phường/xã (tuỳ chọn)' : 'Chọn tỉnh/thành trước'}
                 />
+              </Form.Item>
+            </Col>
+            <Col span={24}>
+              <Form.Item
+                name={['address', 'geo']}
+                label="Vị trí trên bản đồ"
+                className="mt-4! mb-0!"
+              >
+                {/* Thường là chỗ ở của người bán → nhắc chỉ cần gần đúng */}
+                <GeoField emptyHint="Chưa có vị trí — bấm lên bản đồ để đặt ghim (không bắt buộc; ghim gần đúng như đầu ngõ, toà nhà là đủ)" />
               </Form.Item>
             </Col>
           </Row>

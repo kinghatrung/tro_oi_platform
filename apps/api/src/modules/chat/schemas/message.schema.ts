@@ -6,6 +6,8 @@ import {
 } from 'mongoose';
 
 export const MESSAGE_MAX_LENGTH = 1000;
+/** Ảnh tối đa trong 1 tin nhắn. */
+export const MESSAGE_MAX_IMAGES = 4;
 
 @Schema({
   timestamps: { createdAt: true, updatedAt: false },
@@ -22,8 +24,13 @@ export class Message {
   @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'User', required: true })
   sender: Types.ObjectId;
 
-  @Prop({ required: true, maxlength: MESSAGE_MAX_LENGTH })
+  /** Có thể rỗng khi tin chỉ có ảnh. */
+  @Prop({ default: '', maxlength: MESSAGE_MAX_LENGTH })
   content: string;
+
+  /** URL ảnh đã upload qua /uploads (kiểm tra ở ChatService). */
+  @Prop({ type: [String], default: [] })
+  images: string[];
 
   createdAt: Date;
 }

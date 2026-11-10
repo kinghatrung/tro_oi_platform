@@ -115,11 +115,12 @@ export default function AdminListingsPage() {
           <ModerationActions
             status={listing.status}
             viewHref={`/phong-tro/${listing.id}`}
-            onSetVisible={(visible, text) =>
+            onSetVisible={(visible, text, moderationNote) =>
               runAction(
                 () =>
                   updateListing(listing.id, {
                     status: visible ? ListingStatus.ACTIVE : ListingStatus.CLOSED,
+                    moderationNote,
                   }),
                 text,
               )

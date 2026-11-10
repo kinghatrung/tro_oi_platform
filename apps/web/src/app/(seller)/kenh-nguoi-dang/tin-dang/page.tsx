@@ -97,6 +97,11 @@ export default function SellerListingsPage() {
                 {formatListingPrice(listing.price, listing.transaction)}
               </p>
               <p className="text-xs text-subtle line-clamp-1">{listing.address?.fullAddress}</p>
+              {listing.moderationNote && listing.status !== 'active' && (
+                <p className="mt-1 line-clamp-2 text-xs text-body">
+                  <b className="text-ink">Lý do bị ẩn:</b> {listing.moderationNote}
+                </p>
+              )}
             </div>
           </Flex>
         ),

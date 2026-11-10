@@ -1,12 +1,14 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Space, Avatar, Button, Flex } from 'antd';
-import { List, MessageCircle, PhoneCall, UserRound } from 'lucide-react';
+import { List, MessageCircle, PhoneCall, Star, UserRound } from 'lucide-react';
 import { USER_ROLE_LABELS, type ListingAuthor, type ProductSeller } from '@tro-oi/shared';
 
+import { getReviews } from '@/api/reviews';
 import { RelativeTime } from '@/components/common';
+import { formatNumber } from '@/utils/helpers';
 
 /** SĐT dạng +84xxxxxxxxx → 0xxxxxxxxx để hiển thị/gọi. */
 const toLocalPhone = (phone: string) => phone.replace(/^\+84/, '0');
@@ -24,6 +26,18 @@ export function AgentCard({ author, chatHref }: AgentCardProps) {
   const listingCount = 'listingCount' in author ? author.listingCount : undefined;
   const [isPhoneVisible, setIsPhoneVisible] = useState(false);
   const phone = author.phone && toLocalPhone(author.phone);
+  const [rating, setRating] = useState<{ average: number | null; total: number }>();
+
+  // Điểm đánh giá: chỉ cần tổng hợp (pageSize 1), lỗi mạng → không hiện dòng sao
+  useEffect(() => {
+    let isCurrent = true;
+    getReviews(author.id, 1, 1)
+      .then((page) => isCurrent && setRating({ average: page.average, total: page.total }))
+      .catch(() => undefined);
+    return () => {
+      isCurrent = false;
+    };
+  }, [author.id]);
 
   return (
     <section className="sticky top-4 rounded-lg bg-surface p-5">
@@ -37,6 +51,29 @@ export function AgentCard({ author, chatHref }: AgentCardProps) {
             </Space>
           </Space>
         </Link>
+        {rating && (
+          <Link
+            href={`/nguoi-dung/${author.id}#danh-gia`}
+            className="flex items-center gap-1.5 text-body! hover:text-ink!"
+          >
+            {rating.total > 0 && rating.average !== null ? (
+              <>
+                <Star
+                  size={16}
+                  className="fill-[var(--status-warning)] text-[var(--status-warning)]"
+                  aria-hidden
+                />
+                <b className="text-ink">{rating.average.toFixed(1)}</b>
+                <span>· {formatNumber(rating.total)} đánh giá</span>
+              </>
+            ) : (
+              <>
+                <Star size={16} className="text-subtle" aria-hidden />
+                <span>Chưa có đánh giá</span>
+              </>
+            )}
+          </Link>
+        )}
         <Flex align="center" gap={16} className="text-body! text-[16px]">
           {listingCount != null && (
             <Flex align="center" gap={4}>

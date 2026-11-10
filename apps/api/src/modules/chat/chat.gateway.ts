@@ -15,14 +15,19 @@ import type { Namespace, Socket } from 'socket.io';
 
 import type { AuthUser } from '../../common/current-user.decorator.js';
 import { User, type UserDocument } from '../auth/schemas/user.schema.js';
+import { NotificationService } from '../notification/notification.service.js';
+import {
+  RealtimeService,
+  userRoom as room,
+} from '../realtime/realtime.service.js';
 import { idOf, toConversation } from './chat.mapper.js';
 import { ChatService } from './chat.service.js';
 
 /** Chống spam: tối đa RATE_LIMIT tin / RATE_WINDOW_MS mỗi kết nối. */
 const RATE_LIMIT = 10;
 const RATE_WINDOW_MS = 10_000;
-
-const room = (userId: string) => `user:${userId}`;
+/** Khoảng tối thiểu giữa 2 sự kiện "typing" cùng 1 cuộc trò chuyện của 1 socket. */
+const TYPING_MIN_GAP_MS = 1000;
 
 type ChatSocket = Socket & { data: { userId: string; sentAt?: number[] } };
 type Ack = { ok: true } | { ok: false; error: string };
@@ -51,9 +56,12 @@ export class ChatGateway implements OnGatewayInit {
     private readonly configService: ConfigService,
     @InjectModel(User.name) private readonly userModel: Model<UserDocument>,
     private readonly chatService: ChatService,
+    private readonly realtime: RealtimeService,
+    private readonly notificationService: NotificationService,
   ) {}
 
   afterInit(server: Namespace) {
+    this.realtime.attach(server);
     // Lỗi ở middleware → client nhận connect_error("unauthorized") và không tự kết nối lại
     server.use((socket, next) => {
       void this.authenticate(socket as ChatSocket)
@@ -84,11 +92,17 @@ export class ChatGateway implements OnGatewayInit {
     @MessageBody() body: unknown,
   ) {
     try {
-      const { conversationId, content } = (body ?? {}) as Record<
-        string,
-        unknown
-      >;
-      if (typeof conversationId !== 'string' || typeof content !== 'string') {
+      const {
+        conversationId,
+        content = '',
+        images = [],
+      } = (body ?? {}) as Record<string, unknown>;
+      if (
+        typeof conversationId !== 'string' ||
+        typeof content !== 'string' ||
+        !Array.isArray(images) ||
+        !images.every((url) => typeof url === 'string')
+      ) {
         return { ok: false, error: 'Dữ liệu không hợp lệ' };
       }
       const now = Date.now();
@@ -104,6 +118,7 @@ export class ChatGateway implements OnGatewayInit {
         client.data.userId,
         conversationId,
         content,
+        images as string[],
       );
       // Mỗi người nhận conversation theo góc nhìn của mình (otherUser, unreadCount)
       for (const member of [conversation.starter, conversation.owner]) {
@@ -113,9 +128,48 @@ export class ChatGateway implements OnGatewayInit {
           conversation: toConversation(conversation, memberId),
         });
       }
+      // Người nhận không mở web → thông báo đẩy (1 thông báo / cuộc trò chuyện, tin mới thay tin cũ)
+      const [sender, recipient] =
+        idOf(conversation.starter) === client.data.userId
+          ? [conversation.starter, conversation.owner]
+          : [conversation.owner, conversation.starter];
+      void this.notificationService.pushIfOffline(idOf(recipient), {
+        title: (sender as unknown as { name?: string }).name ?? 'Tin nhắn mới',
+        body: message.content || '[Hình ảnh]',
+        link: '/tin-nhan',
+        tag: `chat-${conversation.id as string}`,
+      });
       return { ok: true, message };
     } catch (error) {
       return errorAck(error, this.logger);
+    }
+  }
+
+  /**
+   * "Đang nhập…": chuyển tiếp cho người còn lại. Không ack, lỗi bỏ qua (chỉ là gợi ý giao diện).
+   * Client gửi tối đa 1 lần / 2,5s; server bỏ bớt nếu < 1s / cuộc trò chuyện.
+   */
+  @SubscribeMessage('typing')
+  async onTyping(
+    @ConnectedSocket() client: ChatSocket,
+    @MessageBody() body: unknown,
+  ) {
+    const { conversationId } = (body ?? {}) as Record<string, unknown>;
+    if (typeof conversationId !== 'string') return;
+    const now = Date.now();
+    const last = (client.data.typingAt ?? {}) as Record<string, number>;
+    if (now - (last[conversationId] ?? 0) < TYPING_MIN_GAP_MS) return;
+    client.data.typingAt = { ...last, [conversationId]: now };
+    try {
+      const otherId = await this.chatService.otherMemberId(
+        client.data.userId,
+        conversationId,
+      );
+      this.server
+        .to(room(otherId))
+        .emit('typing', { conversationId, userId: client.data.userId });
+    } catch {
+      // Không thuộc cuộc trò chuyện / id sai → im lặng
     }
   }
 

@@ -7,6 +7,7 @@ import {
   type Conversation,
   type SendMessageAck,
   type StartConversationRequest,
+  type TypingEvent,
   type User,
 } from '@tro-oi/shared';
 
@@ -19,6 +20,8 @@ import { getChatSocket } from '@/lib/socket';
 import { useChatStore } from '@/stores/useChatStore';
 
 const SEND_TIMEOUT_MS = 10_000;
+/** Không nhận thêm "typing" sau khoảng này → ẩn "đang nhập…" (client gửi mỗi 2,5s khi còn gõ). */
+const TYPING_VISIBLE_MS = 4_000;
 
 /** Gộp 2 danh sách tin (REST + realtime), bỏ trùng id, sắp theo thời gian. */
 const mergeMessages = (base: ChatMessage[], extra: ChatMessage[]) =>
@@ -45,6 +48,9 @@ export function useChat(currentUser: User | null) {
   const [activeId, setActiveId] = useState<string>();
   const activeIdRef = useRef<string>(undefined);
   const loadedRef = useRef(new Set<string>());
+  // Cuộc trò chuyện mà người kia đang gõ; mỗi cái có timer tự ẩn
+  const [typingIds, setTypingIds] = useState<ReadonlySet<string>>(new Set());
+  const typingTimersRef = useRef(new Map<string, ReturnType<typeof setTimeout>>());
   const isConnected = useChatStore((state) => state.isConnected);
   const userId = currentUser?.id;
 
@@ -56,6 +62,30 @@ export function useChat(currentUser: User | null) {
     () => (activeId ? (messagesByConversation[activeId] ?? []) : []),
     [activeId, messagesByConversation],
   );
+
+  const setTyping = useCallback((conversationId: string, isTyping: boolean) => {
+    const timers = typingTimersRef.current;
+    const mark = (on: boolean) =>
+      setTypingIds((current) => {
+        if (current.has(conversationId) === on) return current;
+        const next = new Set(current);
+        if (on) next.add(conversationId);
+        else next.delete(conversationId);
+        return next;
+      });
+    clearTimeout(timers.get(conversationId));
+    timers.delete(conversationId);
+    mark(isTyping);
+    if (isTyping) {
+      timers.set(
+        conversationId,
+        setTimeout(() => {
+          timers.delete(conversationId);
+          mark(false);
+        }, TYPING_VISIBLE_MS),
+      );
+    }
+  }, []);
 
   const addMessages = useCallback((conversationId: string, list: ChatMessage[]) => {
     setMessagesByConversation((current) => ({
@@ -86,6 +116,7 @@ export function useChat(currentUser: User | null) {
     const socket = getChatSocket();
     const onNew = ({ message, conversation }: ChatMessageEvent) => {
       addMessages(conversation.id, [message]);
+      if (message.senderId !== userId) setTyping(conversation.id, false); // đã gửi xong
       const isOpen = conversation.id === activeIdRef.current;
       setConversations((current) =>
         moveToTop(current, isOpen ? { ...conversation, unreadCount: 0 } : conversation),
@@ -96,13 +127,21 @@ export function useChat(currentUser: User | null) {
       setConversations((current) =>
         current.map((item) => (item.id === conversationId ? { ...item, unreadCount: 0 } : item)),
       );
+    const onTyping = ({ conversationId, userId: typist }: TypingEvent) => {
+      if (typist !== userId) setTyping(conversationId, true);
+    };
+    const timers = typingTimersRef.current;
     socket.on('message:new', onNew);
     socket.on('conversation:read', onRead);
+    socket.on('typing', onTyping);
     return () => {
       socket.off('message:new', onNew);
       socket.off('conversation:read', onRead);
+      socket.off('typing', onTyping);
+      timers.forEach(clearTimeout);
+      timers.clear();
     };
-  }, [addMessages, markRead, toast, userId]);
+  }, [addMessages, markRead, setTyping, toast, userId]);
 
   const selectConversation = useCallback(
     (id?: string) => {
@@ -135,9 +174,16 @@ export function useChat(currentUser: User | null) {
     [selectConversation],
   );
 
+  /** Báo người kia mình đang gõ (ChatComposer đã giãn tần suất). */
+  const notifyTyping = useCallback(() => {
+    if (activeIdRef.current) {
+      getChatSocket().emit('typing', { conversationId: activeIdRef.current });
+    }
+  }, []);
+
   /** Hiện ngay (SENDING) → ack thì thay bằng tin thật, lỗi/quá 10s thì FAILED. */
   const sendMessage = useCallback(
-    (content: string) => {
+    (content: string, images: string[] = []) => {
       if (!activeId || !userId) return;
       const conversationId = activeId;
       const clientId = crypto.randomUUID();
@@ -147,6 +193,7 @@ export function useChat(currentUser: User | null) {
           conversationId,
           senderId: userId,
           content,
+          images,
           createdAt: new Date().toISOString(),
           status: MessageStatus.SENDING,
         },
@@ -156,7 +203,7 @@ export function useChat(currentUser: User | null) {
         .timeout(SEND_TIMEOUT_MS)
         .emit(
           'message:send',
-          { conversationId, content },
+          { conversationId, content, images },
           (timeoutError: Error | null, ack?: SendMessageAck) => {
             setMessagesByConversation((current) => {
               const list = current[conversationId] ?? [];
@@ -184,5 +231,7 @@ export function useChat(currentUser: User | null) {
     startConversation,
     selectConversation,
     sendMessage,
+    notifyTyping,
+    isOtherTyping: Boolean(activeId && typingIds.has(activeId)),
   };
 }

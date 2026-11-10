@@ -47,6 +47,8 @@ yarn dev:web                 # http://localhost:3001
 | `S3_REGION`, `S3_ENDPOINT`, `S3_FORCE_PATH_STYLE` |  | Mặc định `auto` / AWS / `false`. R2: endpoint `https://<account>.r2.cloudflarestorage.com`; MinIO: `S3_FORCE_PATH_STYLE=true` |
 | `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY` | | Firebase Admin — cần cho `/auth/verify-phone` |
 | `AUTH_DEV_LOGIN`         |          | `true` để bật `/auth/dev-login` (đăng nhập bằng SĐT không OTP). **Không bật ở production** |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM` | | Email thông báo qua SMTP (nodemailer). Bỏ trống `SMTP_HOST` = tắt kênh email |
+| `SMS_PROVIDER`           |          | Bỏ trống = tắt SMS; `log` = chỉ ghi log (số đã che) để thử luồng. Nhà cung cấp thật: thêm nhánh trong `SmsService` |
 
 ### `apps/web/.env.local` (mẫu: `.env.example`)
 
@@ -55,6 +57,7 @@ yarn dev:web                 # http://localhost:3001
 | `NEXT_PUBLIC_API_URL`                  | URL API, mặc định `http://localhost:5000`                |
 | `NEXT_PUBLIC_UPLOAD_URL`               | = `S3_PUBLIC_URL` của API khi ảnh lưu trên S3 (whitelist cho `next/image`). Bỏ trống nếu ảnh lưu trên API |
 | `NEXT_PUBLIC_FIREBASE_API_KEY`, `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`, `NEXT_PUBLIC_FIREBASE_PROJECT_ID`, `NEXT_PUBLIC_FIREBASE_APP_ID` | Firebase Client. **Bỏ trống → trang đăng nhập dùng `/auth/dev-login`** |
+| `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID`, `NEXT_PUBLIC_FIREBASE_VAPID_KEY` | Thông báo đẩy (FCM): Sender ID ở Project Settings > General, VAPID key ở Cloud Messaging > Web Push certificates. Bỏ trống → ẩn công tắc push |
 
 ---
 
@@ -87,12 +90,13 @@ src/
     ├── product/                # /products (Chợ ơi): tìm kiếm, CRUD, duyệt tin theo settings
     │   ├── product.filter.ts   # (có unit test)
     │   └── product.mapper.ts   # toProduct()
-    ├── report/                 # POST /reports — người dùng báo cáo tin vi phạm
+    ├── report/                 # POST /reports — người dùng báo cáo tin / món đồ / đánh giá vi phạm
     ├── settings/               # GET /settings — thiết lập website (singleton, cache bộ nhớ)
-    ├── chat/                   # /conversations (REST) + ChatGateway Socket.IO /chat, ChatIoAdapter (CORS) — chat tin Trọ ơi & món Chợ ơi
+    ├── chat/                   # /conversations (REST) + ChatGateway Socket.IO /chat, ChatIoAdapter (CORS) — chat tin Trọ ơi & món Chợ ơi: ảnh (≤4, chỉ URL của StorageService), "typing", push khi người nhận không mở web
+    ├── realtime/               # RealtimeService (global): emitToUser / isOnline qua namespace /chat (ChatGateway gắn server) — module khác phát sự kiện không phụ thuộc ChatModule
     ├── page/                   # /pages + /admin/pages/:slug — trang chính sách do admin soạn (page-content.ts tách khối, có test)
     ├── review/                 # /reviews — đánh giá người dùng (chỉ giữa 2 người đã nhắn tin)
-    ├── notification/           # /notifications — thông báo của người dùng (NotificationService.notify dùng ở listing/product)
+    ├── notification/           # /notifications — notify() lưu rồi gửi nền: realtime "notification:new" luôn; push (FCM, chỉ khi không mở web); email (SMTP); SMS (chỗ cắm) theo notifyPrefs. channels/: PushService, MailService, SmsService (thiếu cấu hình → tắt). Cài đặt kênh + token push
     ├── audit/                  # AuditService: nhật ký thao tác admin (đọc qua GET /admin/audit-logs)
     ├── admin/                  # /admin/* — thống kê, người dùng, tin, báo cáo, lưu thiết lập, nhật ký
     └── upload/                 # POST /uploads (multer bộ nhớ) → StorageService: S3 nếu có S3_BUCKET, ngược lại ổ đĩa apps/api/uploads/
@@ -129,7 +133,7 @@ src/
 │           ├── yeu-thich/             # Đã lưu: tab Tin Trọ ơi + Đồ Chợ ơi + Tìm kiếm
 │           ├── thong-bao/             # Tất cả thông báo (phân trang), đánh dấu đã đọc
 │           ├── dang-tin/              # Đăng / sửa tin (?id=): 6 bước (Hình ảnh có link video YouTube; Vị trí: tỉnh → phường/xã + GeoField ghim bản đồ) + PostSidebar (xem trước, checklist), CategoryPicker
-│           └── cho-oi/dang-ban/       # Đăng / sửa món đồ Chợ ơi (?id=)
+│           └── cho-oi/dang-ban/       # Đăng / sửa món đồ Chợ ơi (?id=): tỉnh → phường/xã + GeoField ghim vị trí gần đúng (tuỳ chọn)
 │   └── (seller)/kenh-nguoi-dang/      # Kênh người đăng toàn màn hình (cần đăng nhập, chặn ở src/proxy.ts), layout force-dynamic
 │       ├── SellerShell.tsx            #   DashboardShell + thẻ người dùng đầu sidebar
 │       ├── page.tsx                   #   Tổng quan: lời chào, số liệu, bản đồ tin đăng (VietnamMap markers), tin xem nhiều nhất, Cần chú ý, đồ bán Chợ ơi
@@ -143,7 +147,7 @@ src/
 │       ├── page.tsx                   #   Tổng quan (GET /admin/stats): chọn kỳ 7/30/90 ngày, việc cần xử lý (chờ duyệt, báo cáo), 4 thẻ số liệu + sparkline, biểu đồ hoạt động theo ngày (xem dạng bảng được), cơ cấu: vai trò (thanh phân đoạn), trạng thái tin (thanh mảnh + danh sách có icon, màu trạng thái), loại hình / danh mục (cột), tỉnh (lollipop nhấn tỉnh đứng đầu)
 │       ├── nguoi-dung/                #   Người dùng: FilterBar (từ khoá + lọc nâng cao vai trò/trạng thái), UserFormDrawer sửa vai trò/khoá
 │       ├── tin-tro/, tin-cho/         #   Duyệt / ẩn / xoá tin Trọ ơi, Chợ ơi (ModerationActions)
-│       ├── ban-do/                    #   Bản đồ tin Trọ ơi (GET /admin/listings/map): lọc trạng thái / loại hình / tỉnh, ghim gom cụm
+│       ├── ban-do/                    #   Bản đồ tin: chuyển Trọ ơi (GET /admin/listings/map) / Chợ ơi (GET /admin/products/map); lọc trạng thái / loại hình hoặc danh mục / tỉnh (đổi nguồn → xoá bộ lọc), ghim gom cụm, popup link trang công khai khi đang hiển thị
 │       ├── bao-cao/                   #   Báo cáo vi phạm: ẩn tin + đóng báo cáo / bỏ qua
 │       ├── nhat-ky/                   #   Nhật ký thao tác admin (lọc nhanh theo loại đối tượng)
 │       ├── trang-chinh-sach/          #   Soạn & đăng Điều khoản / Chính sách bảo mật (chèn bản nháp mẫu, chặn đăng khi còn [[...]];
@@ -155,14 +159,14 @@ src/
 ├── stores/useAuthStore.ts             # user, favorites, favoriteProducts, savedSearches, login/logout/toggleFavorite(Product)/toggleSavedSearch + hook useRequireUser()
 ├── stores/useChatStore.ts             # tổng tin nhắn chưa đọc + trạng thái kết nối socket (MessagesButton ghi, trang /tin-nhan đọc)
 ├── lib/socket.ts                      # getChatSocket(): 1 kết nối Socket.IO /chat dùng chung, token đọc lại mỗi lần kết nối
-├── stores/useNotificationStore.ts     # số chưa đọc + thông báo mới nhất (chuông), markRead/markAllRead dùng chung với /thong-bao
+├── stores/useNotificationStore.ts     # số chưa đọc + thông báo mới nhất (chuông), markRead/markAllRead dùng chung với /thong-bao, receive() cho thông báo realtime
 ├── hooks/useSaveToggle.ts             # handler nút Lưu (tin, món đồ, tìm kiếm): chưa đăng nhập → /dang-nhap, lỗi → toast
 ├── lib/youtube.ts                     # YOUTUBE_URL_PATTERN (trùng api) + youtubeEmbedUrl(): link → iframe youtube-nocookie
 ├── lib/viewHistory.ts                 # lịch sử đã xem (localStorage, 15 mục): recordView()/readViewHistory() cho tin Trọ ơi, recordProductView()/readProductHistory() cho món Chợ ơi
 ├── components/
-│   ├── layout/                        # Header (banner: trang chủ, Chợ ơi), SubHeader, Navbar (+ NotificationBell: hỏi số chưa đọc mỗi 60s; MessagesButton: mở socket chat, badge tin nhắn; co theo màn: < lg ẩn ô khu vực + cặp "Trọ ơi!/Chợ ơi!" (Chợ ơi vào từ menu danh mục), < sm ẩn sáng/tối, Tin đã lưu, chuông, Đăng nhập; Tin nhắn / Đăng tin thành nút chỉ-icon), Container, Footer
+│   ├── layout/                        # Header (banner: trang chủ, Chợ ơi), SubHeader, Navbar (+ NotificationBell: nhận "notification:new" qua socket (badge + toast), hỏi lại khi kết nối lại và mỗi 5 phút dự phòng; MessagesButton: mở socket chat, badge tin nhắn; co theo màn: < lg ẩn ô khu vực + cặp "Trọ ơi!/Chợ ơi!" (Chợ ơi vào từ menu danh mục), < sm ẩn sáng/tối, Tin đã lưu, chuông, Đăng nhập; Tin nhắn / Đăng tin thành nút chỉ-icon), Container, Footer
 │   ├── common/                        # UI thuần dùng lại (xem bảng dưới)
-│   ├── chat/                          # UI chat thuần: ConversationList, ChatWindow, MessageBubble, ChatComposer
+│   ├── chat/                          # UI chat thuần: ConversationList, ChatWindow (dòng "đang nhập…"), MessageBubble (ảnh → ImageLightbox), ChatComposer (đính kèm ≤4 ảnh qua POST /uploads, báo typing ≤1 lần/2,5s)
 │   └── sections/                      # Khối giao diện theo trang
 ├── constants/index.ts                 # CATEGORIES, PROVINCES (re-export), FEATURED_CITIES (lưới trang chủ), SORT_OPTIONS, NO_IMAGE
 ├── constants/vietnam-territory.json  # đường bao lãnh thổ VN gồm Hoàng Sa, Trường Sa (TỰ SINH bởi yarn geo:territory)
@@ -175,7 +179,10 @@ src/
 ├── lib/constants/policyTemplates.ts  # BẢN NHÁP Điều khoản / Chính sách bảo mật (mô tả đúng cách hệ thống xử lý dữ liệu, ô pháp lý [[...]])
 ├── lib/constants/constantsRoom.tsx    # buildPropertyFeatures(listing), AMENITY_ITEMS (icon + nhãn tiện ích), câu hỏi mẫu
 ├── utils/helpers.ts                   # formatNumber, formatRelativeTime, formatVietnameseCurrency, formatListingPrice
-├── lib/firebase.ts                    # khởi tạo Firebase client (null khi chưa cấu hình)
+├── lib/firebase.ts                    # getFirebaseApp() / getFirebaseAuth() (null khi chưa cấu hình)
+├── lib/push.ts                        # thông báo đẩy FCM: canUsePush, enablePush (xin quyền → đăng ký public/push-sw.js → token → PUT /notifications/push-tokens), disablePush
+├── (public/push-sw.js)               # service worker push: hiện thông báo từ data FCM { title, body, link, tag }, bấm → mở link trong site
+├── lib/pushToken.ts                   # token push của trình duyệt (localStorage) + forgetPushToken() khi đăng xuất (không import Firebase → nhẹ bundle chung)
 ├── theme/antTheme.ts                  # theme AntD gốc (sáng, màu teal)
 ├── theme/buildTheme.ts                # buildAntTheme(primaryColor, isDark): đổi màu chủ đạo / darkAlgorithm
 └── app/globals.css                    # token màu theo theme (--surface, --ink, --brand...) → class bg-surface, text-ink...
@@ -190,12 +197,12 @@ src/
 | `/phong-tro/[id]`       | Server        | `GET /listings/:id`, tin tương tự, tin khác của người đăng |
 | `/nguoi-dung/[id]`      | Server        | `GET /users/:id`, `GET /listings?authorId=`, `GET /reviews?userId=`; client: `GET /reviews/mine`, `PUT/DELETE /reviews` |
 | `/dang-nhap`            | Client        | `POST /auth/verify-phone` hoặc `/auth/dev-login`      |
-| `/ca-nhan` 🔒           | Client        | store user, `GET /listings/mine`, `PATCH /users/me` |
+| `/ca-nhan` 🔒           | Client        | store user, `GET /listings/mine`, `PATCH /users/me`; "Dữ liệu & tài khoản" (`AccountSection`): `GET /users/me/export` → file JSON, `DELETE /users/me` (gõ "XOA TAI KHOAN") → đăng xuất |
 | `/kenh-nguoi-dang` 🔒   | Client        | `GET /listings/mine` + `GET /products/mine` → lời chào, số liệu, tin xem nhiều nhất, "Cần chú ý" (tin hết hạn / còn ≤ 7 ngày / chờ duyệt), tóm tắt đồ bán Chợ ơi. bản đồ các tin có vị trí (`address.geo`). Khung toàn màn hình (DashboardShell), sidebar có thẻ người dùng |
 | `/tin-nhan` 🔒          | Client        | `GET /conversations`, `POST /conversations` (mở theo `?listingId=` hoặc `?productId=`, `?text=` điền sẵn), `GET /conversations/:id/messages`; gửi/nhận/đã đọc qua Socket.IO `/chat` |
 | `/kenh-nguoi-dang/tin-dang` 🔒 | Client | `GET /listings/mine`, `PATCH/DELETE /listings/:id` |
 | `/yeu-thich` 🔒         | Client        | store favorites + favoriteProducts + savedSearches (`GET /users/me/favorites`, `/favorite-products`, `/saved-searches`) |
-| `/thong-bao` 🔒         | Client        | `GET /notifications`, `PATCH /notifications/:id/read`, `/read-all` |
+| `/thong-bao` 🔒         | Client        | `GET /notifications`, `PATCH /notifications/:id/read`, `/read-all`; khối "Cách nhận thông báo" (`NotificationSettings`): `GET/PATCH /notifications/preferences`, bật push trên trình duyệt này; thông báo mới qua socket chèn đầu trang 1 |
 | `/dang-tin` 🔒          | Client        | `POST /uploads`, `POST /listings`, `PATCH /listings/:id` |
 | `/cho-oi`               | Server        | Bố cục như trang chủ Trọ ơi: dải danh mục icon 3D (`public/images/cho-oi/<category>.png`, Fluent Emoji — MIT; tràn khung → nút mũi tên cuộn) → "Đồ bạn đã xem" (localStorage) → tab "Dành cho bạn" (client: danh mục xem nhiều nhất + đồ mới) / "Mới nhất" (`GET /products` từ searchParams: `keyword, category, condition, city, ward, price (khoảng, `cho-tang` = 0đ), sort, page` + ô lọc tình trạng/giá/sắp xếp). Có query → mở sẵn tab "Mới nhất". Tắt Chợ ơi → trang báo tạm đóng |
 | `/dieu-khoan-su-dung`, `/chinh-sach-bao-mat` | Server | `GET /pages/:slug` (404 → notFound). Chân trang lấy link từ `GET /pages` |
@@ -227,9 +234,10 @@ Breadcrumb (`BreadcrumbItem`) tự sinh từ URL theo `ROUTE_LABELS` — thêm r
 | `NotificationList` | Danh sách thông báo (icon theo `kind`, chấm = chưa đọc) — chuông Navbar và `/thong-bao` |
 | `RelativeTime`     | "x giờ trước" an toàn khi SSR: server + lần hydrate in ngày `dd/mm/yyyy` giờ VN (`formatVietnamDate`), sau hydrate mới đổi sang tương đối |
 | `useIsClient`      | Hook: `false` lúc SSR/hydrate, `true` sau đó — đọc localStorage / thời gian hiện tại mà không lệch HTML |
-| `ReportModal`      | Báo cáo tin (Trọ ơi/Chợ ơi) → `POST /reports`. Tự gọi API (ngoại lệ có chủ đích) |
+| `ReportModal`      | Báo cáo tin (Trọ ơi/Chợ ơi) hoặc đánh giá (lý do riêng) → `POST /reports`. Tự gọi API (ngoại lệ có chủ đích) |
 | `ThemeToggle`      | Nút sáng/tối (ẩn khi admin tắt `allowThemeToggle`)                       |
 | `FormSection`      | Khối form có số bước (đăng tin, đăng bán)                                |
+| `GeoField`         | Control `Form.Item` cho `address.geo`: bấm/kéo ghim trên `VietnamMap` hoặc "Tìm theo địa chỉ" (Nominatim) từ các ô địa chỉ cùng form; `emptyHint` đổi lời nhắc (đăng tin, đăng bán) |
 | `EmptyState`      | Trạng thái rỗng theo bộ nhận diện (`EmptyVariant`: SEARCH, LISTING, FAVORITE, CHAT → `public/images/empty/*.svg`). **Dùng thay `<Empty>` của AntD** |
 
 ### Component quản trị (`components/admin`) — theo bố cục cbs-fe
@@ -315,7 +323,7 @@ Web dùng qua `transpilePackages: ['@tro-oi/shared']`; package trỏ thẳng `sr
 
 - Đơn vị hành chính **2 cấp từ 1/7/2025**: `address.city` (34 tỉnh/thành, tên rút gọn vd "Hồ Chí Minh") → `address.ward` (phường/xã/đặc khu, tên đầy đủ vd "Phường Cầu Giấy"). `address.district` chỉ còn ở dữ liệu cũ (hiển thị: `ward ?? district`).
 - Danh mục sinh từ provinces.open-api.vn v2 bằng `scripts/build-admin-units.mjs` (kiểm tra đủ 34 tỉnh / 3.321 xã trước khi ghi). API chỉ kiểm tra `city` ∈ 34 tỉnh; `ward` do web chọn từ danh mục.
-- Form đăng tin: chọn tỉnh → chọn phường/xã (có tìm kiếm) → ghim bản đồ (`GeoField` + `VietnamMap`): bấm/kéo ghim, hoặc "Tìm theo địa chỉ" (Nominatim, ≤ 1 yêu cầu/giây, người đăng chỉnh lại). Không ghim → tin không có bản đồ.
+- Form đăng tin / đăng bán: chọn tỉnh → chọn phường/xã (có tìm kiếm) → ghim bản đồ (`GeoField` + `VietnamMap`): bấm/kéo ghim, hoặc "Tìm theo địa chỉ" (Nominatim, ≤ 1 yêu cầu/giây, người đăng chỉnh lại). Không ghim → tin không có bản đồ. Toạ độ món Chợ ơi (thường là chỗ ở người bán, nhắc ghim gần đúng) hiện **chỉ** dùng cho bản đồ quản trị, không hiện công khai.
 
 ## Chạy nhiều instance API
 
@@ -331,16 +339,17 @@ Web dùng qua `transpilePackages: ['@tro-oi/shared']`; package trỏ thẳng `sr
 ## Chưa làm (backlog)
 
 - Tin tức, việc làm, khảo sát: mới có type ở shared.
-- Chat: chưa gửi ảnh, "đang nhập...", thông báo đẩy.
 - Báo tin mới khớp tìm kiếm đã lưu so khớp từng tìm kiếm bằng JS (không dùng index) — rất nhiều user cần lưu bộ lọc có cấu trúc để query thẳng Mongo. Tìm kiếm đã lưu dạng cũ có `district=` bị bỏ qua tham số đó.
-- Đánh giá: chưa có điểm sao trên thẻ người đăng (AgentCard), chưa có báo cáo đánh giá vi phạm (admin xoá trực tiếp trên hồ sơ).
-- Thông báo chỉ đến khi mở web (chuông hỏi mỗi 60s) — chưa có push realtime / email / SMS; admin từ chối tin chưa nhập được lý do.
 - Ứng dụng mobile / link tải app.
-- Người dùng chưa tự xoá được tài khoản / tải dữ liệu của mình (hiện chỉ qua email hỗ trợ, như bản nháp Chính sách bảo mật ghi).
 - Đăng nhập Google/Facebook (nút hiển thị nhưng chưa nối).
 - Bản đồ dùng dịch vụ miễn phí OpenFreeMap (không SLA) — cần ổn định/cam kết thì chuyển sang nhà cung cấp trong nước (vd Vietmap, cũng dựa trên MapLibre, giữ nguyên `patchVietnamStyle`) hoặc tự host tile; quy tắc lọc nhãn đã kiểm tra bằng trình duyệt tự động, chưa có test tự động trong repo (web chưa có test runner).
+- SMS mới là chỗ cắm (`SMS_PROVIDER=log` chỉ ghi log) — cần hợp đồng + brandname với nhà cung cấp (eSMS, SpeedSMS...) rồi thêm nhánh trong `SmsService`. Push / email cần điền cấu hình Firebase (VAPID) / SMTP mới chạy; chưa thử với dịch vụ thật.
+- Email gửi mọi thông báo khi người dùng có email và bật (kể cả "tin mới khớp tìm kiếm") — nhiều thì cần gom thành bản tin ngày. Chưa có link huỷ nhận 1 chạm trong email.
+- Tự xoá tài khoản chưa xoá file ảnh đã upload (ổ đĩa / S3) — cần job dọn ảnh không còn tham chiếu. Tải dữ liệu gom trong 1 request (tài khoản rất nhiều tin nhắn → job nền + link tải). Admin vẫn thấy tài khoản đã xoá trong danh sách người dùng (tên "Người dùng đã xoá", SĐT `deleted:<id>`).
+- Xoá đánh giá vi phạm chỉ qua trang báo cáo / hồ sơ; chưa có hàng đợi kiểm duyệt đánh giá trước khi hiện.
 - Video tin đăng chỉ nhận link YouTube (chưa upload file video), Chợ ơi chưa có video.
 - Lịch sử xem tin chỉ lưu trên trình duyệt (localStorage), không đồng bộ theo tài khoản.
+- Bản đồ quản trị tối đa 5000 điểm mới nhất mỗi nguồn (`MAP_LIMIT`). Món Chợ ơi đăng trước khi có ô ghim vị trí không có toạ độ → không lên bản đồ tới khi người bán sửa và ghim (seed mới đã có toạ độ).
 - Địa chỉ cũ không tự xác định được phường (vd quận cũ tách thành nhiều phường như "Quận 1") cần chủ tin sửa tay; API chưa kiểm tra `ward` thuộc đúng tỉnh.
 - Redis adapter và lưu S3 mới test bằng mock/unit test, chưa chạy với Redis/S3 thật.
 - Trang chính sách: hạ tầng xong, **nội dung cần người có chuyên môn pháp lý rà soát** rồi admin đăng ở `/quan-tri/trang-chinh-sach`. Đăng nhập chưa có dòng "đồng ý điều khoản".

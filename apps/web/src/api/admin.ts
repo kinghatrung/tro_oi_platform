@@ -19,6 +19,7 @@ import type {
   ReportStatus,
   UpsertPageRequest,
   User,
+  ProductMapPoint,
 } from '@tro-oi/shared';
 
 import axiosClient from './axiosClient';
@@ -53,6 +54,14 @@ export async function searchAdminListings(params: AdminListingQuery) {
 export async function getAdminListingMap(params: AdminListingQuery) {
   const res = (await axiosClient.get('/admin/listings/map', { params })) as ApiResponse<
     ListingMapPoint[]
+  >;
+  return res.data;
+}
+
+/** Món Chợ ơi có toạ độ cho bản đồ quản trị (bỏ qua page/pageSize). */
+export async function getAdminProductMap(params: AdminProductQuery) {
+  const res = (await axiosClient.get('/admin/products/map', { params })) as ApiResponse<
+    ProductMapPoint[]
   >;
   return res.data;
 }

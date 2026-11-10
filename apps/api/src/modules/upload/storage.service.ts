@@ -39,6 +39,15 @@ export class StorageService {
     }
   }
 
+  /**
+   * URL do chính hệ thống upload tạo ra. Chat chỉ nhận ảnh loại này: ảnh từ site ngoài
+   * (pixel theo dõi) sẽ lộ IP người xem cho bên thứ ba.
+   */
+  isStoredUrl(url: string) {
+    const prefix = `${this.publicUrl.replace(/\/$/, '')}/uploads/`;
+    return url.startsWith(prefix) && /^[\w.-]+$/.test(url.slice(prefix.length));
+  }
+
   /** Lưu file (tên đã sinh ở server) → URL công khai: `<publicUrl>/uploads/<name>`. */
   async save(name: string, body: Buffer, contentType: string) {
     const key = `uploads/${name}`;

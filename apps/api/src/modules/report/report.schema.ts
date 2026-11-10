@@ -6,7 +6,7 @@ import {
 } from 'mongoose';
 
 // Trùng ReportTargetType / ReportReason / ReportStatus bên @tro-oi/shared (report.ts)
-export const REPORT_TARGET_TYPES = ['listing', 'product'] as const;
+export const REPORT_TARGET_TYPES = ['listing', 'product', 'review'] as const;
 export const REPORT_REASONS = [
   'scam',
   'wrong-info',
@@ -19,7 +19,7 @@ export const REPORT_STATUSES = ['open', 'resolved', 'dismissed'] as const;
 
 export type ReportTargetType = (typeof REPORT_TARGET_TYPES)[number];
 
-/** Báo cáo vi phạm một tin Trọ ơi / Chợ ơi. */
+/** Báo cáo vi phạm một tin Trọ ơi / Chợ ơi / một đánh giá. */
 @Schema({ timestamps: true, collection: 'reports' })
 export class Report {
   @Prop({ type: String, enum: REPORT_TARGET_TYPES, required: true })

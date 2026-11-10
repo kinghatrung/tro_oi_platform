@@ -94,6 +94,8 @@ Type `SavedSearch`: `{ id, query, title, createdAt }` — web mở lại bằng 
 | GET    | `/users/me/saved-searches` 🔒      | Tìm kiếm đã lưu, mới lưu trước          | `SavedSearch[]`         |
 | POST   | `/users/me/saved-searches` 🔒      | `{ query (≤1000, query string /tim-kiem không có page), title (≤200) }`. Trùng `query` → trả bản đã có; tối đa 20 (400) | `SavedSearch` |
 | DELETE | `/users/me/saved-searches/:id` 🔒  | Xoá tìm kiếm đã lưu (idempotent)        | `null`                  |
+| GET    | `/users/me/export` 🔒              | Tải toàn bộ dữ liệu của tôi: `profile`, tin / món đồ, đánh giá đã viết & nhận, cuộc trò chuyện kèm tin nhắn (`fromMe`), thông báo, báo cáo đã gửi, tin đã lưu, tìm kiếm đã lưu | JSON |
+| DELETE | `/users/me` 🔒                     | Tự xoá tài khoản (**ẩn danh hoá**), body `{ confirm: "XOA TAI KHOAN" }` (sai → 400). Xoá tin, món đồ, đánh giá về mình, thông báo, tin / tìm kiếm đã lưu, token push; tên → "Người dùng đã xoá", bỏ email/ảnh/bio, SĐT → `deleted:<id>` (số đó đăng ký lại được), `isBlocked` + `deletedAt` (token cũ → 403, `GET /users/:id` → 404). Tin nhắn / đánh giá đã viết giữ lại. Admin → 400. Ghi nhật ký "Tự xoá tài khoản" | `null` |
 | GET    | `/users/:id`                       | Hồ sơ công khai (ẩn `phone`, `email`)   | `User`                  |
 
 `PATCH /users/me` body — Type `UpdateProfileRequest` (tất cả tuỳ chọn):
@@ -199,7 +201,7 @@ Response: `{ "items": Listing[], "total": 120, "page": 1, "pageSize": 10 }`.
 | `images`      | string[]      | ✔        | 1–20 URL (lấy từ `/uploads`) |
 | `address`     | object        | ✔        | `city` (1 trong 34 tỉnh/thành, sai → 400) và `ward` bắt buộc; `street`, `fullAddress`, `geo { latitude, longitude }` tuỳ chọn; `district` (dữ liệu cũ) tuỳ chọn |
 
-`PATCH /listings/:id`: mọi field của create đều tuỳ chọn, thêm `status`. Chủ tin chỉ chuyển `active ↔ closed` và **không** đổi được tin `pending` (403); admin đổi mọi trạng thái (duyệt = `pending → active`).
+`PATCH /listings/:id`: mọi field của create đều tuỳ chọn, thêm `status`. Chủ tin chỉ chuyển `active ↔ closed` và **không** đổi được tin `pending` (403); admin đổi mọi trạng thái (duyệt = `pending → active`). Admin gửi kèm `moderationNote?` (≤ 500) khi ẩn / từ chối tin người khác → nối "Lý do: …" vào thông báo cho chủ tin + nhật ký, lưu ở `moderationNote` của tin (xoá khi tin hiển thị lại; người khác gửi → bỏ qua).
 
 Admin đổi trạng thái / xoá tin **của người khác** (Trọ ơi và Chợ ơi) → ghi nhật ký (`/admin/audit-logs`) + gửi thông báo cho chủ tin: duyệt / từ chối (`pending →` khác `active`) / ẩn / hiện lại / xoá. Chỉ sửa nội dung (không đổi trạng thái) thì không ghi. Logic: `apps/api/src/common/moderation.ts` (có test).
 
@@ -223,7 +225,7 @@ File tĩnh từ thư mục `apps/api/uploads/` (không commit vào git) — ch�
 
 ## Products (Chợ ơi) — `/products`
 
-Type `ProductItem`: `{ id, title, description, category, condition, status, price, isNegotiable, images, address: { city, ward?, district? (dữ liệu cũ) }, seller: { id, name, avatar, phone, joinedAt }, viewCount, createdAt, updatedAt }`.
+Type `ProductItem`: `{ id, title, description, category, condition, status, price, isNegotiable, images, address: { city, ward?, district? (dữ liệu cũ), geo? { latitude, longitude } }, moderationNote?, seller: { id, name, avatar, phone, joinedAt }, viewCount, createdAt, updatedAt }`.
 
 - `category` ∈ `furniture | electronics | appliance | vehicle | study | kitchen | fashion | decor | sport | hobby | toy | baby | beauty | pet | other`; `condition` ∈ `new | like-new | good | fair`; `status` ∈ `pending | active | sold | closed`. `price = 0` = cho tặng.
 
@@ -232,8 +234,8 @@ Type `ProductItem`: `{ id, title, description, category, condition, status, pric
 | GET | `/products` | Tìm món **active**: `keyword, category, condition, city, ward, minPrice, maxPrice, sellerId, excludeId, page, pageSize (≤50, mặc định 12), sortBy (createdAt/price), sortDirection` | `PagedResponse<ProductItem>` |
 | GET | `/products/mine` 🔒 | Mọi món của tôi | `ProductItem[]` |
 | GET | `/products/:id` | Chi tiết món active, +1 `viewCount` | `ProductItem` |
-| POST | `/products` 🔒 | Đăng bán: `title (5–120), description?, category, condition, price ≥0, isNegotiable?, images (1–10), address.city`. `pending` nếu bật `requireProductApproval`; 403 nếu Chợ ơi đang tắt | `ProductItem` |
-| PATCH | `/products/:id` 🔒 | Sửa (người bán/admin). Người bán chuyển được `active / sold / closed`, không đổi tin `pending` | `ProductItem` |
+| POST | `/products` 🔒 | Đăng bán: `title (5–120), description?, category, condition, price ≥0, isNegotiable?, images (1–10), address.city`; `address.ward?`, `address.geo? { latitude −90..90, longitude −180..180 }` tuỳ chọn (sai → 400). `pending` nếu bật `requireProductApproval`; 403 nếu Chợ ơi đang tắt | `ProductItem` |
+| PATCH | `/products/:id` 🔒 | Sửa (người bán/admin). Người bán chuyển được `active / sold / closed`, không đổi tin `pending`. `moderationNote?` như `PATCH /listings/:id` | `ProductItem` |
 | DELETE | `/products/:id` 🔒 | Xoá (người bán/admin) | `null` |
 
 ---
@@ -244,12 +246,12 @@ Type `ProductItem`: `{ id, title, description, category, condition, status, pric
 
 | Body | Kiểu | Ghi chú |
 | --- | --- | --- |
-| `targetType` | `listing` / `product` | |
-| `targetId` | string | id tin, 404 nếu không tồn tại |
+| `targetType` | `listing` / `product` / `review` | |
+| `targetId` | string | id tin / đánh giá, 404 nếu không tồn tại |
 | `reason` | `scam / wrong-info / duplicate / unavailable / inappropriate / other` | |
 | `note` | string? | ≤ 500 ký tự |
 
-Mỗi người chỉ có 1 báo cáo **đang mở** cho 1 tin (trùng → 409). Admin xử lý ở `/admin/reports`.
+Mỗi người chỉ có 1 báo cáo **đang mở** cho 1 nội dung (trùng → 409). Báo cáo đánh giá dùng chung giá trị `reason`, nhãn riêng ở web (`REVIEW_REPORT_REASON_LABELS`). Admin xử lý ở `/admin/reports`.
 
 ---
 
@@ -261,6 +263,10 @@ Type `AppNotification`: `{ id, kind: info | success | warning | error, title, me
 | --- | --- | --- | --- |
 | GET | `/notifications` 🔒 | Thông báo của tôi, mới trước: `page`, `pageSize` (≤50, mặc định 20) | `NotificationPage` = `PagedResponse<AppNotification>` + `unread` |
 | GET | `/notifications/unread-count` 🔒 | Số chưa đọc | `{ count }` |
+| GET | `/notifications/preferences` 🔒 | Kênh nhận: `{ push, email, sms, hasEmail, channels: { push, email, sms } }` — `channels` = kênh máy chủ đã cấu hình (Firebase / SMTP / `SMS_PROVIDER`). Mặc định push + email bật, SMS tắt | `NotificationPreferences` |
+| PATCH | `/notifications/preferences` 🔒 | `{ push?, email?, sms? }` (boolean) | `NotificationPreferences` |
+| PUT | `/notifications/push-tokens` 🔒 | `{ token }` — token FCM của trình duyệt này; giữ tối đa 10 / tài khoản (cũ nhất bị bỏ). Token FCM báo chết → tự xoá | `null` |
+| DELETE | `/notifications/push-tokens` 🔒 | `{ token }` — tắt push / đăng xuất trên trình duyệt này | `null` |
 | PATCH | `/notifications/read-all` 🔒 | Đánh dấu tất cả đã đọc | `null` |
 | PATCH | `/notifications/:id/read` 🔒 | Đánh dấu 1 thông báo (chỉ của mình; id lạ → bỏ qua) | `null` |
 
@@ -290,10 +296,13 @@ Kết nối: `` io(`${API_URL}/chat`, { auth: { token: accessToken } }) ``. Toke
 
 | Hướng | Event | Payload | Ghi chú |
 | --- | --- | --- | --- |
-| client → server | `message:send` | `{ conversationId, content }` | ack `{ ok: true, message }` / `{ ok: false, error }`. Nội dung trim, 1–1000 ký tự; tối đa 10 tin / 10 giây mỗi kết nối |
+| client → server | `message:send` | `{ conversationId, content, images? }` | ack `{ ok: true, message }` / `{ ok: false, error }`. Nội dung trim ≤ 1000 ký tự; cần chữ **hoặc** ảnh; `images` ≤ 4 URL và phải là URL do `POST /uploads` tạo (`<publicUrl>/uploads/<tên>`, chặn ảnh ngoài — lộ IP người xem). Tin chỉ ảnh → `lastMessage.content` = "[Hình ảnh]". Người nhận không mở web → thông báo đẩy. Tối đa 10 tin / 10 giây mỗi kết nối |
+| client → server | `typing` | `{ conversationId }` | không ack; chuyển tới người còn lại nếu là thành viên. Web gửi ≤ 1 lần / 2,5s, server bỏ bớt < 1s |
 | client → server | `conversation:read` | `{ conversationId }` | ack `{ ok }` |
 | server → client | `message:new` | `{ message, conversation }` | gửi tới mọi tab của cả 2 người; `conversation` theo góc nhìn người nhận |
 | server → client | `conversation:read` | `{ conversationId }` | gửi tới các tab của chính người vừa đọc (đồng bộ badge) |
+| server → client | `typing` | `{ conversationId, userId }` | người kia đang soạn tin — web hiện "… đang nhập…" 4 giây |
+| server → client | `notification:new` | `AppNotification` | thông báo mới (realtime cho chuông + toast). Gửi qua `RealtimeService` (module global) — mọi `NotificationService.notify` đều phát |
 
 ---
 
@@ -348,13 +357,14 @@ Mọi route: `JwtAuthGuard` + `AdminGuard` (không phải admin → 403). Sửa/
 | PATCH | `/admin/users/:id` | `{ role?, isBlocked? }` — không tự sửa chính mình (400) | `User` |
 | GET | `/admin/listings` | Như `GET /listings` + `status` (bỏ trống = mọi trạng thái) | `PagedResponse<Listing>` |
 | GET | `/admin/listings/map` | Tin **có toạ độ** (`address.geo`) cho bản đồ quản trị: lọc như `/admin/listings` (`status`, `category`, `city`, `keyword`...), **không phân trang**, tối đa 5000 tin mới nhất. Mỗi phần tử `{ id, title, price, transaction, status, category, city, ward, geo }` | `ListingMapPoint[]` |
+| GET | `/admin/products/map` | Món **có toạ độ** (`address.geo`) cho bản đồ quản trị: lọc như `/admin/products` (`status`, `category`, `city`, `keyword`...), **không phân trang**, tối đa 5000 món mới nhất. Mỗi phần tử `{ id, title, price, status, category, city, ward, geo }` | `ProductMapPoint[]` |
 | GET | `/admin/products` | Như `GET /products` + `status` | `PagedResponse<ProductItem>` |
-| GET | `/admin/reports` | `status`, `targetType`, `page`, `pageSize` | `PagedResponse<Report>` (kèm `targetTitle`, `reporter`) |
+| GET | `/admin/reports` | `status`, `targetType`, `page`, `pageSize` | `PagedResponse<Report>` (kèm `targetTitle`, `reporter`; đánh giá: `targetTitle` = `4★ — "lời bình"`, `targetUserId` = người được đánh giá) |
 | PATCH | `/admin/reports/:id` | `{ status: open / resolved / dismissed }` | `null` |
 | PUT | `/admin/settings` | Mọi field `SiteSettings` (trừ `updatedAt`) đều tuỳ chọn, chỉ field gửi lên bị ghi | `SiteSettings` |
 | GET | `/admin/audit-logs` | Nhật ký thao tác admin, mới trước: `targetType` (`listing / product / user / report / settings / review / page`), `page`, `pageSize` | `PagedResponse<AuditLog>` |
 
-Type `AuditLog`: `{ id, action (nhãn tiếng Việt), targetType, targetId?, targetTitle?, actor: { id, name, avatar, role } | null, createdAt }`. Được ghi khi: kiểm duyệt tin người khác (xem Listings), `PATCH /admin/users/:id` (chỉ ghi phần thực sự đổi: cấp/gỡ quyền quản trị, khoá/mở khoá), `PATCH /admin/reports/:id`, `PUT /admin/settings`, admin xoá đánh giá (`DELETE /reviews/:id`). Ghi nhật ký lỗi không làm hỏng thao tác chính (chỉ log cảnh báo).
+Type `AuditLog`: `{ id, action (nhãn tiếng Việt), targetType, targetId?, targetTitle?, note? (lý do từ chối / ẩn), actor: { id, name, avatar, role } | null, createdAt }`. Được ghi khi: kiểm duyệt tin người khác (xem Listings), `PATCH /admin/users/:id` (chỉ ghi phần thực sự đổi: cấp/gỡ quyền quản trị, khoá/mở khoá), `PATCH /admin/reports/:id`, `PUT /admin/settings`, admin xoá đánh giá (`DELETE /reviews/:id`). Ghi nhật ký lỗi không làm hỏng thao tác chính (chỉ log cảnh báo).
 
 ---
 

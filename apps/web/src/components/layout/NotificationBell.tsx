@@ -8,30 +8,55 @@ import { Bell } from 'lucide-react';
 import type { AppNotification } from '@tro-oi/shared';
 
 import { EmptyState, EmptyVariant, NotificationList } from '@/components/common';
+import { getChatSocket } from '@/lib/socket';
 import { useNotificationStore } from '@/stores/useNotificationStore';
 
-const POLL_MS = 60_000;
+/** Dự phòng khi socket mất kết nối lâu (thông báo chính đi qua "notification:new"). */
+const POLL_MS = 5 * 60_000;
 
 /** Chuông thông báo trên Navbar (chỉ render khi đã đăng nhập): số chưa đọc + 6 thông báo mới nhất. */
 export function NotificationBell() {
   const router = useRouter();
-  const { message } = App.useApp();
+  const { message, notification: toast } = App.useApp();
   const [open, setOpen] = useState(false);
   const unread = useNotificationStore((state) => state.unread);
   const latest = useNotificationStore((state) => state.latest);
 
-  // shortcut: hỏi số chưa đọc mỗi 60s — cần realtime thì phát "notification:new" qua socket /chat
+  // Realtime qua socket /chat (MessagesButton mở kết nối); kết nối lại → hỏi lại số chưa đọc
   useEffect(() => {
-    const poll = () =>
+    const refresh = () =>
       // Lỗi mạng tạm thời: bỏ qua, lượt sau hỏi lại (401 đã được axiosClient xử lý)
       void useNotificationStore
         .getState()
         .refreshUnread()
         .catch(() => undefined);
-    poll();
-    const timer = setInterval(poll, POLL_MS);
-    return () => clearInterval(timer);
-  }, []);
+    const onNew = (item: AppNotification) => {
+      useNotificationStore.getState().receive(item);
+      toast.info({
+        title: item.title,
+        description: item.message,
+        placement: 'bottomRight',
+        onClick: () => {
+          useNotificationStore
+            .getState()
+            .markRead(item)
+            .catch(() => undefined);
+          if (item.link) router.push(item.link);
+        },
+        className: item.link ? 'cursor-pointer' : undefined,
+      });
+    };
+    const socket = getChatSocket();
+    refresh();
+    socket.on('notification:new', onNew);
+    socket.on('connect', refresh);
+    const timer = setInterval(refresh, POLL_MS);
+    return () => {
+      socket.off('notification:new', onNew);
+      socket.off('connect', refresh);
+      clearInterval(timer);
+    };
+  }, [router, toast]);
 
   const showError = (error: unknown) => message.error((error as Error).message);
 

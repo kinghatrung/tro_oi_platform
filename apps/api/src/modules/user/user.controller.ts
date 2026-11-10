@@ -17,11 +17,16 @@ import {
 import { JwtAuthGuard } from '../auth/jwt-auth.guard.js';
 import { CreateSavedSearchDto } from './dto/saved-search.dto.js';
 import { UpdateProfileDto } from './dto/update-profile.dto.js';
+import { AccountService } from './account.service.js';
+import { DeleteAccountDto } from './dto/delete-account.dto.js';
 import { UserService } from './user.service.js';
 
 @Controller('users')
 export class UserController {
-  constructor(private readonly userService: UserService) {}
+  constructor(
+    private readonly userService: UserService,
+    private readonly accountService: AccountService,
+  ) {}
 
   // Route "me" khai báo trước ":id" để không bị bắt nhầm
   @Get('me')
@@ -34,6 +39,20 @@ export class UserController {
   @UseGuards(JwtAuthGuard)
   updateMe(@CurrentUser() user: AuthUser, @Body() dto: UpdateProfileDto) {
     return this.userService.updateMe(user.sub, dto);
+  }
+
+  /** Tải toàn bộ dữ liệu của tôi (JSON). */
+  @Get('me/export')
+  @UseGuards(JwtAuthGuard)
+  exportMe(@CurrentUser() user: AuthUser) {
+    return this.accountService.exportData(user.sub);
+  }
+
+  /** Tự xoá tài khoản (ẩn danh hoá) — body { confirm: "XOA TAI KHOAN" }. */
+  @Delete('me')
+  @UseGuards(JwtAuthGuard)
+  deleteMe(@CurrentUser() user: AuthUser, @Body() _dto: DeleteAccountDto) {
+    return this.accountService.deleteAccount(user.sub);
   }
 
   @Get('me/favorites')

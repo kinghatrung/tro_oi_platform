@@ -31,8 +31,45 @@ export function describeModeration(
   item: { id: string; title: string },
   from: string,
   to: string | null,
+  /** Lý do admin nhập khi từ chối / ẩn — nối vào lời thông báo. */
+  note?: string,
 ): { action: string; notice: NotificationInput } | null {
   if (from === to) return null;
+  const result = describeChange(target, item, from, to);
+  if (note && to !== 'active') {
+    result.notice = {
+      ...result.notice,
+      message: `${result.notice.message} Lý do: ${note}`,
+    };
+  }
+  return result;
+}
+
+/**
+ * Lý do lưu trên tin sau khi đổi trạng thái: hiển thị lại → xoá; admin từ chối / ẩn tin người khác
+ * → lý do mới (bỏ trống = xoá lý do cũ); còn lại (chủ tin tự đổi, chỉ sửa nội dung) → giữ nguyên.
+ */
+export function nextModerationNote(
+  actor: AuthUser,
+  owner: Types.ObjectId,
+  from: string,
+  to: string,
+  note: string | undefined,
+  current: string | undefined,
+): string | undefined {
+  if (to === 'active') return undefined;
+  if (from === to || actor.role !== 'admin' || owner.equals(actor.sub)) {
+    return current;
+  }
+  return note?.trim() || undefined;
+}
+
+function describeChange(
+  target: ModerationTarget,
+  item: { id: string; title: string },
+  from: string,
+  to: string | null,
+): { action: string; notice: NotificationInput } {
   const noun = NOUN[target];
   const name = `"${item.title}"`;
   const manage = MANAGE_LINK[target];
@@ -102,9 +139,10 @@ export async function recordModeration(
   item: { id: string; title: string },
   from: string,
   to: string | null,
+  note?: string,
 ) {
   if (actor.role !== 'admin' || owner.equals(actor.sub)) return;
-  const result = describeModeration(target, item, from, to);
+  const result = describeModeration(target, item, from, to, note);
   if (!result) return;
   await Promise.all([
     services.audit.log(actor.sub, {
@@ -112,6 +150,7 @@ export async function recordModeration(
       targetType: target,
       targetId: item.id,
       targetTitle: item.title,
+      ...(note && to !== 'active' && { note }),
     }),
     services.notification.notify([{ user: owner, input: result.notice }]),
   ]);

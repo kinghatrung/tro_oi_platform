@@ -56,7 +56,7 @@ Chính sách này mô tả cách ${siteName} ([[Tên đơn vị / cá nhân vậ
 ## 3. Mục đích sử dụng
 - Xác thực đăng nhập và duy trì phiên đăng nhập.
 - Hiển thị tin đăng, hồ sơ công khai và cho phép người dùng liên hệ với nhau.
-- Gửi thông báo trên website: tin được duyệt/bị ẩn, tin sắp hết hạn, đánh giá mới, tin mới khớp tìm kiếm đã lưu.
+- Gửi thông báo: tin được duyệt/bị ẩn (kèm lý do), tin sắp hết hạn, đánh giá mới, tin mới khớp tìm kiếm đã lưu, tin nhắn mới. Thông báo hiển thị trên website; ngoài ra qua thông báo đẩy của trình duyệt (khi bạn bật), email (khi bạn đã thêm email và chưa tắt) hoặc SMS (khi bạn bật). Bạn bật / tắt từng kênh ở trang Thông báo.
 - Kiểm duyệt nội dung, xử lý báo cáo vi phạm, ngăn chặn lừa đảo và lạm dụng.
 
 ## 4. Thông tin hiển thị công khai
@@ -72,10 +72,13 @@ Tin nhắn chỉ hiển thị cho hai người trong cuộc trò chuyện trên 
 - Cookie đăng nhập (accessToken) để giữ phiên đăng nhập, hết hạn sau 7 ngày hoặc khi bạn đăng xuất.
 - Cookie ghi nhớ lựa chọn giao diện sáng/tối.
 - Lịch sử tin đã xem (tối đa 15 tin) lưu ngay trên trình duyệt của bạn, không gửi về máy chủ; bạn có thể xoá bằng cách xoá dữ liệu trang web trong trình duyệt.
+- Khi bạn bật thông báo đẩy: trình duyệt cấp một mã thiết bị, mã này được lưu vào tài khoản để gửi thông báo và bị gỡ khi bạn tắt thông báo đẩy hoặc đăng xuất.
 - Chúng tôi không dùng cookie quảng cáo hoặc công cụ phân tích hành vi của bên thứ ba.
 
 ## 7. Dịch vụ bên thứ ba
-- Google Firebase: gửi và xác thực mã OTP qua số điện thoại.
+- Google Firebase: gửi và xác thực mã OTP qua số điện thoại; gửi thông báo đẩy tới trình duyệt (Firebase Cloud Messaging) khi bạn bật.
+- Dịch vụ gửi email: [[Tên nhà cung cấp SMTP, ví dụ Gmail / Zoho / Amazon SES]] — nhận địa chỉ email và nội dung thông báo.
+- Dịch vụ gửi SMS: [[Tên nhà cung cấp SMS nếu có]] — nhận số điện thoại và nội dung thông báo, chỉ khi bạn bật SMS.
 - YouTube (chế độ youtube-nocookie): phát video nhúng trong tin đăng.
 - OpenFreeMap (dữ liệu OpenStreetMap): tải bản đồ nền hiển thị vị trí tin đăng.
 - Nominatim (OpenStreetMap): khi người đăng bấm "Tìm theo địa chỉ", địa chỉ đã nhập được gửi đi để tìm toạ độ.
@@ -90,7 +93,9 @@ Các dịch vụ này có chính sách bảo mật riêng.
 
 ## 9. Quyền của bạn
 - Xem và sửa thông tin hồ sơ tại Trang cá nhân; sửa, ẩn hoặc xoá tin đăng tại Kênh người đăng; xoá đánh giá do mình viết.
-- Yêu cầu xoá tài khoản hoặc trích xuất dữ liệu: gửi email tới ${contactEmail}. Chúng tôi phản hồi trong vòng [[Số ngày]] ngày làm việc.
+- Tải toàn bộ dữ liệu của bạn (tệp JSON) tại Trang cá nhân > Dữ liệu & tài khoản.
+- Tự xoá tài khoản tại Trang cá nhân > Dữ liệu & tài khoản: tin đăng, món đồ, tin đã lưu, tìm kiếm đã lưu, thông báo và đánh giá người khác viết về bạn bị xoá ngay; thông tin cá nhân (tên, ảnh, email, số điện thoại) bị gỡ khỏi tài khoản. Tin nhắn và đánh giá bạn đã viết được giữ lại để không làm hỏng cuộc trò chuyện của người khác, nhưng chỉ hiển thị là "Người dùng đã xoá". [[Thời hạn xoá ảnh đã tải lên khỏi máy chủ lưu trữ]]
+- Yêu cầu khác về dữ liệu: gửi email tới ${contactEmail}. Chúng tôi phản hồi trong vòng [[Số ngày]] ngày làm việc.
 - [[Các quyền khác của chủ thể dữ liệu theo pháp luật áp dụng]]
 
 ## 10. Bảo mật

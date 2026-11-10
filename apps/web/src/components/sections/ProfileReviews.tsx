@@ -2,12 +2,18 @@
 
 import { useEffect, useState } from 'react';
 import { App, Avatar, Button, Card, Form, Input, Popconfirm, Rate } from 'antd';
-import { Trash2 } from 'lucide-react';
-import { UserRole, type MyReviewStatus, type Review, type ReviewPage } from '@tro-oi/shared';
+import { Flag, Trash2 } from 'lucide-react';
+import {
+  ReportTargetType,
+  UserRole,
+  type MyReviewStatus,
+  type Review,
+  type ReviewPage,
+} from '@tro-oi/shared';
 
 import { deleteReview, getMyReview, getReviews, upsertReview } from '@/api/reviews';
 import { useAuthStore } from '@/stores/useAuthStore';
-import { RelativeTime } from '@/components/common';
+import { RelativeTime, ReportModal } from '@/components/common';
 
 interface ReviewForm {
   rating: number;
@@ -31,6 +37,7 @@ export function ProfileReviews({ userId, initial }: ProfileReviewsProps) {
   const [data, setData] = useState(initial);
   const [mine, setMine] = useState<MyReviewStatus | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [reportingId, setReportingId] = useState<string>();
   const isSelf = viewer?.id === userId;
 
   useEffect(() => {
@@ -87,9 +94,12 @@ export function ProfileReviews({ userId, initial }: ProfileReviewsProps) {
 
   const canDelete = (review: Review) =>
     viewer && (review.reviewer?.id === viewer.id || viewer.role === UserRole.ADMIN);
+  // Đã đăng nhập, không phải đánh giá của mình (admin xoá thẳng, không cần báo cáo)
+  const canReport = (review: Review) =>
+    viewer && review.reviewer?.id !== viewer.id && viewer.role !== UserRole.ADMIN;
 
   return (
-    <Card variant="borderless">
+    <Card variant="borderless" id="danh-gia">
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <h2 className="text-primary">Đánh giá</h2>
         {data.average === null ? (
@@ -158,6 +168,15 @@ export function ProfileReviews({ userId, initial }: ProfileReviewsProps) {
                   <p className="mt-1 whitespace-pre-line text-default">{review.comment}</p>
                 )}
               </div>
+              {canReport(review) && (
+                <Button
+                  type="text"
+                  aria-label="Báo cáo đánh giá"
+                  title="Báo cáo đánh giá vi phạm"
+                  icon={<Flag size={16} />}
+                  onClick={() => setReportingId(review.id)}
+                />
+              )}
               {canDelete(review) && (
                 <Popconfirm
                   title="Xoá đánh giá này?"
@@ -176,6 +195,14 @@ export function ProfileReviews({ userId, initial }: ProfileReviewsProps) {
         <Button block className="mt-2" onClick={loadMore}>
           Xem thêm đánh giá
         </Button>
+      )}
+      {reportingId && (
+        <ReportModal
+          open
+          onClose={() => setReportingId(undefined)}
+          targetType={ReportTargetType.REVIEW}
+          targetId={reportingId}
+        />
       )}
     </Card>
   );

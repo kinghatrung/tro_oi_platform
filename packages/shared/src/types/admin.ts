@@ -81,10 +81,23 @@ export interface ListingMapPoint {
   geo: GeoPoint;
 }
 
+/** Một ghim món Chợ ơi trên bản đồ quản trị — GET /admin/products/map. */
+export interface ProductMapPoint {
+  id: string;
+  title: string;
+  price: number;
+  status: ProductStatus;
+  category: ProductCategory;
+  city?: string;
+  ward?: string;
+  geo: GeoPoint;
+}
+
 export interface AdminProductQuery extends BaseListRequest {
   keyword?: string;
   status?: ProductStatus;
   category?: ProductCategory;
+  city?: string;
   sellerId?: string;
 }
 
@@ -125,6 +138,8 @@ export interface AuditLog {
   targetId?: string;
   /** Tên/tiêu đề lúc thao tác (còn giữ khi đối tượng đã bị xoá). */
   targetTitle?: string;
+  /** Lý do admin nhập (từ chối / ẩn tin). */
+  note?: string;
   actor: Pick<User, 'id' | 'name' | 'avatar' | 'role'> | null;
   /** ISO 8601. */
   createdAt: string;

@@ -7,8 +7,11 @@ import type { AppNotification, NotificationPage } from '@tro-oi/shared';
 
 import { getNotifications } from '@/api/notifications';
 import { EmptyState, EmptyVariant, NotificationList } from '@/components/common';
+import { getChatSocket } from '@/lib/socket';
 import { useRequireUser } from '@/stores/useAuthStore';
 import { useNotificationStore } from '@/stores/useNotificationStore';
+
+import { NotificationSettings } from './NotificationSettings';
 
 const PAGE_SIZE = 20;
 
@@ -35,6 +38,25 @@ export default function NotificationsPage() {
       cancelled = true;
     };
   }, [message, page, user]);
+
+  // Thông báo mới qua socket → chèn đầu danh sách khi đang xem trang 1
+  useEffect(() => {
+    if (page !== 1) return;
+    const socket = getChatSocket();
+    const onNew = (item: AppNotification) =>
+      setData(
+        (current) =>
+          current && {
+            ...current,
+            total: current.total + 1,
+            items: [item, ...current.items.filter((old) => old.id !== item.id)].slice(0, PAGE_SIZE),
+          },
+      );
+    socket.on('notification:new', onNew);
+    return () => {
+      socket.off('notification:new', onNew);
+    };
+  }, [page]);
 
   const markLocal = (read: (item: AppNotification) => boolean) =>
     setData(
@@ -71,6 +93,8 @@ export default function NotificationsPage() {
           Đánh dấu tất cả đã đọc
         </Button>
       </div>
+
+      <NotificationSettings />
 
       {!data ? (
         <Skeleton active />

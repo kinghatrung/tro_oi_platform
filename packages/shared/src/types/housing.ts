@@ -164,6 +164,8 @@ export interface Listing {
   favoriteCount?: number;
   /** ISO 8601 — thời điểm tin tự hết hạn. */
   expiresAt?: string;
+  /** Lý do quản trị viên từ chối / ẩn gần nhất (xoá khi hiển thị lại). */
+  moderationNote?: string;
   /** ISO 8601. */
   createdAt: string;
   /** ISO 8601. */
@@ -227,4 +229,6 @@ export interface CreateListingRequest {
 /** Payload cập nhật tin đăng. */
 export type UpdateListingRequest = Partial<CreateListingRequest> & {
   status?: ListingStatus;
+  /** Chỉ admin: lý do từ chối / ẩn — gửi kèm thông báo cho chủ tin. */
+  moderationNote?: string;
 };

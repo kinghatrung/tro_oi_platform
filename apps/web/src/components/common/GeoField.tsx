@@ -5,8 +5,9 @@ import { App, Button, Form } from 'antd';
 import { MapPinOff, Search } from 'lucide-react';
 import type { AddressInfo, GeoPoint } from '@tro-oi/shared';
 
-import { VietnamMap } from '@/components/common';
 import { geocodeAddress } from '@/lib/geocode';
+
+import { VietnamMap } from '.';
 
 /** Chính sách Nominatim: tối đa 1 yêu cầu/giây. */
 const NOMINATIM_GAP_MS = 1100;
@@ -14,13 +15,20 @@ const NOMINATIM_GAP_MS = 1100;
 interface GeoFieldProps {
   value?: GeoPoint;
   onChange?: (value?: GeoPoint) => void;
+  /** Dòng gợi ý khi chưa có ghim (mặc định: lời nhắc cho tin đăng). */
+  emptyHint?: string;
 }
 
 /**
  * Control Form.Item cho address.geo: bấm/kéo ghim trên bản đồ, hoặc "Tìm theo địa chỉ"
- * (Nominatim) từ các ô địa chỉ cùng form rồi chỉnh lại ghim. Bỏ ghim → tin không có bản đồ.
+ * (Nominatim) từ các ô địa chỉ cùng form rồi chỉnh lại ghim. Bỏ ghim → không có vị trí.
+ * Dùng ở form đăng tin (Trọ ơi) và đăng bán (Chợ ơi).
  */
-export function GeoField({ value, onChange }: GeoFieldProps) {
+export function GeoField({
+  value,
+  onChange,
+  emptyHint = 'Chưa có vị trí — bấm lên bản đồ để đặt ghim (không bắt buộc, nhưng tin có bản đồ dễ tìm hơn)',
+}: GeoFieldProps) {
   const form = Form.useFormInstance<{ address?: AddressInfo }>();
   const { message } = App.useApp();
   const [isSearching, setIsSearching] = useState(false);
@@ -71,7 +79,7 @@ export function GeoField({ value, onChange }: GeoFieldProps) {
       <p className="mt-1 text-xs text-subtle">
         {value
           ? `Ghim: ${value.latitude}, ${value.longitude} — kéo ghim hoặc bấm lên bản đồ để đổi`
-          : 'Chưa có vị trí — bấm lên bản đồ để đặt ghim (không bắt buộc, nhưng tin có bản đồ dễ tìm hơn)'}
+          : emptyHint}
       </p>
     </div>
   );

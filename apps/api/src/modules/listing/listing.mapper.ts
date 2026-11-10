@@ -61,6 +61,7 @@ export function toListing(
     isFeatured: doc.isFeatured,
     viewCount: doc.viewCount ?? 0,
     expiresAt: doc.expiresAt?.toISOString(),
+    moderationNote: doc.moderationNote,
     favoriteCount: extra.favoriteCount,
     createdAt: doc.createdAt.toISOString(),
     updatedAt: doc.updatedAt.toISOString(),

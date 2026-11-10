@@ -144,6 +144,8 @@ export async function getListing(id: string) {
 - Thao tác của admin lên dữ liệu người khác phải ghi nhật ký: tin/món đồ đi qua `recordModeration()` (`common/moderation.ts`, kèm thông báo chủ tin), còn lại gọi `AuditService.log()`. Gửi thông báo qua `NotificationService.notify()`. Hai hàm này không ném lỗi, để thao tác chính không hỏng.
 - id không hợp lệ (`!isValidObjectId`) → `NotFoundException`, không để Mongoose CastError thành 500.
 - Secret/config chỉ đọc qua `ConfigService`; thêm biến mới → cập nhật `.env.example` + `project-structure.md`.
+- Thông báo cho người dùng **luôn** qua `NotificationService.notify` (lưu + realtime + push / email / SMS theo cài đặt) — không tự emit socket hay gửi email ở module khác. Sự kiện realtime khác dùng `RealtimeService.emitToUser`.
+- URL ảnh do người dùng gửi để hiển thị cho **người khác** (chat) phải qua `StorageService.isStoredUrl` — chỉ nhận ảnh đã upload qua `/uploads`.
 - Logic không tầm thường (filter, quyền, parse) → có ít nhất 1 unit test `*.spec.ts`.
 
 ## 5. Shared (`packages/shared`)

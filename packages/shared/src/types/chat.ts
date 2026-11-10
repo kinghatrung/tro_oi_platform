@@ -38,7 +38,10 @@ export interface ChatMessage {
   id: string;
   conversationId: string;
   senderId: string;
+  /** Có thể rỗng khi tin chỉ có ảnh. */
   content: string;
+  /** URL ảnh (tối đa 4, upload qua POST /uploads). */
+  images?: string[];
   /** ISO 8601. */
   createdAt: string;
   /** Chỉ có ở client (tin mình gửi); server trả về luôn coi là đã gửi. */
@@ -66,6 +69,12 @@ export interface StartConversationRequest {
 export interface ChatMessageEvent {
   message: ChatMessage;
   conversation: Conversation;
+}
+
+/** Sự kiện "typing": người kia đang soạn tin trong cuộc trò chuyện này. */
+export interface TypingEvent {
+  conversationId: string;
+  userId: string;
 }
 
 /** Ack của "message:send". */

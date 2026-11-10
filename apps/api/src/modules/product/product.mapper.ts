@@ -32,6 +32,7 @@ export function toProduct(doc: ProductDocument) {
         }
       : undefined,
     viewCount: doc.viewCount ?? 0,
+    moderationNote: doc.moderationNote,
     createdAt: doc.createdAt.toISOString(),
     updatedAt: doc.updatedAt.toISOString(),
   };

@@ -37,7 +37,11 @@ interface ChatWindowProps {
   messages: ChatMessage[];
   currentUserId: string;
   isConnected: boolean;
-  onSend: (content: string) => void;
+  onSend: (content: string, images?: string[]) => void;
+  /** Mình đang gõ → báo người kia (đã giãn ở ChatComposer). */
+  onTyping?: () => void;
+  /** Người kia đang gõ trong cuộc trò chuyện này. */
+  isOtherTyping?: boolean;
   /** Mobile: quay lại danh sách cuộc trò chuyện. */
   onBack?: () => void;
   /** Gợi ý câu hỏi khi chưa có tin nhắn. */
@@ -56,6 +60,8 @@ export function ChatWindow({
   currentUserId,
   isConnected,
   onSend,
+  onTyping,
+  isOtherTyping = false,
   onBack,
   quickQuestions = [],
   draft,
@@ -167,7 +173,16 @@ export function ChatWindow({
         <div ref={bottomRef} />
       </div>
 
-      <ChatComposer key={conversation.id} onSend={onSend} initialValue={draft} />
+      {/* Giữ chỗ cố định → khung tin nhắn không nhảy khi dòng này hiện/ẩn */}
+      <p aria-live="polite" className="h-5 px-4 text-xs text-subtle italic">
+        {isOtherTyping && `${otherUser.name} đang nhập…`}
+      </p>
+      <ChatComposer
+        key={conversation.id}
+        onSend={onSend}
+        onTyping={onTyping}
+        initialValue={draft}
+      />
     </Flex>
   );
 }

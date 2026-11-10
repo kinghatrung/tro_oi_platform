@@ -8,9 +8,9 @@ import type {
 
 import axiosClient from './axiosClient';
 
-export async function getReviews(userId: string, page = 1) {
+export async function getReviews(userId: string, page = 1, pageSize?: number) {
   const res = (await axiosClient.get('/reviews', {
-    params: { userId, page },
+    params: { userId, page, pageSize },
   })) as ApiResponse<ReviewPage>;
   return res.data;
 }

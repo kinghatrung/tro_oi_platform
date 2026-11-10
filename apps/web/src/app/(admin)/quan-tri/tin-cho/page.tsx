@@ -108,11 +108,12 @@ export default function AdminProductsPage() {
           <ModerationActions
             status={product.status}
             viewHref={`/cho-oi/${product.id}`}
-            onSetVisible={(visible, text) =>
+            onSetVisible={(visible, text, moderationNote) =>
               runAction(
                 () =>
                   updateProduct(product.id, {
                     status: visible ? ProductStatus.ACTIVE : ProductStatus.CLOSED,
+                    moderationNote,
                   }),
                 text,
               )

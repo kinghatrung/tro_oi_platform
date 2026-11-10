@@ -10,7 +10,10 @@ import { InjectModel } from '@nestjs/mongoose';
 import { isValidObjectId, type Model, type Types } from 'mongoose';
 
 import type { AuthUser } from '../../common/current-user.decorator.js';
-import { recordModeration } from '../../common/moderation.js';
+import {
+  nextModerationNote,
+  recordModeration,
+} from '../../common/moderation.js';
 import { assertOwnerStatusChange } from '../../common/status-rules.js';
 import { AuditService } from '../audit/audit.service.js';
 import { NotificationService } from '../notification/notification.service.js';
@@ -278,8 +281,9 @@ export class ListingService implements OnModuleInit, OnModuleDestroy {
       OWNER_STATUSES,
       user.role === 'admin',
     );
+    const { moderationNote, ...changes } = dto;
     doc.set({
-      ...dto,
+      ...changes,
       ...(dto.address && { address: withFullAddress(dto.address) }),
       // Duyệt / hiện lại / gia hạn tin hết hạn → tính lại hạn hiển thị
       ...(dto.status === 'active' &&
@@ -288,8 +292,19 @@ export class ListingService implements OnModuleInit, OnModuleDestroy {
           expiryReminded: false,
         }),
     });
+    doc.set(
+      'moderationNote',
+      nextModerationNote(
+        user,
+        doc.author,
+        from,
+        doc.status,
+        moderationNote,
+        doc.moderationNote,
+      ),
+    );
     await doc.save();
-    await this.moderated(user, doc, from, doc.status);
+    await this.moderated(user, doc, from, doc.status, moderationNote?.trim());
     if (from === 'pending' && doc.status === 'active') {
       void this.alertSavedSearches(doc, doc.author); // tin vừa được duyệt = tin mới
     }
@@ -359,6 +374,7 @@ export class ListingService implements OnModuleInit, OnModuleDestroy {
     doc: ListingDocument,
     from: string,
     to: string | null,
+    note?: string,
   ) {
     return recordModeration(
       { audit: this.auditService, notification: this.notificationService },
@@ -368,6 +384,7 @@ export class ListingService implements OnModuleInit, OnModuleDestroy {
       { id: doc.id as string, title: doc.title },
       from,
       to,
+      note,
     );
   }
 

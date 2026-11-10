@@ -71,6 +71,8 @@ export default function MessagesPage() {
           currentUserId={user.id}
           isConnected={chat.isConnected}
           onSend={chat.sendMessage}
+          onTyping={chat.notifyTyping}
+          isOtherTyping={chat.isOtherTyping}
           onBack={() => chat.selectConversation(undefined)}
           quickQuestions={
             chat.activeConversation?.listing.type === ChatTargetType.PRODUCT

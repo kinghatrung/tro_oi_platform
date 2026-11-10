@@ -26,6 +26,7 @@ export * from './EmptyState';
 export * from './ThemeToggle';
 export * from './ReportModal';
 export * from './FormSection';
+export * from './GeoField';
 export * from './ProductCard';
 export * from './NotificationList';
 export * from './RelativeTime';

@@ -136,7 +136,7 @@ export class SearchListingDto {
   sortDirection: 'asc' | 'desc' = 'desc';
 }
 
-class GeoPointDto {
+export class GeoPointDto {
   @IsNumber()
   @Min(-90)
   @Max(90)
@@ -256,4 +256,10 @@ export class UpdateListingDto extends PartialType(CreateListingDto) {
   @IsOptional()
   @IsIn(LISTING_STATUSES)
   status?: ListingStatus;
+
+  /** Admin: lý do từ chối / ẩn (vào thông báo cho chủ tin + nhật ký). Người khác gửi → bỏ qua. */
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  moderationNote?: string;
 }

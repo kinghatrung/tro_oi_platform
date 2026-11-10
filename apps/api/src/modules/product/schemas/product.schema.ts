@@ -5,6 +5,8 @@ import {
   type HydratedDocument,
 } from 'mongoose';
 
+import { GeoPoint } from '../../listing/schemas/listing.schema.js';
+
 // Các mảng dưới trùng enum tương ứng bên @tro-oi/shared (marketplace.ts).
 export const PRODUCT_CATEGORIES = [
   'furniture',
@@ -47,6 +49,10 @@ export class ProductAddress {
 
   @Prop({ required: true, index: true })
   city: string;
+
+  /** Vị trí gần đúng do người bán ghim (không bắt buộc) — hiện chỉ dùng cho bản đồ quản trị. */
+  @Prop({ type: SchemaFactory.createForClass(GeoPoint) })
+  geo?: GeoPoint;
 }
 
 /** Món đồ đăng bán/pass trên Chợ ơi. */
@@ -90,6 +96,10 @@ export class Product {
 
   @Prop({ default: 0 })
   viewCount: number;
+
+  /** Lý do admin từ chối / ẩn gần nhất — chủ tin xem ở Kênh người đăng; xoá khi hiển thị lại. */
+  @Prop()
+  moderationNote?: string;
 
   createdAt: Date;
   updatedAt: Date;

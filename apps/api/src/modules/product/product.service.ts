@@ -7,7 +7,10 @@ import { InjectModel } from '@nestjs/mongoose';
 import { isValidObjectId, type Model } from 'mongoose';
 
 import type { AuthUser } from '../../common/current-user.decorator.js';
-import { recordModeration } from '../../common/moderation.js';
+import {
+  nextModerationNote,
+  recordModeration,
+} from '../../common/moderation.js';
 import { assertOwnerStatusChange } from '../../common/status-rules.js';
 import { AuditService } from '../audit/audit.service.js';
 import { NotificationService } from '../notification/notification.service.js';
@@ -104,9 +107,21 @@ export class ProductService {
       OWNER_STATUSES,
       user.role === 'admin',
     );
-    doc.set(dto);
+    const { moderationNote, ...changes } = dto;
+    doc.set(changes);
+    doc.set(
+      'moderationNote',
+      nextModerationNote(
+        user,
+        doc.seller,
+        from,
+        doc.status,
+        moderationNote,
+        doc.moderationNote,
+      ),
+    );
     await doc.save();
-    await this.moderated(user, doc, from, doc.status);
+    await this.moderated(user, doc, from, doc.status, moderationNote?.trim());
     await doc.populate('seller', SELLER_FIELDS);
     return toProduct(doc);
   }
@@ -123,6 +138,7 @@ export class ProductService {
     doc: ProductDocument,
     from: string,
     to: string | null,
+    note?: string,
   ) {
     return recordModeration(
       { audit: this.auditService, notification: this.notificationService },
@@ -132,6 +148,7 @@ export class ProductService {
       { id: doc.id as string, title: doc.title },
       from,
       to,
+      note,
     );
   }
 

@@ -37,6 +37,9 @@ const setup = () => {
     messageModel as never,
     listingModel as never,
     {} as never,
+    {
+      isStoredUrl: (url: string) => url.startsWith('http://api/uploads/'),
+    } as never,
   );
   return { service, updates, messageModel, listing };
 };
@@ -98,5 +101,57 @@ describe('ChatService', () => {
       'Còn',
     );
     expect(updates[1]).toMatchObject({ $inc: { unreadByStarter: 1 } });
+  });
+
+  it('tin chỉ có ảnh → lưu, xem trước là [Hình ảnh]', async () => {
+    const { service, updates, messageModel } = setup();
+    await service.sendMessage(
+      starter.toString(),
+      conversationId.toString(),
+      '',
+      ['http://api/uploads/a.jpg'],
+    );
+    expect(messageModel.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        content: '',
+        images: ['http://api/uploads/a.jpg'],
+      }),
+    );
+    expect(updates[0]).toMatchObject({
+      $set: { lastMessage: { content: '[Hình ảnh]' } },
+    });
+  });
+
+  it('ảnh ngoài hệ thống / quá 4 ảnh → 400, không lưu', async () => {
+    const { service, messageModel } = setup();
+    const id = conversationId.toString();
+    await expect(
+      service.sendMessage(starter.toString(), id, '', [
+        'https://evil.example/pixel.gif',
+      ]),
+    ).rejects.toThrow('Ảnh không hợp lệ');
+    await expect(
+      service.sendMessage(
+        starter.toString(),
+        id,
+        '',
+        Array.from({ length: 5 }, (_, i) => `http://api/uploads/${i}.jpg`),
+      ),
+    ).rejects.toThrow('Tối đa 4 ảnh');
+    expect(messageModel.create).not.toHaveBeenCalled();
+  });
+
+  it('otherMemberId: trả người còn lại, người ngoài → 403', async () => {
+    const { service } = setup();
+    const id = conversationId.toString();
+    await expect(service.otherMemberId(starter.toString(), id)).resolves.toBe(
+      owner.toString(),
+    );
+    await expect(service.otherMemberId(owner.toString(), id)).resolves.toBe(
+      starter.toString(),
+    );
+    await expect(
+      service.otherMemberId(outsider.toString(), id),
+    ).rejects.toThrow('không thuộc');
   });
 });

@@ -128,6 +128,11 @@ export default function SellerProductsPage() {
                   .filter(Boolean)
                   .join(' · ')}
               </p>
+              {product.moderationNote && product.status !== 'active' && (
+                <p className="mt-1 line-clamp-2 text-xs text-body">
+                  <b className="text-ink">Lý do bị ẩn:</b> {product.moderationNote}
+                </p>
+              )}
             </div>
           </Flex>
         ),

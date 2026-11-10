@@ -20,7 +20,10 @@ import {
 } from 'class-validator';
 
 import { PROVINCES } from '../../../common/provinces.js';
-import { IMAGE_URL_PATTERN } from '../../listing/dto/listing.dto.js';
+import {
+  GeoPointDto,
+  IMAGE_URL_PATTERN,
+} from '../../listing/dto/listing.dto.js';
 import {
   PRODUCT_CATEGORIES,
   PRODUCT_CONDITIONS,
@@ -108,6 +111,11 @@ class ProductAddressDto {
 
   @IsIn(PROVINCES, { message: 'Vui lòng chọn tỉnh/thành phố' })
   city: string;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => GeoPointDto)
+  geo?: GeoPointDto;
 }
 
 export class CreateProductDto {
@@ -149,4 +157,10 @@ export class UpdateProductDto extends PartialType(CreateProductDto) {
   @IsOptional()
   @IsIn(PRODUCT_STATUSES)
   status?: ProductStatus;
+
+  /** Admin: lý do từ chối / ẩn (vào thông báo cho chủ tin + nhật ký). Người khác gửi → bỏ qua. */
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  moderationNote?: string;
 }

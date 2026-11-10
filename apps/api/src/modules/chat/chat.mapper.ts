@@ -19,7 +19,8 @@ export const toMessage = (doc: MessageDocument) => ({
   id: doc.id as string,
   conversationId: idOf(doc.conversation),
   senderId: idOf(doc.sender),
-  content: doc.content,
+  content: doc.content ?? '',
+  images: doc.images ?? [],
   createdAt: doc.createdAt.toISOString(),
 });
 

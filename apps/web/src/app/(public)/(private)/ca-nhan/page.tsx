@@ -11,6 +11,7 @@ import { getMyListings } from '@/api/listings';
 import { ProfileHeader, ProfileListings } from '@/components/sections';
 import { useAuthStore, useRequireUser } from '@/stores/useAuthStore';
 
+import { AccountSection } from './AccountSection';
 import { ProfileEditModal } from './ProfileEditModal';
 
 /** Hồ sơ của tôi: sửa hồ sơ + xem tin đã đăng. Quản lý tin ở /kenh-nguoi-dang. */
@@ -59,6 +60,10 @@ export default function ProfilePage() {
             <Skeleton active />
           </Card>
         )}
+      </Col>
+
+      <Col span={24}>
+        <AccountSection />
       </Col>
 
       <ProfileEditModal

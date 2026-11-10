@@ -4,6 +4,7 @@ import type { ChatParticipant } from './chat';
 export enum ReportTargetType {
   LISTING = 'listing',
   PRODUCT = 'product',
+  REVIEW = 'review',
 }
 
 export enum ReportReason {
@@ -23,6 +24,19 @@ export const REPORT_REASON_LABELS: Record<ReportReason, string> = {
   [ReportReason.INAPPROPRIATE]: 'Nội dung không phù hợp',
   [ReportReason.OTHER]: 'Khác',
 };
+
+/** Lý do khi báo cáo đánh giá (dùng chung giá trị enum, nhãn riêng cho đánh giá). */
+export const REVIEW_REPORT_REASON_LABELS: Partial<Record<ReportReason, string>> = {
+  [ReportReason.INAPPROPRIATE]: 'Ngôn từ xúc phạm / không phù hợp',
+  [ReportReason.WRONG_INFO]: 'Sai sự thật, bịa đặt',
+  [ReportReason.DUPLICATE]: 'Spam, đánh giá lặp lại',
+  [ReportReason.OTHER]: 'Khác',
+};
+
+/** Nhãn lý do theo loại nội dung bị báo cáo. */
+export const reportReasonLabel = (targetType: ReportTargetType, reason: ReportReason) =>
+  (targetType === ReportTargetType.REVIEW && REVIEW_REPORT_REASON_LABELS[reason]) ||
+  REPORT_REASON_LABELS[reason];
 
 export enum ReportStatus {
   OPEN = 'open',
@@ -48,8 +62,10 @@ export interface Report {
   id: string;
   targetType: ReportTargetType;
   targetId: string;
-  /** Tiêu đề tin bị báo cáo (null nếu tin đã bị xoá). */
+  /** Tiêu đề tin / "4★ — lời bình" của đánh giá bị báo cáo (null nếu đã bị xoá). */
   targetTitle: string | null;
+  /** Đánh giá: id người được đánh giá (link hồ sơ). */
+  targetUserId?: string;
   reason: ReportReason;
   note?: string;
   status: ReportStatus;

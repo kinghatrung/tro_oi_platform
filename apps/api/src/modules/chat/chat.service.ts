@@ -15,6 +15,7 @@ import {
   Product,
   type ProductDocument,
 } from '../product/schemas/product.schema.js';
+import { StorageService } from '../upload/storage.service.js';
 import { CONVERSATION_POPULATE, toMessage } from './chat.mapper.js';
 import type { MessagesQueryDto, StartConversationDto } from './chat.dto.js';
 import {
@@ -22,6 +23,7 @@ import {
   type ConversationDocument,
 } from './schemas/conversation.schema.js';
 import {
+  MESSAGE_MAX_IMAGES,
   MESSAGE_MAX_LENGTH,
   Message,
   type MessageDocument,
@@ -41,6 +43,7 @@ export class ChatService {
     private readonly listingModel: Model<ListingDocument>,
     @InjectModel(Product.name)
     private readonly productModel: Model<ProductDocument>,
+    private readonly storageService: StorageService,
   ) {}
 
   /** Cuộc trò chuyện của tôi (cả khi hỏi lẫn khi được hỏi), mới nhắn trước. */
@@ -152,13 +155,30 @@ export class ChatService {
     return docs.reverse().map(toMessage);
   }
 
-  /** Lưu tin, cập nhật lastMessage và +1 chưa đọc cho người kia. */
-  async sendMessage(userId: string, id: string, content: string) {
+  /** Lưu tin (chữ và/hoặc ảnh), cập nhật lastMessage và +1 chưa đọc cho người kia. */
+  async sendMessage(
+    userId: string,
+    id: string,
+    content: string,
+    images: string[] = [],
+  ) {
     const text = content.trim();
-    if (!text) throw new BadRequestException('Tin nhắn trống');
+    if (!text && images.length === 0) {
+      throw new BadRequestException('Tin nhắn trống');
+    }
     if (text.length > MESSAGE_MAX_LENGTH) {
       throw new BadRequestException(
         `Tin nhắn tối đa ${MESSAGE_MAX_LENGTH} ký tự`,
+      );
+    }
+    if (images.length > MESSAGE_MAX_IMAGES) {
+      throw new BadRequestException(
+        `Tối đa ${MESSAGE_MAX_IMAGES} ảnh mỗi tin nhắn`,
+      );
+    }
+    if (!images.every((url) => this.storageService.isStoredUrl(url))) {
+      throw new BadRequestException(
+        'Ảnh không hợp lệ, vui lòng tải ảnh lên lại',
       );
     }
     const conversation = await this.findMember(userId, id);
@@ -166,6 +186,7 @@ export class ChatService {
       conversation: conversation._id,
       sender: userId,
       content: text,
+      images,
     });
     const unreadField = conversation.starter.equals(userId)
       ? 'unreadByOwner'
@@ -178,7 +199,8 @@ export class ChatService {
             lastMessage: {
               id: message._id,
               sender: message.sender,
-              content: message.content,
+              // Tin chỉ có ảnh → xem trước trong danh sách hội thoại
+              content: message.content || '[Hình ảnh]',
               createdAt: message.createdAt,
             },
           },
@@ -201,6 +223,16 @@ export class ChatService {
       .updateOne({ _id: id }, { $set: { [field]: 0 } }, { timestamps: false })
       .exec();
     return null;
+  }
+
+  /** Người còn lại của cuộc trò chuyện (sự kiện "đang nhập"). Không phải thành viên → lỗi. */
+  async otherMemberId(userId: string, id: string) {
+    const conversation = await this.findMember(userId, id);
+    return String(
+      conversation.starter.equals(userId)
+        ? conversation.owner
+        : conversation.starter,
+    );
   }
 
   private async findMember(userId: string, id: string) {

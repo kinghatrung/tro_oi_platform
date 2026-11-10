@@ -24,6 +24,18 @@ export class SavedSearch {
   createdAt: Date;
 }
 
+@Schema({ _id: false })
+export class NotifyPrefs {
+  @Prop()
+  push?: boolean;
+
+  @Prop()
+  email?: boolean;
+
+  @Prop()
+  sms?: boolean;
+}
+
 @Schema({ timestamps: true, collection: 'users' })
 export class User {
   @Prop({ required: true, unique: true, index: true })
@@ -52,6 +64,10 @@ export class User {
   @Prop({ default: false, index: true })
   isBlocked: boolean;
 
+  /** Người dùng tự xoá tài khoản (đã ẩn danh hoá, khoá) — hồ sơ công khai trả 404. */
+  @Prop()
+  deletedAt?: Date;
+
   /** Tin đã lưu, thứ tự thêm vào (cũ → mới). */
   @Prop({
     type: [{ type: MongooseSchema.Types.ObjectId, ref: 'Listing' }],
@@ -69,6 +85,17 @@ export class User {
   /** Tìm kiếm đã lưu, thứ tự thêm vào (cũ → mới). */
   @Prop({ type: [SchemaFactory.createForClass(SavedSearch)], default: [] })
   savedSearches: SavedSearch[];
+
+  /** Token FCM của các trình duyệt đã bật thông báo đẩy (mới nhất cuối). Nội bộ, không trả ra API. */
+  @Prop({ type: [String], default: [] })
+  pushTokens: string[];
+
+  /** Kênh nhận thông báo; thiếu trường → mặc định ở prefsOf (NotificationService). */
+  @Prop({
+    type: SchemaFactory.createForClass(NotifyPrefs),
+    default: () => ({}),
+  })
+  notifyPrefs?: NotifyPrefs;
 
   createdAt: Date;
   updatedAt: Date;

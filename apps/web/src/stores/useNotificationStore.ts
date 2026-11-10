@@ -20,6 +20,8 @@ interface NotificationState {
   markRead: (notification: AppNotification) => Promise<void>;
   markAllRead: () => Promise<void>;
   setUnread: (unread: number) => void;
+  /** Thông báo mới qua socket ("notification:new"): +1 chưa đọc, đưa lên đầu dropdown. */
+  receive: (notification: AppNotification) => void;
 }
 
 export const useNotificationStore = create<NotificationState>((set, get) => ({
@@ -60,4 +62,15 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
   },
 
   setUnread: (unread) => set({ unread }),
+
+  receive: (notification) =>
+    set(({ unread, latest }) => ({
+      unread: unread + 1,
+      latest:
+        latest &&
+        [notification, ...latest.filter((item) => item.id !== notification.id)].slice(
+          0,
+          LATEST_SIZE,
+        ),
+    })),
 }));

@@ -40,6 +40,10 @@ export class AuditLog {
   @Prop()
   targetTitle?: string;
 
+  /** Lý do admin nhập (từ chối / ẩn tin). */
+  @Prop()
+  note?: string;
+
   createdAt: Date;
 }
 

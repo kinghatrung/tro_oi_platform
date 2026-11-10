@@ -16,6 +16,7 @@ import {
   removeFavorite,
   removeFavoriteProduct,
 } from '@/api/users';
+import { forgetPushToken } from '@/lib/pushToken';
 
 type SessionStatus = 'idle' | 'loading' | 'ready';
 
@@ -84,6 +85,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   logout: () => {
+    forgetPushToken(); // cần access token → gọi trước khi xoá
     clearAccessToken();
     set({ user: null, ...EMPTY_SESSION, status: 'ready' });
   },

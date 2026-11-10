@@ -30,7 +30,7 @@ import {
 
 import { createListing, getMyListings, updateListing } from '@/api/listings';
 import { antdUploadRequest } from '@/api/uploads';
-import { FormSection } from '@/components/common';
+import { FormSection, GeoField } from '@/components/common';
 import { AMENITY_ITEMS } from '@/lib/constants/constantsRoom';
 import { YOUTUBE_URL_PATTERN } from '@/lib/youtube';
 import { useWards } from '@/hooks/useWards';
@@ -38,7 +38,6 @@ import { useRequireUser } from '@/stores/useAuthStore';
 import { formatListingPrice, formatNumber } from '@/utils/helpers';
 
 import { CategoryPicker } from './CategoryPicker';
-import { GeoField } from './GeoField';
 import { PostSidebar, type PostPreview } from './PostSidebar';
 import {
   CITY_OPTIONS,
@@ -283,7 +282,9 @@ export default function PostListingPage() {
                       showSearch
                       options={wardOptions}
                       disabled={!values?.address?.city}
-                      placeholder={values?.address?.city ? 'Chọn phường/xã' : 'Chọn tỉnh/thành trước'}
+                      placeholder={
+                        values?.address?.city ? 'Chọn phường/xã' : 'Chọn tỉnh/thành trước'
+                      }
                     />
                   </Form.Item>
                 </Col>

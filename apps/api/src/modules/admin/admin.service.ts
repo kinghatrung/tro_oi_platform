@@ -325,6 +325,35 @@ export class AdminService {
     }));
   }
 
+  /** Món Chợ ơi có toạ độ cho bản đồ quản trị — lọc như listProducts, không phân trang. */
+  async productMap(query: AdminProductQueryDto) {
+    const { filter } = buildProductQuery(query);
+    if (query.status) filter.status = query.status;
+    else delete filter.status;
+    filter['address.geo.latitude'] = { $exists: true };
+
+    // shortcut: tối đa MAP_LIMIT món mới nhất (như listingMap)
+    const docs = await this.productModel
+      .find(filter)
+      .sort({ createdAt: -1 })
+      .limit(MAP_LIMIT)
+      .select(
+        'title price status category address.city address.ward address.geo',
+      )
+      .lean()
+      .exec();
+    return docs.map((doc) => ({
+      id: String(doc._id),
+      title: doc.title,
+      price: doc.price,
+      status: doc.status,
+      category: doc.category,
+      city: doc.address?.city,
+      ward: doc.address?.ward,
+      geo: doc.address!.geo!,
+    }));
+  }
+
   /** Tin Chợ ơi mọi trạng thái. */
   async listProducts(query: AdminProductQueryDto) {
     const { filter, sort, skip, limit } = buildProductQuery(query);

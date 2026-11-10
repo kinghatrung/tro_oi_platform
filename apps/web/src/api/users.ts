@@ -67,3 +67,14 @@ export async function createSavedSearch(body: CreateSavedSearchRequest) {
 export async function deleteSavedSearch(id: string) {
   await axiosClient.delete(`/users/me/saved-searches/${id}`);
 }
+
+/** Toàn bộ dữ liệu của tôi (JSON) — trang cá nhân lưu thành file. */
+export async function exportMyData() {
+  const res = (await axiosClient.get('/users/me/export')) as ApiResponse<unknown>;
+  return res.data;
+}
+
+/** Tự xoá tài khoản (ẩn danh hoá). `confirm` phải đúng chuỗi xác nhận của API. */
+export async function deleteMyAccount(confirm: string) {
+  await axiosClient.delete('/users/me', { data: { confirm } });
+}
