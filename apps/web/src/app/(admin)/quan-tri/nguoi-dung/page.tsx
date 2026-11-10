@@ -173,6 +173,7 @@ export default function AdminUsersPage() {
         }}
       />
       <DataTable<AdminUser>
+        mobileKeys={['role', 'isBlocked', 'actions']}
         rowKey="id"
         columns={columns}
         dataSource={items}

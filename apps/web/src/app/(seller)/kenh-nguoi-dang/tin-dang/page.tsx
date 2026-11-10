@@ -18,6 +18,7 @@ import {
 import { Eye, EyeOff, Heart, Pencil, Plus, RotateCw, Trash2 } from 'lucide-react';
 import { LISTING_STATUS_LABELS, ListingStatus, type Listing } from '@tro-oi/shared';
 
+import { withMobileSummary } from '@/components/admin';
 import { EmptyState, EmptyVariant } from '@/components/common';
 import { NO_IMAGE } from '@/constants';
 import { formatListingPrice, formatNumber, formatRelativeTime } from '@/utils/helpers';
@@ -210,11 +211,14 @@ export default function SellerListingsPage() {
       </Flex>
 
       <Flex justify="space-between" align="center" wrap gap={12} className="mb-4!">
-        <Segmented
-          options={filterOptions}
-          value={filter}
-          onChange={(value) => setFilter(value as StatusFilter)}
-        />
+        {/* Màn hẹp: cuộn ngang thay vì bị cắt mất lựa chọn cuối */}
+        <div className="no-scrollbar max-w-full overflow-x-auto">
+          <Segmented
+            options={filterOptions}
+            value={filter}
+            onChange={(value) => setFilter(value as StatusFilter)}
+          />
+        </div>
         <Input.Search
           allowClear
           placeholder="Tìm theo tiêu đề"
@@ -225,11 +229,12 @@ export default function SellerListingsPage() {
 
       <Table<Listing>
         rowKey="id"
-        columns={columns}
+        // Điện thoại: 1 cột (trạng thái, số liệu, nút thao tác nằm dưới tên)
+        columns={withMobileSummary(columns, ['status', 'performance', 'actions'])}
         dataSource={visibleListings}
         loading={!listings}
         pagination={{ pageSize: PAGE_SIZE, hideOnSinglePage: true }}
-        scroll={{ x: 870 }}
+        scroll={{ x: 'max-content' }}
         locale={{
           emptyText: (
             <EmptyState

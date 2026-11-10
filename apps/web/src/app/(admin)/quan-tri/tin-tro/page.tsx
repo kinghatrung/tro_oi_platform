@@ -164,6 +164,7 @@ export default function AdminListingsPage() {
         }}
       />
       <DataTable<Listing>
+        mobileKeys={['price', 'status', 'actions']}
         rowKey="id"
         columns={columns}
         dataSource={items}

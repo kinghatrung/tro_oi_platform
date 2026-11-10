@@ -1,15 +1,12 @@
 'use client';
 
-import { Fragment, type ReactNode } from 'react';
+import { Fragment, type ButtonHTMLAttributes, type ReactNode } from 'react';
 import { Carousel } from 'antd';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { EmptyState, EmptyVariant } from './EmptyState';
 
-interface ArrowProps {
-  currentSlide?: number;
-  slideCount?: number;
-  [key: string]: unknown;
-}
+/** react-slick còn truyền currentSlide/slideCount — chỉ lấy prop hợp lệ cho <button>. */
+type ArrowProps = Pick<ButtonHTMLAttributes<HTMLButtonElement>, 'className' | 'style' | 'onClick'>;
 
 interface CarouselItemProps<T> {
   items: T[];
@@ -21,18 +18,30 @@ interface CarouselItemProps<T> {
 const ITEMS_PER_SLIDE = 5;
 
 /** Renders the previous-slide control for a property carousel. */
-function PrevArrow({ currentSlide, slideCount, ...props }: ArrowProps) {
+function PrevArrow({ className, style, onClick }: ArrowProps) {
   return (
-    <button type="button" aria-label="Trang trước" {...props}>
+    <button
+      type="button"
+      aria-label="Trang trước"
+      className={className}
+      style={style}
+      onClick={onClick}
+    >
       <ChevronLeft size={24} className="text-brand" />
     </button>
   );
 }
 
 /** Renders the next-slide control for a property carousel. */
-function NextArrow({ currentSlide, slideCount, ...props }: ArrowProps) {
+function NextArrow({ className, style, onClick }: ArrowProps) {
   return (
-    <button type="button" aria-label="Trang sau" {...props}>
+    <button
+      type="button"
+      aria-label="Trang sau"
+      className={className}
+      style={style}
+      onClick={onClick}
+    >
       <ChevronRight size={24} className="text-brand" />
     </button>
   );

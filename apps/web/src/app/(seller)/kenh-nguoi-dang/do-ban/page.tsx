@@ -8,6 +8,7 @@ import {
   Button,
   Card,
   Flex,
+  Input,
   Popconfirm,
   Segmented,
   Table,
@@ -16,23 +17,33 @@ import {
   type TableColumnsType,
 } from 'antd';
 import { CircleCheck, Eye, EyeOff, Pencil, Plus, Trash2 } from 'lucide-react';
-import { PRODUCT_STATUS_LABELS, ProductStatus, type ProductItem } from '@tro-oi/shared';
+import {
+  PRODUCT_CATEGORY_LABELS,
+  PRODUCT_CONDITION_LABELS,
+  PRODUCT_STATUS_LABELS,
+  ProductStatus,
+  type ProductItem,
+} from '@tro-oi/shared';
 
 import { deleteProduct, getMyProducts, updateProduct } from '@/api/products';
+import { withMobileSummary } from '@/components/admin';
 import { EmptyState, EmptyVariant } from '@/components/common';
 import { NO_IMAGE } from '@/constants';
 import { PRODUCT_STATUS_TAG_COLORS } from '@/lib/constants/constantsProduct';
 import { useRequireUser } from '@/stores/useAuthStore';
-import { formatRelativeTime, formatVietnameseCurrency } from '@/utils/helpers';
+import { formatNumber, formatRelativeTime, formatVietnameseCurrency } from '@/utils/helpers';
 
 type StatusFilter = 'all' | ProductStatus;
 
-/** Đồ của tôi trên Chợ ơi: đánh dấu đã bán, ẩn/hiện, sửa, xoá. */
+const PAGE_SIZE = 10;
+
+/** Đồ của tôi trên Chợ ơi: lọc trạng thái, tìm theo tên, đánh dấu đã bán, ẩn/hiện, sửa, xoá. */
 export default function SellerProductsPage() {
   const { message } = App.useApp();
   const user = useRequireUser();
   const [products, setProducts] = useState<ProductItem[]>();
   const [filter, setFilter] = useState<StatusFilter>('all');
+  const [keyword, setKeyword] = useState('');
 
   const filterOptions = useMemo(() => {
     const count = (status: ProductStatus) =>
@@ -45,10 +56,13 @@ export default function SellerProductsPage() {
       })),
     ];
   }, [products]);
-  const visibleProducts = useMemo(
-    () => products?.filter((item) => filter === 'all' || item.status === filter),
-    [filter, products],
-  );
+  const visibleProducts = useMemo(() => {
+    const search = keyword.trim().toLowerCase();
+    return products?.filter(
+      (item) =>
+        (filter === 'all' || item.status === filter) && item.title.toLowerCase().includes(search),
+    );
+  }, [filter, keyword, products]);
 
   const changeStatus = useCallback(
     async (product: ProductItem, status: ProductStatus) => {
@@ -81,8 +95,10 @@ export default function SellerProductsPage() {
       {
         title: 'Món đồ',
         key: 'product',
+        // Rộng cố định như trang Tin đăng: không có width thì cột co lại, đè lên cột Trạng thái
+        width: 300,
         render: (_, product) => (
-          <Flex gap={12} align="center" className="min-w-64">
+          <Flex gap={12} align="center">
             <div className="relative size-16 shrink-0 overflow-hidden rounded-md bg-soft">
               <Image
                 src={product.images[0] || NO_IMAGE}
@@ -103,6 +119,15 @@ export default function SellerProductsPage() {
               <p className="text-sm font-semibold text-price">
                 {product.price === 0 ? 'Cho tặng' : formatVietnameseCurrency(product.price)}
               </p>
+              <p className="line-clamp-1 text-xs text-subtle">
+                {[
+                  PRODUCT_CATEGORY_LABELS[product.category],
+                  PRODUCT_CONDITION_LABELS[product.condition],
+                  product.address?.city,
+                ]
+                  .filter(Boolean)
+                  .join(' · ')}
+              </p>
             </div>
           </Flex>
         ),
@@ -117,23 +142,32 @@ export default function SellerProductsPage() {
       },
       {
         title: 'Lượt xem',
-        dataIndex: 'viewCount',
-        width: 100,
-        align: 'right',
+        key: 'views',
+        width: 130,
         sorter: (a, b) => (a.viewCount ?? 0) - (b.viewCount ?? 0),
+        render: (_, product) => (
+          <span className="flex items-center gap-1.5 text-sm text-body">
+            <Eye size={15} /> {formatNumber(product.viewCount ?? 0)} lượt xem
+          </span>
+        ),
       },
       {
-        title: 'Ngày đăng',
-        dataIndex: 'createdAt',
-        width: 130,
+        title: 'Thời gian',
+        key: 'dates',
+        width: 150,
         defaultSortOrder: 'descend',
         sorter: (a, b) => a.createdAt.localeCompare(b.createdAt),
-        render: (value: string) => formatRelativeTime(value),
+        render: (_, product) => (
+          <div className="flex flex-col gap-1 text-sm">
+            <span className="text-body">Đăng {formatRelativeTime(product.createdAt)}</span>
+            <span className="text-subtle">Sửa {formatRelativeTime(product.updatedAt)}</span>
+          </div>
+        ),
       },
       {
         title: 'Thao tác',
         key: 'actions',
-        width: 170,
+        width: 140,
         fixed: 'right',
         render: (_, product) => (
           <Flex gap={4}>
@@ -205,26 +239,33 @@ export default function SellerProductsPage() {
           </Button>
         </Link>
       </Flex>
-      <Segmented
-        options={filterOptions}
-        value={filter}
-        onChange={(value) => setFilter(value as StatusFilter)}
-        className="mb-4!"
-      />
+      <Flex justify="space-between" align="center" wrap gap={12} className="mb-4!">
+        {/* Màn hẹp: cuộn ngang thay vì bị cắt mất lựa chọn cuối */}
+        <div className="no-scrollbar max-w-full overflow-x-auto">
+          <Segmented
+            options={filterOptions}
+            value={filter}
+            onChange={(value) => setFilter(value as StatusFilter)}
+          />
+        </div>
+        <Input.Search
+          allowClear
+          placeholder="Tìm theo tên món đồ"
+          className="max-w-72"
+          onChange={(event) => setKeyword(event.target.value)}
+        />
+      </Flex>
       <Table<ProductItem>
         rowKey="id"
-        columns={columns}
+        // Điện thoại: 1 cột (trạng thái, số liệu, nút thao tác nằm dưới tên)
+        columns={withMobileSummary(columns, ['status', 'views', 'actions'])}
         dataSource={visibleProducts}
         loading={!products}
-        pagination={{ pageSize: 10, hideOnSinglePage: true }}
-        scroll={{ x: 800 }}
+        pagination={{ pageSize: PAGE_SIZE, hideOnSinglePage: true }}
+        scroll={{ x: 'max-content' }}
         locale={{
           emptyText: (
-            <EmptyState
-              size="small"
-              variant={EmptyVariant.LISTING}
-              description="Chưa có món đồ nào"
-            />
+            <EmptyState size="small" variant={EmptyVariant.LISTING} description="Không có món đồ" />
           ),
         }}
       />

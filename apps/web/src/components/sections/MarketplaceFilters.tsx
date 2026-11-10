@@ -2,22 +2,20 @@
 
 import clsx from 'clsx';
 import Image from 'next/image';
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  useSyncExternalStore,
-  type ReactNode,
-} from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Select, Skeleton, Tabs } from 'antd';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { PRODUCT_CATEGORY_LABELS, type ProductItem } from '@tro-oi/shared';
 
 import { searchProducts } from '@/api/products';
-import { CarouselItem, EmptyState, EmptyVariant, ProductCard } from '@/components/common';
+import {
+  CarouselItem,
+  EmptyState,
+  EmptyVariant,
+  ProductCard,
+  useIsClient,
+} from '@/components/common';
 import {
   PRODUCT_CONDITION_OPTIONS,
   PRODUCT_PRICE_RANGES,
@@ -267,12 +265,7 @@ export function MarketplaceFeed({
 
 /** "Đồ bạn đã xem" — đọc localStorage sau khi mount, chưa xem món nào thì ẩn. */
 export function RecentlyViewedProducts() {
-  // Server/hydrate: false → không đọc localStorage, tránh lệch HTML
-  const isClient = useSyncExternalStore(
-    () => () => {},
-    () => true,
-    () => false,
-  );
+  const isClient = useIsClient();
   const items = useMemo(() => (isClient ? readProductHistory() : []), [isClient]);
 
   if (items.length === 0) return null;

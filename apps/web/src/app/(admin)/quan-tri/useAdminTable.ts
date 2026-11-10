@@ -23,20 +23,31 @@ export function useAdminTable<TItem, TQuery extends BaseListRequest>(
   const [data, setData] = useState<PagedResponse<TItem>>();
   const [isLoading, setIsLoading] = useState(true);
 
-  const reload = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      setData(await fetcher(query));
-    } catch (error) {
-      message.error((error as Error).message);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [fetcher, message, query]);
+  // Bật loading ở nơi đổi query / reload (event), effect chỉ gọi API — không setState đồng bộ trong effect
+  const load = useCallback(
+    () =>
+      fetcher(query)
+        .then(setData, (error: Error) => {
+          message.error(error.message);
+        })
+        .finally(() => setIsLoading(false)),
+    [fetcher, message, query],
+  );
 
-  const updateQuery = useCallback((changes: Partial<TQuery>) => {
-    setQuery((current) => ({ ...current, ...changes, page: 1 }));
+  const reload = useCallback(() => {
+    setIsLoading(true);
+    return load();
+  }, [load]);
+
+  const changeQuery = useCallback((update: (current: TQuery) => TQuery) => {
+    setIsLoading(true);
+    setQuery(update);
   }, []);
+
+  const updateQuery = useCallback(
+    (changes: Partial<TQuery>) => changeQuery((current) => ({ ...current, ...changes, page: 1 })),
+    [changeQuery],
+  );
 
   /** Chạy thao tác trên 1 dòng (duyệt, khoá, xoá...): báo kết quả rồi tải lại bảng. */
   const runAction = useCallback(
@@ -61,12 +72,12 @@ export function useAdminTable<TItem, TQuery extends BaseListRequest>(
     showSizeChanger: true,
     pageSizeOptions: [10, 20, 50],
     showTotal: (total) => `Tổng ${total} ${totalSuffix}`,
-    onChange: (page, pageSize) => setQuery((current) => ({ ...current, page, pageSize })),
+    onChange: (page, pageSize) => changeQuery((current) => ({ ...current, page, pageSize })),
   };
 
   useEffect(() => {
-    void reload();
-  }, [reload]);
+    void load();
+  }, [load]);
 
   return { items: data?.items ?? [], isLoading, query, updateQuery, reload, runAction, pagination };
 }

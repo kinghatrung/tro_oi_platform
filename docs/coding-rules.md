@@ -27,7 +27,7 @@ Khi `yarn dev:api` đang chạy, kiểm tra API bằng `npx tsc --noEmit -p tsco
 
 Chạy `npx prettier --write <file>` sau khi sửa file. **Giữ nguyên line ending của file** (repo lẫn CRLF/LF, `core.autocrlf=true`) để diff không đổi cả file.
 
-> `yarn workspace web lint` hiện hỏng do môi trường (eslint-config-next không tìm thấy `next` ở root `node_modules`) — dùng `tsc` + `build` để kiểm tra.
+> `yarn workspace web lint` (eslint) và `yarn workspace api lint` (oxlint) phải **0 lỗi, 0 cảnh báo**. API tắt `typescript/no-misused-spread` trong `.oxlintrc.json`: DTO là class chỉ chứa dữ liệu, spread sang object thường là cố ý.
 
 ## 3. Web (`apps/web`) — Next.js 16 App Router + Ant Design 6 + Tailwind 4 + Zustand
 
@@ -48,6 +48,12 @@ Chạy `npx prettier --write <file>` sau khi sửa file. **Giữ nguyên line en
 - Trang cần đăng nhập (`(private)`) là client page, lấy data qua store/API sau khi mount.
 - Server page fetch data qua `src/api/*` (axios chạy được cả server); bọc hàm lấy chi tiết bằng `React.cache` khi cả `generateMetadata` và page cùng dùng. Lỗi 404 → `notFound()` (kiểm tra `error instanceof ApiError && error.status === 404`).
 - Client component dùng `useSearchParams` trong trang có thể static → bọc `<Suspense>` (xem `Navbar`).
+- **Không gọi setState đồng bộ trong `useEffect`** (lint `react-hooks/set-state-in-effect`):
+  - Đọc localStorage để render → `useIsClient()` (`components/common`) + `useMemo`, không lệch HTML khi hydrate.
+- Client component render phía server **không** in giá trị phụ thuộc giờ hiện tại / múi giờ máy (`Date.now()`, `formatRelativeTime`, `toLocaleDateString` không `timeZone`): thời gian tương đối dùng `<RelativeTime date>`, ngày dùng `formatVietnamDate` (UTC+7 cố định). Riêng dữ liệu chỉ tải sau khi mount (bảng quản trị, chat, thông báo) gọi `formatRelativeTime` trực tiếp được.
+- Bảng trên điện thoại: `DataTable mobileKeys={[...]}` (bảng antd thường: `withMobileSummary`) để còn 1 cột, trạng thái + nút thao tác nằm dưới tên — không để cột "Thao tác" `fixed` chiếm nửa màn hình; `scroll.x` dùng `'max-content'`, không đặt số cố định.
+  - Tải dữ liệu → setState trong callback `.then`; bật loading ở event handler đổi bộ lọc (xem `useAdminTable`); đổi khoá (tab, slug) → suy ra "đang tải" từ dữ liệu đã tải có khớp khoá không, không reset state trong effect (xem `quan-tri/trang-chinh-sach`).
+- Header/thanh công cụ phải vừa màn **360px**: nút có lối khác (menu tài khoản, menu danh mục) thì ẩn bớt ở màn hẹp; nút có chữ đổi sang chỉ-icon bằng 2 bản bật tắt CSS (`sm:hidden!` / `hidden! sm:inline-flex!`), không dùng `Grid.useBreakpoint` (nháy khi hydrate). Thanh `Segmented` dài bọc `<div className="no-scrollbar max-w-full overflow-x-auto">`.
 - **Không** đặt `loading.tsx` ở segment có trang gọi `notFound()` (chi tiết tin, hồ sơ): response sẽ stream sớm với HTTP 200, mất status 404.
 - Filter/sort/page của trang tìm kiếm **lưu trên URL** (searchParams), không lưu state cục bộ.
 

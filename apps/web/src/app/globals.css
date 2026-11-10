@@ -315,6 +315,16 @@ select {
   right: -32px !important;
 }
 
+/* Màn < xl: lề trang hẹp, -32px làm mũi tên tràn ra ngoài màn hình → kéo vào trong padding thẻ (20px) */
+@media (max-width: 1279px) {
+  .ant-carousel .slick-prev {
+    left: -16px !important;
+  }
+  .ant-carousel .slick-next {
+    right: -16px !important;
+  }
+}
+
 .ant-carousel .slick-arrow::after {
   display: none !important;
 }

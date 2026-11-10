@@ -176,6 +176,7 @@ export default function AdminReportsPage() {
         }}
       />
       <DataTable<Report>
+        mobileKeys={['reason', 'status', 'actions']}
         rowKey="id"
         columns={columns}
         dataSource={items}

@@ -8,7 +8,6 @@ import {
   IsIn,
   IsInt,
   IsMongoId,
-  IsNotEmpty,
   IsNumber,
   IsOptional,
   IsString,

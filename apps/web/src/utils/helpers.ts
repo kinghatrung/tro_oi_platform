@@ -6,6 +6,20 @@ export const formatNumber = (num: number | null | undefined): string => {
   return new Intl.NumberFormat('vi-VN').format(num);
 };
 
+/** Giờ Việt Nam cố định UTC+7 (không có giờ mùa hè). */
+const VIETNAM_OFFSET_MS = 7 * 60 * 60 * 1000;
+
+/**
+ * "dd/mm/yyyy" theo giờ Việt Nam — server (UTC) và trình duyệt ra cùng chuỗi, dùng được khi render
+ * ở cả 2 phía (toLocaleDateString theo múi giờ máy chạy nên lệch quanh nửa đêm).
+ */
+export function formatVietnamDate(date: Date | string | number): string {
+  const shifted = new Date(new Date(date).getTime() + VIETNAM_OFFSET_MS);
+  if (Number.isNaN(shifted.getTime())) return '';
+  const pad = (value: number) => String(value).padStart(2, '0');
+  return `${pad(shifted.getUTCDate())}/${pad(shifted.getUTCMonth() + 1)}/${shifted.getUTCFullYear()}`;
+}
+
 /** Formats a date as a Vietnamese relative time label. */
 export function formatRelativeTime(date: Date | string | number): string {
   const now = Date.now();

@@ -12,13 +12,13 @@ import {
   type ProductItem,
 } from '@tro-oi/shared';
 
-import { ReportModal } from '@/components/common';
+import { RelativeTime, ReportModal } from '@/components/common';
 import { NO_IMAGE } from '@/constants';
 import { useSaveToggle } from '@/hooks/useSaveToggle';
 import { CONDITION_TAG_COLORS } from '@/lib/constants/constantsProduct';
 import { recordProductView } from '@/lib/viewHistory';
 import { useAuthStore } from '@/stores/useAuthStore';
-import { formatRelativeTime, formatVietnameseCurrency } from '@/utils/helpers';
+import { formatVietnameseCurrency } from '@/utils/helpers';
 
 /** Ảnh (bấm để phóng to), giá, thông tin, mô tả của 1 món đồ Chợ ơi. */
 export function ProductDetail({ product }: { product: ProductItem }) {
@@ -109,7 +109,7 @@ export function ProductDetail({ product }: { product: ProductItem }) {
             <MapPin size={16} /> {location}
           </Flex>
           <Flex align="center" gap={4}>
-            <Clock size={16} /> Đăng {formatRelativeTime(product.createdAt)}
+            <Clock size={16} /> Đăng <RelativeTime date={product.createdAt} />
           </Flex>
           <Flex align="center" gap={4}>
             <Eye size={16} /> {product.viewCount ?? 0} lượt xem

@@ -74,7 +74,12 @@ export function LineChart<
     padding.left + (rows.length > 1 ? (index / (rows.length - 1)) * plotWidth : plotWidth / 2);
   const y = (value: number) => padding.top + plotHeight - (value / maxValue) * plotHeight;
   const ticks = [0, 1, 2, 3, 4].map((step) => (maxValue / 4) * step);
-  const labelEvery = Math.max(1, Math.ceil(rows.length / 6));
+  // Nhãn ngày rộng ~34px: mỗi nhãn cần ~56px → màn hẹp ít nhãn hơn, không chồng chữ
+  const maxLabels = Math.min(6, Math.max(2, Math.floor(plotWidth / 56)));
+  const labelEvery = Math.max(1, Math.ceil((rows.length - 1) / (maxLabels - 1)));
+  const showLabel = (index: number) =>
+    index === rows.length - 1 ||
+    (index % labelEvery === 0 && rows.length - 1 - index >= labelEvery / 2);
 
   const pickIndex = (event: PointerEvent<SVGSVGElement>) => {
     const left = event.currentTarget.getBoundingClientRect().left;
@@ -131,7 +136,7 @@ export function LineChart<
           ))}
           {/* Nhãn trục X */}
           {rows.map((row, index) =>
-            index % labelEvery === 0 || index === rows.length - 1 ? (
+            showLabel(index) ? (
               <text
                 key={row.date}
                 x={x(index)}

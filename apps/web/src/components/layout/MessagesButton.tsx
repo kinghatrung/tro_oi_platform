@@ -47,7 +47,11 @@ export function MessagesButton({ isLoggedIn }: { isLoggedIn: boolean }) {
   return (
     <Link href="/tin-nhan">
       <Badge count={isLoggedIn ? unread : 0} size="small" offset={[-4, 4]}>
-        <Button icon={<MessageCircle size={16} />}>Tin nhắn</Button>
+        {/* 2 bản (icon / chữ) bật tắt bằng CSS: nút chỉ-icon của antd mới gọn 40px */}
+        <Button aria-label="Tin nhắn" icon={<MessageCircle size={16} />} className="lg:hidden!" />
+        <Button icon={<MessageCircle size={16} />} className="hidden! lg:inline-flex!">
+          Tin nhắn
+        </Button>
       </Badge>
     </Link>
   );

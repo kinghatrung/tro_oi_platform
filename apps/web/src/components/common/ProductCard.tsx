@@ -13,7 +13,9 @@ import {
 import { NO_IMAGE } from '@/constants';
 import { useSaveToggle } from '@/hooks/useSaveToggle';
 import { useAuthStore } from '@/stores/useAuthStore';
-import { formatRelativeTime, formatVietnameseCurrency } from '@/utils/helpers';
+import { formatVietnameseCurrency } from '@/utils/helpers';
+
+import { RelativeTime } from './RelativeTime';
 
 /** Thẻ món đồ Chợ ơi — cùng kiểu thẻ tin Trọ ơi (CardItem): ảnh vuông, thời gian + số ảnh, nút ♡ lưu. */
 export function ProductCard({ product }: { product: ProductItem }) {
@@ -51,7 +53,9 @@ export function ProductCard({ product }: { product: ProductItem }) {
           <Heart size={20} className={isSaved ? 'fill-price stroke-price' : 'stroke-white'} />
         </button>
         <div className="absolute right-0 bottom-0 left-0 flex items-center justify-between bg-[linear-gradient(#2220_0%,#222222bf_100%)] px-3 py-1.5">
-          <p className="text-muted">{formatRelativeTime(product.createdAt)}</p>
+          <p className="text-muted">
+            <RelativeTime date={product.createdAt} />
+          </p>
           <span className="flex items-center gap-1.5">
             <p className="text-muted">{product.images.length}</p>
             <ImageIcon size={16} color="#fff" />

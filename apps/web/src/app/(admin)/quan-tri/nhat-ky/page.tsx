@@ -97,6 +97,7 @@ export default function AdminAuditLogPage() {
         }
       />
       <DataTable<AuditLog>
+        mobileKeys={['actor', 'action', 'target']}
         rowKey="id"
         columns={COLUMNS}
         dataSource={items}

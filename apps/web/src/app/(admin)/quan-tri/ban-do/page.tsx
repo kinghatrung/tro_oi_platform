@@ -94,11 +94,14 @@ export default function AdminListingMapPage() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Segmented
-            options={STATUS_FILTERS}
-            value={query.status ?? ''}
-            onChange={(value) => updateQuery({ status: (value as ListingStatus) || undefined })}
-          />
+          {/* Màn hẹp: cuộn ngang thay vì bị cắt mất lựa chọn cuối */}
+          <div className="no-scrollbar max-w-full overflow-x-auto">
+            <Segmented
+              options={STATUS_FILTERS}
+              value={query.status ?? ''}
+              onChange={(value) => updateQuery({ status: (value as ListingStatus) || undefined })}
+            />
+          </div>
           <Select
             allowClear
             placeholder="Loại hình"

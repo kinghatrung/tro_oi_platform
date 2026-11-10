@@ -52,7 +52,9 @@ export default function AdminPolicyPagesPage() {
   const settings = useSiteSettings();
   const [form] = Form.useForm<UpsertPageRequest>();
   const [slug, setSlug] = useState(PageSlug.TERMS);
-  const [page, setPage] = useState<AdminPage | null>(null);
+  const [loadedPage, setPage] = useState<AdminPage | null>(null);
+  // Đổi tab → coi như đang tải tới khi API trả trang mới (không reset state trong effect)
+  const page = loadedPage?.slug === slug ? loadedPage : null;
   const [isSaving, setIsSaving] = useState(false);
   const [drafts, setDrafts] = useState<Drafts>({});
   // Đọc trong callback tải trang mà không phải đưa drafts vào deps (tránh tải lại khi gõ)
@@ -66,18 +68,14 @@ export default function AdminPolicyPagesPage() {
     writeDrafts(next);
   }, []);
 
-  // Khai báo trước effect tải trang: bản nháp đã có sẵn khi API trả về
-  useEffect(() => {
-    draftsRef.current = readDrafts();
-    setDrafts(draftsRef.current);
-  }, []);
-
   useEffect(() => {
     let cancelled = false;
-    setPage(null);
     getAdminPage(slug)
       .then((loaded) => {
         if (cancelled) return;
+        // Mọi lần ghi nháp đều qua updateDrafts → đọc lại localStorage ở đây luôn khớp
+        draftsRef.current = readDrafts();
+        setDrafts(draftsRef.current);
         setPage(loaded);
         form.setFieldsValue(
           draftsRef.current[slug] ?? { title: loaded.title, content: loaded.content },
@@ -91,7 +89,7 @@ export default function AdminPolicyPagesPage() {
 
   /** Ô soạn khác bản đã lưu → ghi bản nháp; trùng lại → xoá bản nháp. */
   const syncDraft = useCallback(() => {
-    if (!page || page.slug !== slug) return; // đang tải trang khác
+    if (!page) return; // đang tải trang khác
     const values = form.getFieldsValue();
     const isChanged = values.title !== page.title || values.content !== page.content;
     const rest = withoutDraft(draftsRef.current, slug);

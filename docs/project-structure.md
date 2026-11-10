@@ -134,7 +134,7 @@ src/
 │       ├── SellerShell.tsx            #   DashboardShell + thẻ người dùng đầu sidebar
 │       ├── page.tsx                   #   Tổng quan: lời chào, số liệu, bản đồ tin đăng (VietnamMap markers), tin xem nhiều nhất, Cần chú ý, đồ bán Chợ ơi
 │       ├── tin-dang/                  #   Quản lý tin: bảng lọc (cả Chờ duyệt)/tìm/sắp xếp, cột Hiệu quả + Thời hạn, sửa/ẩn/gia hạn/xoá
-│       ├── do-ban/                    #   Đồ đang bán (Chợ ơi): đã bán, ẩn/hiện, sửa, xoá
+│       ├── do-ban/                    #   Đồ đang bán (Chợ ơi), bố cục như tin-dang: lọc trạng thái, tìm theo tên, cột món đồ (danh mục · tình trạng · tỉnh), lượt xem, thời gian; đã bán, ẩn/hiện, sửa, xoá
 │       ├── useMyListings.ts           #   hook dùng chung: GET /listings/mine + ẩn/hiện/xoá
 │       └── const.tsx                  #   menu sidebar, màu Tag theo trạng thái
 │   └── (admin)/quan-tri/              # Trang quản trị toàn màn hình, chỉ admin (UI dùng chung ở components/admin)
@@ -149,7 +149,7 @@ src/
 │       ├── trang-chinh-sach/          #   Soạn & đăng Điều khoản / Chính sách bảo mật (chèn bản nháp mẫu, chặn đăng khi còn [[...]];
 │       │                              #   nội dung chưa lưu giữ thành bản nháp theo từng trang trong localStorage, nút Bỏ bản nháp)
 │       ├── thiet-lap/                 #   Thiết lập website trong FormPageLayout (tab Chung, Giao diện, Trang chủ & thông báo, Tính năng)
-│       └── useAdminTable.ts           #   hook bảng phân trang phía server + runAction (báo kết quả, tự reload)
+│       └── useAdminTable.ts           #   hook bảng phân trang phía server + runAction (báo kết quả, tự reload); loading bật ở nơi đổi query, effect chỉ gọi API
 ├── proxy.ts                           # Next 16 proxy (middleware): thiếu cookie accessToken → /dang-nhap?redirect=
 ├── api/                               # axiosClient (token cookie, ApiError) + 1 file / domain: auth, users, listings, products, reports, settings, admin, uploads, notifications, chat, reviews, pages
 ├── stores/useAuthStore.ts             # user, favorites, favoriteProducts, savedSearches, login/logout/toggleFavorite(Product)/toggleSavedSearch + hook useRequireUser()
@@ -160,7 +160,7 @@ src/
 ├── lib/youtube.ts                     # YOUTUBE_URL_PATTERN (trùng api) + youtubeEmbedUrl(): link → iframe youtube-nocookie
 ├── lib/viewHistory.ts                 # lịch sử đã xem (localStorage, 15 mục): recordView()/readViewHistory() cho tin Trọ ơi, recordProductView()/readProductHistory() cho món Chợ ơi
 ├── components/
-│   ├── layout/                        # Header (banner: trang chủ, Chợ ơi), SubHeader, Navbar (+ NotificationBell: hỏi số chưa đọc mỗi 60s; MessagesButton: mở socket chat, badge tin nhắn), Container, Footer
+│   ├── layout/                        # Header (banner: trang chủ, Chợ ơi), SubHeader, Navbar (+ NotificationBell: hỏi số chưa đọc mỗi 60s; MessagesButton: mở socket chat, badge tin nhắn; co theo màn: < lg ẩn ô khu vực + cặp "Trọ ơi!/Chợ ơi!" (Chợ ơi vào từ menu danh mục), < sm ẩn sáng/tối, Tin đã lưu, chuông, Đăng nhập; Tin nhắn / Đăng tin thành nút chỉ-icon), Container, Footer
 │   ├── common/                        # UI thuần dùng lại (xem bảng dưới)
 │   ├── chat/                          # UI chat thuần: ConversationList, ChatWindow, MessageBubble, ChatComposer
 │   └── sections/                      # Khối giao diện theo trang
@@ -213,7 +213,7 @@ Breadcrumb (`BreadcrumbItem`) tự sinh từ URL theo `ROUTE_LABELS` — thêm r
 | Component          | Vai trò                                                                 |
 | ------------------ | ----------------------------------------------------------------------- |
 | `CardItem`         | Thẻ tin đăng (`listing: Listing`, `column` = dạng hàng ngang), nút Lưu nối store |
-| `CarouselItem`     | Carousel 5 thẻ / slide; `renderItem` vẽ thẻ (CardItem hoặc ProductCard)  |
+| `CarouselItem`     | Carousel 5 thẻ / slide; `renderItem` vẽ thẻ (CardItem hoặc ProductCard); mũi tên lệch -32px ra ngoài thẻ, màn < xl -16px để không tràn màn hình |
 | `SearchResultsList`| Toolbar sort + view mode (list/grid) + danh sách + phân trang URL       |
 | `HeaderToolbar`    | Sort dropdown + toggle list/grid                                         |
 | `PaginationControl`| Phân trang đồng bộ `?page=`                                              |
@@ -225,6 +225,8 @@ Breadcrumb (`BreadcrumbItem`) tự sinh từ URL theo `ROUTE_LABELS` — thêm r
 | `ImageLightbox`    | Xem ảnh toàn màn hình + thông tin tin đăng                               |
 | `ProductCard`      | Thẻ món đồ Chợ ơi, cùng kiểu thẻ tin Trọ ơi (thời gian + số ảnh trên ảnh) |
 | `NotificationList` | Danh sách thông báo (icon theo `kind`, chấm = chưa đọc) — chuông Navbar và `/thong-bao` |
+| `RelativeTime`     | "x giờ trước" an toàn khi SSR: server + lần hydrate in ngày `dd/mm/yyyy` giờ VN (`formatVietnamDate`), sau hydrate mới đổi sang tương đối |
+| `useIsClient`      | Hook: `false` lúc SSR/hydrate, `true` sau đó — đọc localStorage / thời gian hiện tại mà không lệch HTML |
 | `ReportModal`      | Báo cáo tin (Trọ ơi/Chợ ơi) → `POST /reports`. Tự gọi API (ngoại lệ có chủ đích) |
 | `ThemeToggle`      | Nút sáng/tối (ẩn khi admin tắt `allowThemeToggle`)                       |
 | `FormSection`      | Khối form có số bước (đăng tin, đăng bán)                                |
@@ -239,15 +241,15 @@ Breadcrumb (`BreadcrumbItem`) tự sinh từ URL theo `ROUTE_LABELS` — thêm r
 | `layout/AdminTopBar` | Nút thu gọn/mở sidebar (màn nhỏ: mở Drawer) + breadcrumb | xem website, sáng/tối, menu tài khoản |
 | `PageCard` | Khung trang danh sách, cao đúng bằng Content (trang không cuộn) |
 | `FilterBar` | [từ khoá] [lọc nhanh] … [phễu lọc nâng cao (popover Form, số bộ lọc đang bật)] [Tìm kiếm] [Làm mới] |
-| `DataTable` | Table + cột STT + `EmptyState`; lấp phần còn lại của PageCard: chỉ thân bảng cuộn (dọc + ngang), header bảng và phân trang cố định ở đáy (CSS `.fill-table` trong globals.css) |
-| `EntityCell` | Ô ảnh/avatar + tiêu đề + dòng phụ ở cột đầu bảng |
+| `DataTable` | Table + cột STT + `EmptyState`; lấp phần còn lại của PageCard: chỉ thân bảng cuộn (dọc + ngang), header bảng và phân trang cố định ở đáy (CSS `.fill-table` trong globals.css). `mobileKeys` / `withMobileSummary(columns, keys)` (cả bảng Kênh người đăng): điện thoại (< sm) chỉ giữ cột đầu, ẩn STT, các cột trong `keys` (trạng thái, thao tác...) vẽ lại thành 1 hàng dưới cột đầu |
+| `EntityCell` | Ô ảnh/avatar + tiêu đề + dòng phụ ở cột đầu bảng (điện thoại rộng tối đa 256px để tiêu đề xuống dòng) |
 | `RowActions`, `IconAction` | Nút icon trong cột thao tác: tooltip, link tab mới, Popconfirm; chặn click lan lên dòng |
 | `ModerationActions` | Duyệt / từ chối / ẩn / hiện / xoá — dùng chung tin Trọ ơi và Chợ ơi |
 | `AppDrawer` | Drawer form/chi tiết: đầu (tiêu đề + mô tả) — thân cuộn + loading — chân chứa nút Huỷ/Lưu |
 | `FormPageLayout` | Trang form dài, cùng bố cục AppDrawer (dùng ở Thiết lập website) |
 | `FormSectionTitle`, `SwitchField` | Tiêu đề nhóm trường; hàng Switch có mô tả |
 | `ImageUrlField`, `ImageListField` | Control Form.Item cho 1 ảnh / danh sách ảnh (tải lên + dán URL) |
-| `DashboardCharts` | Biểu đồ SVG tự vẽ cho Tổng quan: `LineChart` (nhiều chuỗi, đường dọc + tooltip theo chuột / phím ←→), `ChartLegend`, `SegmentedBar` (cao: in % trong khối / mảnh), `PartLegend`, `CompositionList` (thanh mảnh + dòng icon/số/%), `ColumnChart`, `Lollipop` (nhấn mục đầu), `Sparkline`. Màu chuỗi `--series-1..4` (+ `--series-4-ink` cho chữ trên khối vàng) và màu trạng thái `--status-good/warning/serious` trong globals.css (đã kiểm tra mù màu, có bộ cho nền tối) |
+| `DashboardCharts` | Biểu đồ SVG tự vẽ cho Tổng quan: `LineChart` (nhiều chuỗi, đường dọc + tooltip theo chuột / phím ←→; số nhãn ngày theo bề rộng, ~56px/nhãn), `ChartLegend`, `SegmentedBar` (cao: in % trong khối / mảnh), `PartLegend`, `CompositionList` (thanh mảnh + dòng icon/số/%), `ColumnChart`, `Lollipop` (nhấn mục đầu), `Sparkline`. Màu chuỗi `--series-1..4` (+ `--series-4-ink` cho chữ trên khối vàng) và màu trạng thái `--status-good/warning/serious` trong globals.css (đã kiểm tra mù màu, có bộ cho nền tối) |
 
 Trang danh sách mới: `useAdminTable` + `PageCard` > `FilterBar` + `DataTable`; form ngắn → `AppDrawer`, form dài → `FormPageLayout`.
 

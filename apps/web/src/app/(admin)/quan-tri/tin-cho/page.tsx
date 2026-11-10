@@ -157,6 +157,7 @@ export default function AdminProductsPage() {
         }}
       />
       <DataTable<ProductItem>
+        mobileKeys={['price', 'status', 'actions']}
         rowKey="id"
         columns={columns}
         dataSource={items}

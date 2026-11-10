@@ -38,7 +38,13 @@ import {
 } from '@tro-oi/shared';
 
 import { useSiteSettings } from '@/app/providers';
-import { VietnamMap, ButtonDropdown, ImageLightbox, ReportModal } from '@/components/common';
+import {
+  VietnamMap,
+  ButtonDropdown,
+  ImageLightbox,
+  RelativeTime,
+  ReportModal,
+} from '@/components/common';
 import { NO_IMAGE } from '@/constants';
 import { useSaveToggle } from '@/hooks/useSaveToggle';
 import {
@@ -49,7 +55,7 @@ import {
 import { recordView } from '@/lib/viewHistory';
 import { youtubeEmbedUrl } from '@/lib/youtube';
 import { useAuthStore } from '@/stores/useAuthStore';
-import { formatListingPrice, formatRelativeTime } from '@/utils/helpers';
+import { formatListingPrice } from '@/utils/helpers';
 
 interface PropertyOverviewProps {
   listing: Listing;
@@ -353,7 +359,9 @@ export function PropertyOverview({ listing, similarListings = [] }: PropertyOver
 
           <Space align="center" size={8} className="mt-3">
             <Clock size={20} />
-            <p className="text-ink">Cập nhật {formatRelativeTime(listing.updatedAt)}</p>
+            <p className="text-ink">
+              Cập nhật <RelativeTime date={listing.updatedAt} />
+            </p>
           </Space>
         </div>
       </Card>

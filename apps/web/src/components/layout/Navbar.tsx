@@ -4,7 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Suspense, useCallback, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { Avatar, Button, Flex, Space, type MenuProps } from 'antd';
+import { Avatar, Button, Flex, type MenuProps } from 'antd';
 import {
   Bell,
   Heart,
@@ -19,7 +19,9 @@ import {
   ChevronDown,
   FilePlus2,
   LayoutDashboard,
+  Plus,
   ShieldCheck,
+  ShoppingBag,
 } from 'lucide-react';
 import { PropertyCategory, TransactionType, UserRole } from '@tro-oi/shared';
 
@@ -65,6 +67,13 @@ const CATEGORY_MENU: MenuProps['items'] = [
     ],
   },
 ];
+
+/** Màn < lg không có cặp chữ "Trọ ơi! / Chợ ơi!" → vào Chợ ơi từ menu danh mục. */
+const MARKETPLACE_MENU_ITEM = {
+  key: '/cho-oi',
+  label: <span className="ml-2 font-semibold">Chợ ơi – pass đồ</span>,
+  icon: <ShoppingBag size={24} />,
+};
 
 const menuLabel = (text: string) => (
   <span className="ml-2 text-body text-[16px] font-bold">{text}</span>
@@ -129,9 +138,14 @@ function Navbar() {
   const isHousingSection = !pathname.startsWith('/cho-oi');
   const userMenu = user?.role === UserRole.ADMIN ? [ADMIN_MENU_ITEM, ...USER_MENU!] : USER_MENU;
   const postHref = isHousingSection ? '/dang-tin' : '/cho-oi/dang-ban';
+  const postLabel = isHousingSection ? 'Đăng tin' : 'Đăng bán';
+  const categoryMenu = settings.enableMarketplace
+    ? [...CATEGORY_MENU!, MARKETPLACE_MENU_ITEM]
+    : CATEGORY_MENU;
 
   const handleCategoryClick = useCallback<NonNullable<MenuProps['onClick']>>(
     ({ key }) => {
+      if (key.startsWith('/')) return router.push(key);
       const [transaction, category] = key.split('|');
       router.push(`/tim-kiem?${new URLSearchParams({ transaction, category })}`);
     },
@@ -146,6 +160,7 @@ function Navbar() {
       }
       logout();
       // reload toàn trang: xoá state client và tránh trang private tự redirect sang /dang-nhap
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- cố ý tải lại toàn trang
       window.location.assign('/');
     },
     [logout, router],
@@ -157,12 +172,18 @@ function Navbar() {
 
   return (
     <nav className="static top-0 z-50 w-full bg-transparent">
-      <Flex align="center" justify="space-between" className="py-3! h-18 px-6!">
+      {/* Màn hẹp ẩn bớt nút (đều có lối khác: menu danh mục / tài khoản, ô khu vực trong thanh tìm kiếm) */}
+      <Flex
+        align="center"
+        justify="space-between"
+        gap={6}
+        className="py-3! h-18 px-2! sm:px-3! md:px-6!"
+      >
         {/* Dropdown danh mục */}
-        <Space align="center">
+        <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
           <ButtonDropdown
             aria-label="Danh mục"
-            menus={CATEGORY_MENU}
+            menus={categoryMenu}
             onMenuClick={handleCategoryClick}
             popupRender={(menu) => (
               <CardDropdown title="Danh mục" menu={menu} centerTitle={false} width={280} />
@@ -183,14 +204,16 @@ function Navbar() {
           </Link>
 
           {/* useSearchParams trong AreaPicker cần Suspense để trang tĩnh build được */}
-          <Suspense fallback={AREA_BUTTON('Chọn khu vực')}>
-            <AreaPicker basePath={isHousingSection ? '/tim-kiem' : '/cho-oi'}>
-              {AREA_BUTTON}
-            </AreaPicker>
-          </Suspense>
-        </Space>
+          <div className="hidden lg:block">
+            <Suspense fallback={AREA_BUTTON('Chọn khu vực')}>
+              <AreaPicker basePath={isHousingSection ? '/tim-kiem' : '/cho-oi'}>
+                {AREA_BUTTON}
+              </AreaPicker>
+            </Suspense>
+          </div>
+        </div>
 
-        <Flex gap={32} align="center">
+        <Flex gap={32} align="center" className="hidden! lg:flex!">
           <Link
             href="/"
             className={`text-[16px] font-bold tracking-tight transition-all text-ink ${
@@ -213,24 +236,39 @@ function Navbar() {
         </Flex>
 
         {/* Dropdown người dùng */}
-        <Space>
-          <ThemeToggle />
-          <Link href="/yeu-thich" aria-label="Tin đã lưu">
+        <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+          <div className="hidden sm:block">
+            <ThemeToggle />
+          </div>
+          <Link href="/yeu-thich" aria-label="Tin đã lưu" className="hidden sm:block">
             <Button icon={<Heart size={20} />} />
           </Link>
-          {user && <NotificationBell />}
+          {user && (
+            <div className="hidden sm:block">
+              <NotificationBell />
+            </div>
+          )}
           <MessagesButton isLoggedIn={Boolean(user)} />
           {!user && (
-            <Link href="/dang-nhap">
+            <Link href="/dang-nhap" className="hidden sm:block">
               <Button>Đăng nhập</Button>
             </Link>
           )}
           <Link href={postHref}>
-            <Button type="primary">{isHousingSection ? 'Đăng tin' : 'Đăng bán'}</Button>
+            {/* 2 bản (icon / chữ) bật tắt bằng CSS: nút chỉ-icon của antd mới gọn 40px */}
+            <Button
+              type="primary"
+              aria-label={postLabel}
+              icon={<Plus size={18} />}
+              className="sm:hidden!"
+            />
+            <Button type="primary" className="hidden! sm:inline-flex!">
+              {postLabel}
+            </Button>
           </Link>
           <ButtonDropdown
             aria-label="Tài khoản"
-            dropdown
+            iconRight={<ChevronDown size={16} className="hidden sm:block" />}
             placement="bottomRight"
             menus={user ? userMenu : undefined}
             onMenuClick={handleUserMenuClick}
@@ -283,7 +321,7 @@ function Navbar() {
               </div>
             )}
           />
-        </Space>
+        </div>
       </Flex>
     </nav>
   );

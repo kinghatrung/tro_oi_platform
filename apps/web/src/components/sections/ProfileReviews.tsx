@@ -7,7 +7,7 @@ import { UserRole, type MyReviewStatus, type Review, type ReviewPage } from '@tr
 
 import { deleteReview, getMyReview, getReviews, upsertReview } from '@/api/reviews';
 import { useAuthStore } from '@/stores/useAuthStore';
-import { formatRelativeTime } from '@/utils/helpers';
+import { RelativeTime } from '@/components/common';
 
 interface ReviewForm {
   rating: number;
@@ -151,7 +151,7 @@ export function ProfileReviews({ userId, initial }: ProfileReviewsProps) {
                   </span>
                   <Rate disabled value={review.rating} className="text-sm!" />
                   <span className="text-xs text-subtle">
-                    {formatRelativeTime(review.updatedAt)}
+                    <RelativeTime date={review.updatedAt} />
                   </span>
                 </div>
                 {review.comment && (

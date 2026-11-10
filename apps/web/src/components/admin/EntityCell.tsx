@@ -16,8 +16,9 @@ interface EntityCellProps {
 
 /** Ô "ảnh + tiêu đề + dòng phụ" dùng ở cột đầu bảng quản trị. */
 export function EntityCell({ title, subtitle, image, avatar }: EntityCellProps) {
+  // Bảng max-content: điện thoại phải chặn bề ngang thì line-clamp mới xuống dòng
   return (
-    <Flex gap={12} align="center" className="min-w-64">
+    <Flex gap={12} align="center" className="min-w-64 max-w-64 sm:max-w-none">
       {avatar !== undefined ? (
         <Avatar src={avatar} icon={<UserRound size={18} />} />
       ) : (

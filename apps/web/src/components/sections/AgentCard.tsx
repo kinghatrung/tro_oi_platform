@@ -6,7 +6,7 @@ import { Space, Avatar, Button, Flex } from 'antd';
 import { List, MessageCircle, PhoneCall, UserRound } from 'lucide-react';
 import { USER_ROLE_LABELS, type ListingAuthor, type ProductSeller } from '@tro-oi/shared';
 
-import { formatRelativeTime } from '@/utils/helpers';
+import { RelativeTime } from '@/components/common';
 
 /** SĐT dạng +84xxxxxxxxx → 0xxxxxxxxx để hiển thị/gọi. */
 const toLocalPhone = (phone: string) => phone.replace(/^\+84/, '0');
@@ -43,7 +43,11 @@ export function AgentCard({ author, chatHref }: AgentCardProps) {
               <List size={16} /> <span>{listingCount} tin đăng</span>
             </Flex>
           )}
-          {author.joinedAt && <span>Tham gia {formatRelativeTime(author.joinedAt)}</span>}
+          {author.joinedAt && (
+            <span>
+              Tham gia <RelativeTime date={author.joinedAt} />
+            </span>
+          )}
         </Flex>
         {chatHref && (
           <Link href={chatHref}>

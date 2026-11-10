@@ -17,7 +17,9 @@ import {
 import { NO_IMAGE } from '@/constants';
 import { useSaveToggle } from '@/hooks/useSaveToggle';
 import { useAuthStore } from '@/stores/useAuthStore';
-import { formatListingPrice, formatRelativeTime, formatVietnameseCurrency } from '@/utils/helpers';
+import { formatListingPrice, formatVietnameseCurrency } from '@/utils/helpers';
+
+import { RelativeTime } from './RelativeTime';
 
 interface CardItemProps {
   listing: Listing;
@@ -86,7 +88,7 @@ export function CardItem({ listing, column }: CardItemProps) {
                 className="absolute right-0 bottom-0 left-0 bg-black/50 px-2! py-1.5!"
               >
                 <span className="text-xs! font-semibold text-white">
-                  {formatRelativeTime(listing.createdAt)}
+                  <RelativeTime date={listing.createdAt} />
                 </span>
 
                 <Space align="center" size={4}>
@@ -230,7 +232,9 @@ export function CardItem({ listing, column }: CardItemProps) {
             bg-[linear-gradient(#2220_0%,#222222bf_100%)]
           `)}
         >
-          <p className="text-muted">{formatRelativeTime(listing.createdAt)}</p>
+          <p className="text-muted">
+            <RelativeTime date={listing.createdAt} />
+          </p>
 
           <Space>
             <p className="text-muted">{images.length}</p>

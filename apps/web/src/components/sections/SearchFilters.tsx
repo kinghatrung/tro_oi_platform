@@ -18,6 +18,7 @@ import { useSaveToggle } from '@/hooks/useSaveToggle';
 import { AMENITY_ITEMS } from '@/lib/constants/constantsRoom';
 import { parsePriceRange, searchQueryKey } from '@/lib/searchFilters';
 import { useAuthStore } from '@/stores/useAuthStore';
+import { formatVietnamDate } from '@/utils/helpers';
 
 const transactionItems: MenuProps['items'] = [
   {
@@ -80,8 +81,9 @@ function describeArea(params: URLSearchParams) {
 
 /** Tiêu đề trang, vd "Cho thuê Phòng trọ Hà Nội tháng 11/2026". */
 function buildTitle(params: URLSearchParams) {
-  const now = new Date();
-  return `${describeArea(params)} tháng ${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}`;
+  // Theo giờ VN: server (UTC) và trình duyệt cùng ra 1 tháng → không lệch khi hydrate
+  const [, month, year] = formatVietnamDate(Date.now()).split('/');
+  return `${describeArea(params)} tháng ${month}/${year}`;
 }
 
 /** Tên tìm kiếm đã lưu: khu vực + các bộ lọc khác, vd "... · 2-5 triệu · 2+ PN". */

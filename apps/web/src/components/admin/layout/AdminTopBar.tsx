@@ -53,6 +53,7 @@ export function AdminTopBar({
     if (key !== 'logout') return router.push(key);
     useAuthStore.getState().logout();
     // reload toàn trang: xoá state client (giống Navbar)
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- cố ý tải lại toàn trang
     window.location.assign('/');
   };
 
