@@ -196,6 +196,7 @@ export class AccountService {
             avatar: 1,
             coverImage: 1,
             notifyPrefs: 1,
+            firebaseUid: 1,
           },
         },
       )

@@ -62,7 +62,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
             variant="borderless"
             title="Đồ tương tự"
             extra={
-              <Link href={`/cho-oi?category=${product.category}`}>
+              <Link href={`/cho-oi/tim-kiem?category=${product.category}`}>
                 <Button type="link">Xem thêm</Button>
               </Link>
             }

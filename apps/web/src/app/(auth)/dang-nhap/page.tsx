@@ -7,10 +7,17 @@ import { App, Button, Card, Flex, Typography, Divider, Form, Input } from 'antd'
 import { FcGoogle } from 'react-icons/fc';
 import { FaFacebookF } from 'react-icons/fa6';
 import { ChevronLeft } from 'lucide-react';
-import { RecaptchaVerifier, signInWithPhoneNumber, type ConfirmationResult } from 'firebase/auth';
+import {
+  FacebookAuthProvider,
+  GoogleAuthProvider,
+  RecaptchaVerifier,
+  signInWithPhoneNumber,
+  signInWithPopup,
+  type ConfirmationResult,
+} from 'firebase/auth';
 import type { AuthResponse, PageSummary } from '@tro-oi/shared';
 
-import { devLogin, verifyPhone } from '@/api/auth';
+import { devLogin, socialLogin, verifyPhone } from '@/api/auth';
 import { getPublishedPages } from '@/api/pages';
 import { FloatingInput } from '@/components/common';
 import { getFirebaseAuth } from '@/lib/firebase';
@@ -18,6 +25,7 @@ import { useAuthStore } from '@/stores/useAuthStore';
 import { useSiteSettings } from '@/app/providers';
 
 type LoginStep = 'phone' | 'otp';
+type SocialProvider = 'google' | 'facebook';
 
 const PHONE_PATTERN = /^(0|\+84)(3|5|7|8|9)[0-9]{8}$/;
 const FIREBASE_ERRORS: Record<string, string> = {
@@ -25,7 +33,15 @@ const FIREBASE_ERRORS: Record<string, string> = {
   'auth/code-expired': 'Mã OTP đã hết hạn, vui lòng gửi lại',
   'auth/too-many-requests': 'Bạn thử quá nhiều lần, vui lòng đợi ít phút',
   'auth/invalid-phone-number': 'Số điện thoại không hợp lệ',
+  'auth/popup-blocked':
+    'Trình duyệt đã chặn cửa sổ đăng nhập — hãy cho phép cửa sổ bật lên rồi thử lại',
+  'auth/account-exists-with-different-credential':
+    'Email này đã đăng nhập bằng cách khác (Google hoặc Facebook) — hãy dùng lại cách đó',
+  'auth/operation-not-allowed': 'Cách đăng nhập này chưa được bật, vui lòng dùng số điện thoại',
+  'auth/unauthorized-domain': 'Tên miền này chưa được cho phép đăng nhập, liên hệ quản trị viên',
 };
+/** Người dùng tự đóng cửa sổ đăng nhập — không báo lỗi. */
+const CANCELLED_CODES = new Set(['auth/popup-closed-by-user', 'auth/cancelled-popup-request']);
 
 const toE164 = (phone: string) => phone.replace(/^0/, '+84');
 
@@ -61,6 +77,7 @@ function SignInPage() {
   const verifierRef = useRef<RecaptchaVerifier | null>(null);
   const confirmationRef = useRef<ConfirmationResult | null>(null);
   const isFirebaseEnabled = Boolean(process.env.NEXT_PUBLIC_FIREBASE_API_KEY);
+  const [socialLoading, setSocialLoading] = useState<SocialProvider>();
 
   const finishLogin = useCallback(
     async (auth: AuthResponse) => {
@@ -99,6 +116,26 @@ function SignInPage() {
     [finishLogin, message],
   );
 
+  /** Google / Facebook: popup Firebase → ID token → POST /auth/social (tài khoản theo Firebase UID). */
+  const handleSocial = async (provider: SocialProvider) => {
+    const auth = getFirebaseAuth();
+    if (!auth) return;
+    setSocialLoading(provider);
+    try {
+      const credential = await signInWithPopup(
+        auth,
+        provider === 'google' ? new GoogleAuthProvider() : new FacebookAuthProvider(),
+      );
+      await finishLogin(await socialLogin(await credential.user.getIdToken()));
+    } catch (error) {
+      if (!CANCELLED_CODES.has((error as { code?: string }).code ?? '')) {
+        message.error(errorMessage(error));
+      }
+    } finally {
+      setSocialLoading(undefined);
+    }
+  };
+
   const handleVerifyOtp = useCallback(
     async ({ otp }: { otp?: string }) => {
       if (!confirmationRef.current || !otp) return;
@@ -129,22 +166,34 @@ function SignInPage() {
             Đăng nhập/Đăng ký
           </Typography.Title>
         </Flex>
-        {/* shortcut: Google/Facebook chưa nối backend (API chỉ nhận SĐT) — tắt nút tới khi có */}
+        {/* Cần Firebase (đã bật Google / Facebook trong Firebase Console); dev-login thì tắt */}
         <Flex vertical className="gap-3">
-          <Button disabled className="relative! font-bold! text-[16px]! h-12!">
+          <Button
+            disabled={!isFirebaseEnabled || Boolean(socialLoading && socialLoading !== 'google')}
+            loading={socialLoading === 'google'}
+            title={isFirebaseEnabled ? undefined : 'Cần cấu hình Firebase'}
+            onClick={() => handleSocial('google')}
+            className="relative! font-bold! text-[16px]! h-12!"
+          >
             <span className="absolute left-4 flex items-center">
               <FcGoogle size={20} />
             </span>
-            Tiếp tục với Google (sắp có)
+            Tiếp tục với Google
           </Button>
 
-          <Button disabled className="relative! font-bold! text-[16px]! h-12!">
+          <Button
+            disabled={!isFirebaseEnabled || Boolean(socialLoading && socialLoading !== 'facebook')}
+            loading={socialLoading === 'facebook'}
+            title={isFirebaseEnabled ? undefined : 'Cần cấu hình Firebase'}
+            onClick={() => handleSocial('facebook')}
+            className="relative! font-bold! text-[16px]! h-12!"
+          >
             <span className="absolute left-4 flex items-center">
               <span className="w-5 h-5 rounded-full bg-[#1877F2] flex items-center justify-center">
                 <FaFacebookF size={13} color="white" />
               </span>
             </span>
-            Tiếp tục với Facebook (sắp có)
+            Tiếp tục với Facebook
           </Button>
         </Flex>
         <Divider>

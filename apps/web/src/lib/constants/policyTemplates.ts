@@ -29,7 +29,7 @@ Khi đăng nhập và sử dụng ${siteName}, bạn đồng ý với các đi�
 
 ## 2. Tài khoản
 - Bạn cần đủ 18 tuổi, hoặc được cha mẹ / người giám hộ hợp pháp đồng ý và giám sát khi sử dụng.
-- Bạn đăng nhập bằng số điện thoại và mã xác thực (OTP). Bạn chịu trách nhiệm giữ an toàn thiết bị và tài khoản của mình, và về mọi hoạt động thực hiện từ tài khoản đó.
+- Bạn đăng nhập bằng số điện thoại và mã xác thực (OTP), hoặc bằng tài khoản Google / Facebook. Bạn chịu trách nhiệm giữ an toàn thiết bị và tài khoản của mình, và về mọi hoạt động thực hiện từ tài khoản đó.
 - Quản trị viên có thể khoá tài khoản vi phạm điều khoản. Tài khoản bị khoá không đăng nhập và không thao tác được.
 - Bạn có thể tự xoá tài khoản bất cứ lúc nào tại Trang cá nhân > Dữ liệu & tài khoản.
 
@@ -67,7 +67,8 @@ Chính sách này mô tả cách ${siteName} (do Ban quản trị ${siteName} v�
 Bằng việc đăng nhập và sử dụng ${siteName}, bạn đồng ý cho chúng tôi xử lý dữ liệu cá nhân theo các mục đích nêu trong chính sách này. Bạn có thể rút lại sự đồng ý bằng cách xoá tài khoản hoặc liên hệ chúng tôi.
 
 ## 2. Dữ liệu chúng tôi thu thập
-- Thông tin tài khoản: số điện thoại (để đăng nhập), tên hiển thị, email (nếu bạn cung cấp), ảnh đại diện, ảnh bìa, lời giới thiệu.
+- Thông tin tài khoản: số điện thoại (khi đăng nhập bằng số điện thoại), tên hiển thị, email (nếu bạn cung cấp), ảnh đại diện, ảnh bìa, lời giới thiệu.
+- Khi đăng nhập bằng Google / Facebook: mã định danh tài khoản, tên, ảnh đại diện và email (chỉ khi nhà cung cấp đã xác minh) do Google / Facebook cung cấp. Chúng tôi không nhận mật khẩu, danh bạ hay dữ liệu khác từ tài khoản đó.
 - Nội dung bạn đăng: tin cho thuê/mua bán, món đồ rao bán (ảnh, địa chỉ, vị trí ghim trên bản đồ, giá, mô tả, tiện ích, link video), đánh giá, báo cáo vi phạm.
 - Tin nhắn (chữ và ảnh) trao đổi giữa bạn và người dùng khác.
 - Dữ liệu sử dụng: tin và món đồ đã lưu, tìm kiếm đã lưu, thông báo, cài đặt nhận thông báo, số lượt xem tin (đếm chung, không gắn với danh tính người xem).
@@ -82,7 +83,7 @@ Chúng tôi không bán dữ liệu cá nhân và không dùng dữ liệu cho q
 
 ## 4. Thông tin hiển thị công khai
 - Hồ sơ công khai: tên, ảnh đại diện, ảnh bìa, vai trò, lời giới thiệu, ngày tham gia, các tin đang hiển thị và đánh giá. Hồ sơ công khai không hiển thị email.
-- Trên trang tin đăng, số điện thoại của người đăng được hiển thị cho người xem khi bấm "Hiện số" và dùng cho nút liên hệ Zalo.
+- Trên trang tin đăng, số điện thoại của người đăng (nếu tài khoản có) được hiển thị cho người xem khi bấm "Hiện số" và dùng cho nút liên hệ Zalo.
 - Đánh giá hiển thị kèm tên và ảnh đại diện của người viết.
 - Ảnh bạn tải lên có thể được truy cập công khai qua đường link ảnh.
 
@@ -92,12 +93,13 @@ Tin nhắn chỉ hiển thị cho hai người trong cuộc trò chuyện trên 
 ## 6. Cookie và lưu trữ trên trình duyệt
 - Cookie đăng nhập (accessToken) để giữ phiên đăng nhập, hết hạn sau 7 ngày hoặc khi bạn đăng xuất.
 - Cookie ghi nhớ lựa chọn giao diện sáng/tối.
-- Lịch sử tin đã xem (tối đa 15 tin) lưu ngay trên trình duyệt của bạn, không gửi về máy chủ; bạn có thể xoá bằng cách xoá dữ liệu trang web trong trình duyệt.
+- Lịch sử tin đã xem (tối đa 15 tin) và 3 từ khoá tìm kiếm gần nhất lưu ngay trên trình duyệt của bạn, không gửi về máy chủ; bạn có thể xoá bằng cách xoá dữ liệu trang web trong trình duyệt.
 - Khi bạn bật thông báo đẩy: trình duyệt cấp một mã thiết bị, mã này được lưu vào tài khoản để gửi thông báo và bị gỡ khi bạn tắt thông báo đẩy hoặc đăng xuất.
 - Chúng tôi không dùng cookie quảng cáo hoặc công cụ phân tích hành vi của bên thứ ba.
 
 ## 7. Dịch vụ bên thứ ba
-- Google Firebase: gửi và xác thực mã OTP qua số điện thoại; gửi thông báo đẩy tới trình duyệt (Firebase Cloud Messaging) khi bạn bật.
+- Google Firebase: xác thực đăng nhập (mã OTP qua số điện thoại, tài khoản Google / Facebook); gửi thông báo đẩy tới trình duyệt (Firebase Cloud Messaging) khi bạn bật.
+- Google, Facebook (Meta): chỉ khi bạn chọn đăng nhập bằng tài khoản của họ — họ xác thực bạn và chia sẻ các thông tin nêu ở mục 2.
 - Dịch vụ gửi email do Ban quản trị thuê (chỉ khi tính năng email được bật): nhận địa chỉ email và nội dung thông báo để gửi đi.
 - SMS: hiện chưa sử dụng. Khi triển khai, chúng tôi sẽ cập nhật tên nhà cung cấp tại đây trước khi gửi tin.
 - YouTube (chế độ youtube-nocookie): phát video nhúng trong tin đăng.
@@ -121,7 +123,7 @@ Các dịch vụ này có chính sách bảo mật riêng. Dữ liệu có thể
 - Gửi yêu cầu về dữ liệu tới ${contactEmail}. Chúng tôi xử lý yêu cầu xoá hoặc cung cấp dữ liệu chậm nhất trong 72 giờ kể từ khi nhận đủ yêu cầu, các yêu cầu khác trong thời hạn pháp luật quy định.
 
 ## 10. Bảo mật
-- Không dùng mật khẩu (đăng nhập bằng OTP). Phiên đăng nhập dùng token có thời hạn; tài khoản bị khoá mất quyền truy cập ngay.
+- Không dùng mật khẩu (đăng nhập bằng OTP hoặc Google / Facebook). Phiên đăng nhập dùng token có thời hạn; tài khoản bị khoá mất quyền truy cập ngay.
 - Chỉ quản trị viên được thao tác qua trang quản trị; mọi thao tác kiểm duyệt đều được ghi nhật ký.
 - Ảnh trong tin nhắn chỉ nhận ảnh đã tải lên hệ thống (chặn ảnh từ trang ngoài có thể dùng để theo dõi người xem).
 - Khi xảy ra sự cố lộ, mất dữ liệu cá nhân, chúng tôi thông báo cho người dùng bị ảnh hưởng và cơ quan có thẩm quyền theo quy định của pháp luật.

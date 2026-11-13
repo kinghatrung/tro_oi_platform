@@ -38,8 +38,13 @@ export class NotifyPrefs {
 
 @Schema({ timestamps: true, collection: 'users' })
 export class User {
-  @Prop({ required: true, unique: true, index: true })
-  phone: string;
+  /** Đăng nhập bằng SĐT (E.164). Tài khoản Google/Facebook không có. Unique: index partial bên dưới. */
+  @Prop()
+  phone?: string;
+
+  /** UID Firebase của tài khoản đăng nhập bằng Google/Facebook (không gộp theo email). */
+  @Prop()
+  firebaseUid?: string;
 
   @Prop({ required: true })
   name: string;
@@ -103,6 +108,18 @@ export class User {
 
 export type UserDocument = HydratedDocument<User>;
 export const UserSchema = SchemaFactory.createForClass(User);
+// Unique chỉ trên bản ghi có giá trị — nhiều tài khoản Google/Facebook không có phone
+UserSchema.index(
+  { phone: 1 },
+  { unique: true, partialFilterExpression: { phone: { $type: 'string' } } },
+);
+UserSchema.index(
+  { firebaseUid: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { firebaseUid: { $type: 'string' } },
+  },
+);
 
 /** Document → User (shape của @tro-oi/shared). */
 export function toUser(user: UserDocument) {

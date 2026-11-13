@@ -1,6 +1,8 @@
+'use client';
+
 import { Dropdown, Button, type ButtonProps, type MenuProps, type DropdownProps } from 'antd';
 import { ChevronDown } from 'lucide-react';
-import { type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 
 interface ButtonDropdownProps extends Omit<ButtonProps, 'icon' | 'children'> {
   menus?: MenuProps['items'];
@@ -16,6 +18,8 @@ interface ButtonDropdownProps extends Omit<ButtonProps, 'icon' | 'children'> {
   dropdown?: boolean;
   /** Icon truyền cho prop `icon` gốc của antd Button (dùng cho icon-only button) */
   iconButton?: ReactNode;
+  /** Chọn mục không đóng dropdown — cho bộ lọc "chọn rồi Áp dụng" (footer CardDropdown còn bấm được). */
+  keepOpenOnSelect?: boolean;
 }
 
 export function ButtonDropdown({
@@ -31,14 +35,21 @@ export function ButtonDropdown({
   iconButton,
   className,
   placement = 'bottomLeft',
+  keepOpenOnSelect = false,
   ...buttonProps
 }: ButtonDropdownProps) {
   const rightIcon = iconRight ?? (dropdown ? <ChevronDown size={16} /> : null);
   const hasContent = Boolean(iconLeft || label || rightIcon);
+  const [open, setOpen] = useState(false);
 
   return (
     <Dropdown
       menu={{ items: menus, onClick: onMenuClick, selectedKeys }}
+      open={open}
+      onOpenChange={(next, info) => {
+        if (!next && keepOpenOnSelect && info.source === 'menu') return;
+        setOpen(next);
+      }}
       trigger={['click']}
       placement={placement}
       popupRender={popupRender}
@@ -48,7 +59,7 @@ export function ButtonDropdown({
         {hasContent && (
           <span className="inline-flex items-center gap-1.5">
             {iconLeft}
-            {label && <span className="text-[16px] text-black">{label}</span>}
+            {label && <span className="text-[16px]">{label}</span>}
             {rightIcon}
           </span>
         )}

@@ -15,4 +15,6 @@ export * from './ProfileHeader';
 export * from './ProfileListings';
 export * from './ProfileReviews';
 export * from './MarketplaceFilters';
+export * from './CategoryStrip';
+export * from './ProductSearchFilters';
 export * from './ProductDetail';

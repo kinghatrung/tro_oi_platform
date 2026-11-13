@@ -1,6 +1,5 @@
 'use client';
 
-import Image from 'next/image';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 import { Card, Checkbox, Space, Button, Flex, type MenuProps } from 'antd';
@@ -19,6 +18,8 @@ import { AMENITY_ITEMS } from '@/lib/constants/constantsRoom';
 import { parsePriceRange, searchQueryKey } from '@/lib/searchFilters';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { formatVietnamDate } from '@/utils/helpers';
+
+import { CategoryStrip, HOUSING_CATEGORY_ITEMS } from './CategoryStrip';
 
 const transactionItems: MenuProps['items'] = [
   {
@@ -190,6 +191,7 @@ function SearchFiltersForm({ serializedParams }: { serializedParams: string }) {
             </Button>
 
             <ButtonDropdown
+              keepOpenOnSelect
               menus={transactionItems}
               size="small"
               dropdown
@@ -224,6 +226,7 @@ function SearchFiltersForm({ serializedParams }: { serializedParams: string }) {
                   onClick={(e) => e.stopPropagation()}
                 />
               )}
+              keepOpenOnSelect
               menus={propertyTypeItems}
               selectedKeys={filters.category ? [filters.category] : []}
               onMenuClick={({ key }) => setFilters((current) => ({ ...current, category: key }))}
@@ -364,24 +367,7 @@ function SearchFiltersForm({ serializedParams }: { serializedParams: string }) {
           </Button>
         </Flex>
 
-        <Flex align="start" gap={32}>
-          {CATEGORIES.map((item) => (
-            <button
-              key={item.category}
-              type="button"
-              aria-pressed={filters.category === item.category}
-              onClick={() => navigateWithFilters({ ...filters, category: item.category })}
-              className={`cursor-pointer max-w-21! rounded-lg border-0 bg-transparent p-1 ${
-                filters.category === item.category ? 'ring-2 ring-brand' : ''
-              }`}
-            >
-              <Space vertical align="center">
-                <Image width={64} height={64} alt={item.title} src={item.icon} />
-                <p className="text-body text-sm font-bold text-center">{item.title}</p>
-              </Space>
-            </button>
-          ))}
-        </Flex>
+        <CategoryStrip items={HOUSING_CATEGORY_ITEMS} className="bg-transparent p-0!" />
       </Flex>
     </Card>
   );

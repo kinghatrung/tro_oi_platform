@@ -6,7 +6,8 @@ import type { UserRole } from '../modules/auth/schemas/user.schema.js';
 /** Payload JWT do JwtAuthGuard gắn vào request.user. */
 export interface AuthUser {
   sub: string;
-  phone: string;
+  /** Không có với tài khoản Google/Facebook. */
+  phone?: string;
   role: UserRole;
 }
 

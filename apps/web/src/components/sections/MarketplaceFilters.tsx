@@ -1,193 +1,30 @@
 'use client';
 
-import clsx from 'clsx';
-import Image from 'next/image';
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { Select, Skeleton, Tabs } from 'antd';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { PRODUCT_CATEGORY_LABELS, type ProductItem } from '@tro-oi/shared';
+import { Flex, Skeleton, Tabs } from 'antd';
+import type { ProductItem } from '@tro-oi/shared';
 
 import { searchProducts } from '@/api/products';
 import {
   CarouselItem,
   EmptyState,
   EmptyVariant,
+  HeaderToolbar,
+  PaginationControl,
   ProductCard,
   useIsClient,
+  type ViewMode,
 } from '@/components/common';
-import {
-  PRODUCT_CONDITION_OPTIONS,
-  PRODUCT_PRICE_RANGES,
-  PRODUCT_SORT_OPTIONS,
-} from '@/lib/constants/constantsProduct';
+import { PRODUCT_SORT_OPTIONS } from '@/lib/constants/constantsProduct';
 import { readProductHistory } from '@/lib/viewHistory';
+import { formatNumber } from '@/utils/helpers';
 
-/** Icon 3D: Fluent Emoji (Microsoft, MIT) — public/images/cho-oi/<category>.png */
-const CATEGORY_ITEMS = [
-  { value: '', label: 'Tất cả', icon: '/images/cho-oi/all.png' },
-  ...Object.entries(PRODUCT_CATEGORY_LABELS).map(([value, label]) => ({
-    value,
-    label,
-    icon: `/images/cho-oi/${value}.png`,
-  })),
-];
-const CONDITION_OPTIONS = [{ value: '', label: 'Mọi tình trạng' }, ...PRODUCT_CONDITION_OPTIONS];
-const PRICE_OPTIONS = [
-  { value: '', label: 'Mọi mức giá' },
-  ...PRODUCT_PRICE_RANGES.map(({ key, label }) => ({ value: key, label })),
-];
-const SORT_OPTIONS = PRODUCT_SORT_OPTIONS.map(({ value, label }) => ({ value, label }));
 const FOR_YOU_SIZE = 12;
+const SORT_OPTIONS = PRODUCT_SORT_OPTIONS.map(({ value, label }) => ({ key: value, label }));
+const DEFAULT_SORT = PRODUCT_SORT_OPTIONS[0].value;
 
-/** Đổi 1 tham số trên URL và về trang 1. Giá trị rỗng = bỏ lọc. */
-function useUpdateParam() {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-
-  return useCallback(
-    (key: string, value?: string | null) => {
-      const params = new URLSearchParams(searchParams.toString());
-      if (value) params.set(key, value);
-      else params.delete(key);
-      params.delete('page');
-      const query = params.toString();
-      router.push(query ? `${pathname}?${query}` : pathname, { scroll: false });
-    },
-    [pathname, router, searchParams],
-  );
-}
-
-const ARROW_CLASS =
-  'absolute top-1/2 z-10 flex size-9 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border-0 bg-surface text-ink shadow-[0_1px_6px_rgba(0,0,0,0.2)] transition-transform hover:scale-110';
-
-/** Dải danh mục icon 3D ngay dưới ô tìm kiếm — bấm để lọc; tràn khung → nút mũi tên cuộn. */
-export function MarketplaceCategories() {
-  const updateParam = useUpdateParam();
-  const category = useSearchParams().get('category') ?? '';
-  const listRef = useRef<HTMLDivElement>(null);
-  const [edges, setEdges] = useState({ left: false, right: false });
-
-  useEffect(() => {
-    const list = listRef.current;
-    if (!list) return;
-    const update = () =>
-      setEdges({
-        left: list.scrollLeft > 0,
-        right: list.scrollLeft + list.clientWidth < list.scrollWidth - 1,
-      });
-    // ResizeObserver gọi update ngay khi observe → có trạng thái ban đầu
-    const observer = new ResizeObserver(update);
-    observer.observe(list);
-    list.addEventListener('scroll', update, { passive: true });
-    return () => {
-      observer.disconnect();
-      list.removeEventListener('scroll', update);
-    };
-  }, []);
-
-  const scrollList = (direction: 1 | -1) => {
-    const list = listRef.current;
-    list?.scrollBy({ left: direction * list.clientWidth * 0.8, behavior: 'smooth' });
-  };
-
-  return (
-    <nav aria-label="Danh mục" className="relative mb-4 rounded-lg bg-surface px-3 py-4">
-      {edges.left && (
-        <button
-          type="button"
-          aria-label="Danh mục trước"
-          onClick={() => scrollList(-1)}
-          className={clsx(ARROW_CLASS, 'left-2')}
-        >
-          <ChevronLeft size={20} />
-        </button>
-      )}
-      <div ref={listRef} className="flex gap-1 overflow-x-auto no-scrollbar">
-        {CATEGORY_ITEMS.map((item) => {
-          const isSelected = category === item.value;
-          return (
-            <button
-              key={item.value || 'all'}
-              type="button"
-              aria-pressed={isSelected}
-              onClick={() => updateParam('category', item.value)}
-              className={clsx(
-                'group flex w-26 shrink-0 cursor-pointer flex-col items-center gap-2 rounded-xl border-0 px-1 py-2 transition-colors',
-                isSelected ? 'bg-brand-soft' : 'bg-transparent hover:bg-soft',
-              )}
-            >
-              <Image
-                src={item.icon}
-                alt=""
-                width={56}
-                height={56}
-                loading="eager"
-                unoptimized
-                className="size-14 transition-transform duration-300 group-hover:-translate-y-1"
-              />
-              <span
-                className={clsx(
-                  'line-clamp-2 text-center text-sm leading-tight',
-                  isSelected ? 'font-bold text-brand' : 'text-ink',
-                )}
-              >
-                {item.label}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-      {edges.right && (
-        <button
-          type="button"
-          aria-label="Danh mục tiếp"
-          onClick={() => scrollList(1)}
-          className={clsx(ARROW_CLASS, 'right-2')}
-        >
-          <ChevronRight size={20} />
-        </button>
-      )}
-    </nav>
-  );
-}
-
-/** Lọc tình trạng, khoảng giá, sắp xếp — đầu tab "Mới nhất". */
-export function MarketplaceFilters() {
-  const updateParam = useUpdateParam();
-  const searchParams = useSearchParams();
-
-  return (
-    <div className="flex flex-wrap gap-2">
-      <Select
-        aria-label="Tình trạng"
-        className="min-w-36"
-        options={CONDITION_OPTIONS}
-        value={searchParams.get('condition') ?? ''}
-        onChange={(value) => updateParam('condition', value)}
-      />
-      <Select
-        aria-label="Khoảng giá"
-        className="min-w-40"
-        options={PRICE_OPTIONS}
-        value={searchParams.get('price') ?? ''}
-        onChange={(value) => updateParam('price', value)}
-      />
-      <Select
-        aria-label="Sắp xếp"
-        className="min-w-36"
-        options={SORT_OPTIONS}
-        value={searchParams.get('sort') ?? PRODUCT_SORT_OPTIONS[0].value}
-        onChange={(value) =>
-          updateParam('sort', value === PRODUCT_SORT_OPTIONS[0].value ? null : value)
-        }
-      />
-    </div>
-  );
-}
-
-/** Lưới thẻ món đồ, 6 cột ở màn rộng. */
+/** Lưới thẻ món đồ, 5 cột ở màn rộng. */
 export function ProductGrid({ items, emptyText }: { items: ProductItem[]; emptyText: string }) {
   if (items.length === 0) {
     return <EmptyState variant={EmptyVariant.SEARCH} description={emptyText} className="py-10!" />;
@@ -198,6 +35,76 @@ export function ProductGrid({ items, emptyText }: { items: ProductItem[]; emptyT
         <ProductCard key={product.id} product={product} />
       ))}
     </div>
+  );
+}
+
+interface ProductResultsListProps {
+  items: ProductItem[];
+  total: number;
+  pageSize: number;
+  currentPage: number;
+}
+
+/**
+ * Kết quả /cho-oi/tim-kiem (như SearchResultsList của Trọ ơi): thanh đầu "N món đồ" + sắp xếp
+ * (lưu trên URL ?sort=) + lưới / danh sách (lưu cục bộ, mặc định lưới) + phân trang.
+ */
+export function ProductResultsList({
+  items,
+  total,
+  pageSize,
+  currentPage,
+}: ProductResultsListProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  const sortKey = searchParams.get('sort') ?? DEFAULT_SORT;
+
+  const handleSortChange = useCallback(
+    (key: string) => {
+      const params = new URLSearchParams(searchParams.toString());
+      if (key === DEFAULT_SORT) params.delete('sort');
+      else params.set('sort', key);
+      params.delete('page');
+      const query = params.toString();
+      router.push(query ? `${pathname}?${query}` : pathname);
+    },
+    [pathname, router, searchParams],
+  );
+
+  return (
+    <Flex vertical gap={4}>
+      <HeaderToolbar
+        sortKey={sortKey}
+        onSortChange={handleSortChange}
+        sortOptions={SORT_OPTIONS}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
+        extra={`${formatNumber(total)} món đồ`}
+      />
+
+      {items.length === 0 ? (
+        <div className="bg-surface py-12">
+          <EmptyState
+            variant={EmptyVariant.SEARCH}
+            description="Chưa có món đồ phù hợp. Thử bỏ bớt bộ lọc hoặc đổi khu vực."
+          />
+        </div>
+      ) : viewMode === 'grid' ? (
+        <ProductGrid items={items} emptyText="" />
+      ) : (
+        <Flex vertical gap={4}>
+          {items.map((product) => (
+            <ProductCard key={product.id} column product={product} />
+          ))}
+        </Flex>
+      )}
+
+      {total > pageSize && (
+        <PaginationControl total={total} pageSize={pageSize} currentPage={currentPage} />
+      )}
+    </Flex>
   );
 }
 
@@ -234,22 +141,13 @@ function ForYouProducts() {
   return <ProductGrid items={items} emptyText="Chưa có món đồ nào." />;
 }
 
-/** Khối chính: tab "Dành cho bạn" / "Mới nhất" (theo bộ lọc trên URL, render ở server). */
-export function MarketplaceFeed({
-  latest,
-  initialTab,
-}: {
-  latest: ReactNode;
-  initialTab: 'for-you' | 'latest';
-}) {
-  const [tab, setTab] = useState<string>(initialTab);
-
+/** Khối chính trang chủ Chợ ơi: tab "Dành cho bạn" / "Mới nhất" (render ở server). */
+export function MarketplaceFeed({ latest }: { latest: ReactNode }) {
   return (
     <section className="mb-4 rounded-lg bg-surface px-5 pb-5">
       <Tabs
         size="large"
-        activeKey={tab}
-        onChange={setTab}
+        defaultActiveKey="for-you"
         items={[
           {
             key: 'for-you',

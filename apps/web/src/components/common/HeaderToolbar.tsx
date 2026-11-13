@@ -16,9 +16,9 @@ interface HeaderToolbarProps {
   onViewModeChange: (mode: ViewMode) => void;
   /** Nội dung bên trái, vd tổng số tin. */
   extra?: React.ReactNode;
+  /** Lựa chọn sắp xếp (mặc định: tin Trọ ơi; Chợ ơi truyền của món đồ). */
+  sortOptions?: readonly { key: string; label: string }[];
 }
-
-const sortItems: MenuProps['items'] = SORT_OPTIONS.map(({ key, label }) => ({ key, label }));
 
 /** Thanh công cụ danh sách: sắp xếp + chuyển dạng list/grid. */
 export function HeaderToolbar({
@@ -27,15 +27,16 @@ export function HeaderToolbar({
   viewMode,
   onViewModeChange,
   extra,
+  sortOptions = SORT_OPTIONS,
 }: HeaderToolbarProps) {
-  const sortLabel = SORT_OPTIONS.find(({ key }) => key === sortKey)?.label ?? SORT_OPTIONS[0].label;
+  const sortLabel = sortOptions.find(({ key }) => key === sortKey)?.label ?? sortOptions[0].label;
   const sortMenu = useMemo<MenuProps>(
     () => ({
-      items: sortItems,
+      items: sortOptions.map(({ key, label }) => ({ key, label })),
       selectedKeys: [sortKey],
       onClick: ({ key }) => onSortChange(key),
     }),
-    [onSortChange, sortKey],
+    [onSortChange, sortKey, sortOptions],
   );
 
   return (

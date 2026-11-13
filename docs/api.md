@@ -63,6 +63,22 @@ Response `data` — Type `AuthResponse`:
 { "accessToken": "eyJ...", "isNewUser": true, "user": { "id": "...", "phone": "+84912345678", "name": "Người dùng 5678", "role": "renter", "createdAt": "...", "updatedAt": "..." } }
 ```
 
+### `POST /auth/social`
+
+Đăng nhập Google / Facebook: web gọi Firebase `signInWithPopup` (GoogleAuthProvider / FacebookAuthProvider) rồi gửi ID token lên.
+
+| Body            | Kiểu   | Bắt buộc | Ghi chú                       |
+| --------------- | ------ | -------- | ----------------------------- |
+| `firebaseToken` | string | ✔        | Firebase ID token (popup OK) |
+
+- Chỉ nhận token có `sign_in_provider` = `google.com` / `facebook.com` (khác → 400). Firebase chưa cấu hình → 503.
+- Tài khoản nhận diện theo **Firebase UID** (`users.firebaseUid`), **không** gộp với tài khoản SĐT theo email (email hồ sơ chưa xác minh — gộp sẽ cho phép chiếm tài khoản). Lần đầu tạo tài khoản: tên (2–50 ký tự, không có → "Người dùng mới"), ảnh đại diện, email **chỉ khi nhà cung cấp đã xác minh**; **không có `phone`** (trang tin không hiện "Hiện số" / Zalo, không gửi SMS).
+- Bị khoá → 403. Tự xoá tài khoản → bỏ `firebaseUid`, đăng nhập lại = tài khoản mới.
+
+Response giống `verify-phone`.
+
+---
+
 ### `POST /auth/dev-login`
 
 **Chỉ bật khi env `AUTH_DEV_LOGIN=true`** (dev/test khi chưa có Firebase). Tắt → 404.

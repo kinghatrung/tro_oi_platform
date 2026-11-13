@@ -206,7 +206,7 @@ function Navbar() {
           {/* useSearchParams trong AreaPicker cần Suspense để trang tĩnh build được */}
           <div className="hidden lg:block">
             <Suspense fallback={AREA_BUTTON('Chọn khu vực')}>
-              <AreaPicker basePath={isHousingSection ? '/tim-kiem' : '/cho-oi'}>
+              <AreaPicker basePath={isHousingSection ? '/tim-kiem' : '/cho-oi/tim-kiem'}>
                 {AREA_BUTTON}
               </AreaPicker>
             </Suspense>

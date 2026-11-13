@@ -25,7 +25,7 @@ export default async function Container() {
       className="w-full bg-cover bg-center bg-no-repeat bg-fixed"
       style={{ backgroundImage: "url('/images/test2.png')" }}
     >
-      <div className="w-full max-w-300 mx-auto pt-16 pb-3">
+      <div className="w-full max-w-300 mx-auto pt-22 pb-3">
         <Property stats={stats} />
         <RecentlyViewed />
         <RentNews items={rent.items} />

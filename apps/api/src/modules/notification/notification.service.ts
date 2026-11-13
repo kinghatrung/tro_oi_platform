@@ -135,7 +135,7 @@ export class NotificationService {
             .join('\n\n'),
         });
       }
-      if (prefs.sms && this.smsService.isEnabled) {
+      if (prefs.sms && this.smsService.isEnabled && user.phone) {
         await this.smsService.send(
           user.phone,
           doc.message ? `${doc.title}: ${doc.message}` : doc.title,

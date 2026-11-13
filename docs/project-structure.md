@@ -102,7 +102,7 @@ src/
     └── upload/                 # POST /uploads (multer bộ nhớ) → StorageService: S3 nếu có S3_BUCKET, ngược lại ổ đĩa apps/api/uploads/
 ```
 
-- Collections: `users`, `listings`, `products`, `reports`, `settings`, `notifications` (TTL 90 ngày), `audit_logs`, `conversations`, `messages`, `reviews`, `pages`.
+- Collections: `users` (`phone` / `firebaseUid` unique partial — chỉ áp khi có giá trị; `AuthService.onModuleInit` tự đổi index `phone_1` cũ), `listings`, `products`, `reports`, `settings`, `notifications` (TTL 90 ngày), `audit_logs`, `conversations`, `messages`, `reviews`, `pages`.
 - Quan hệ: `Listing.author`, `Product.seller`, `Report.reporter`, `Notification.user`, `AuditLog.actor`, `Conversation.starter/owner`, `Message.sender`, `Review.reviewer/target → User._id`; `Conversation.target → Listing | Product` (refPath `targetModel`); `User.favoriteListingIds → Listing._id[]`, `User.favoriteProductIds → Product._id[]`; `Report.targetId → Listing | Product`. `User.savedSearches` là mảng con nhúng.
 - **Tài khoản admin:** `yarn workspace api seed` luôn đảm bảo SĐT `0900000000` là admin (dev-login được). Production: đặt `role: 'admin'` cho user thật bằng mongosh, rồi dùng trang `/quan-tri/nguoi-dung` để cấp quyền cho người khác.
 - Chi tiết endpoint: [api.md](api.md).
@@ -121,13 +121,14 @@ src/
 │   ├── (auth)/dang-nhap/              # Đăng nhập OTP (Firebase) / dev-login
 │   ├── (chat)/tin-nhan/               # Chat (UI): layout riêng chỉ có header, full màn hình, không cuộn trang;
 │   │                                  #   page + useChat.ts (REST src/api/chat.ts + socket src/lib/socket.ts). Cần đăng nhập (proxy.ts)
-│   ├── cho-oi/page.tsx                # Chợ ơi: đầu trang giống trang chủ (Header), dưới ô tìm: danh mục, lọc + lưới, CTA
+│   ├── cho-oi/page.tsx                # Chợ ơi: đầu trang giống trang chủ (Header), dưới ô tìm: danh mục, đã xem, tab Dành cho bạn / Mới nhất
 │   └── (public)/                      # layout: SubHeader + Breadcrumb + Footer
 │       ├── tim-kiem/                  # Tìm kiếm (server, filter qua URL) + loading.tsx skeleton
 │       ├── phong-tro/[slug]/          # Chi tiết tin, slug = listing id
 │       ├── dieu-khoan-su-dung/, chinh-sach-bao-mat/  # Trang chính sách (ContentPage, server); chưa đăng → 404
 │       ├── nguoi-dung/[id]/           # Hồ sơ công khai người đăng + đánh giá (ProfileReviews)
 │       ├── cho-oi/[id]/               # Chi tiết món đồ Chợ ơi
+│       ├── cho-oi/tim-kiem/           # Tìm đồ cũ (bộ lọc + lưới), như /tim-kiem
 │       └── (private)/                 # cần đăng nhập (chặn ở src/proxy.ts), layout force-dynamic
 │           ├── ca-nhan/               # Hồ sơ của tôi + xem tin (ProfileEditModal.tsx: tên, email, giới thiệu, ảnh đại diện, ảnh bìa)
 │           ├── yeu-thich/             # Đã lưu: tab Tin Trọ ơi + Đồ Chợ ơi + Tìm kiếm
@@ -162,7 +163,7 @@ src/
 ├── stores/useNotificationStore.ts     # số chưa đọc + thông báo mới nhất (chuông), markRead/markAllRead dùng chung với /thong-bao, receive() cho thông báo realtime
 ├── hooks/useSaveToggle.ts             # handler nút Lưu (tin, món đồ, tìm kiếm): chưa đăng nhập → /dang-nhap, lỗi → toast
 ├── lib/youtube.ts                     # YOUTUBE_URL_PATTERN (trùng api) + youtubeEmbedUrl(): link → iframe youtube-nocookie
-├── lib/viewHistory.ts                 # lịch sử đã xem (localStorage, 15 mục): recordView()/readViewHistory() cho tin Trọ ơi, recordProductView()/readProductHistory() cho món Chợ ơi
+├── lib/viewHistory.ts                 # lịch sử đã xem (localStorage, 15 mục): recordView()/readViewHistory() cho tin Trọ ơi, recordProductView()/readProductHistory() cho món Chợ ơi; 3 từ khoá tìm kiếm gần nhất riêng theo basePath (recordSearch / readRecentSearches / removeRecentSearch) cho chip dưới SearchInput
 ├── components/
 │   ├── layout/                        # Header (banner: trang chủ, Chợ ơi), SubHeader, Navbar (+ NotificationBell: nhận "notification:new" qua socket (badge + toast), hỏi lại khi kết nối lại và mỗi 5 phút dự phòng; MessagesButton: mở socket chat, badge tin nhắn; co theo màn: < lg ẩn ô khu vực + cặp "Trọ ơi!/Chợ ơi!" (Chợ ơi vào từ menu danh mục), < sm ẩn sáng/tối, Tin đã lưu, chuông, Đăng nhập; Tin nhắn / Đăng tin thành nút chỉ-icon), Container, Footer
 │   ├── common/                        # UI thuần dùng lại (xem bảng dưới)
@@ -193,10 +194,10 @@ src/
 | URL                     | Loại          | Data                                                  |
 | ----------------------- | ------------- | ----------------------------------------------------- |
 | `/`                     | Server        | `GET /listings` (mua bán, cho thuê mới), `GET /listings/stats`; "Tin bạn đã xem" đọc localStorage phía client |
-| `/tim-kiem`             | Server        | `GET /listings` từ searchParams: `keyword, city, ward, transaction, category, minPrice, maxPrice (triệu), minArea, maxArea, bedrooms, amenities (wifi,parking), sort, page`. Khu vực: `city` (1 trong 34 tỉnh) + `ward` (phường/xã, khớp chính xác). Nút "Lưu tìm kiếm" → `POST/DELETE /users/me/saved-searches` |
+| `/tim-kiem`             | Server        | `GET /listings` từ searchParams: `keyword, city, ward, transaction, category, minPrice, maxPrice (triệu), minArea, maxArea, bedrooms, amenities (wifi,parking), sort, page`. Khu vực: `city` (1 trong 34 tỉnh) + `ward` (phường/xã, khớp chính xác). Nút "Lưu tìm kiếm" → `POST/DELETE /users/me/saved-searches`. Dải tab loại hình `CategoryStrip` (Tất cả + 4 loại, ảnh 3D) |
 | `/phong-tro/[id]`       | Server        | `GET /listings/:id`, tin tương tự, tin khác của người đăng |
 | `/nguoi-dung/[id]`      | Server        | `GET /users/:id`, `GET /listings?authorId=`, `GET /reviews?userId=`; client: `GET /reviews/mine`, `PUT/DELETE /reviews` |
-| `/dang-nhap`            | Client        | `POST /auth/verify-phone` hoặc `/auth/dev-login`; `GET /pages` → dòng "Bằng việc tiếp tục, bạn đồng ý với…" link các trang chính sách đã đăng |
+| `/dang-nhap`            | Client        | `POST /auth/verify-phone` hoặc `/auth/dev-login`; Google / Facebook: Firebase `signInWithPopup` → `POST /auth/social` (nút tắt khi chưa cấu hình Firebase); `GET /pages` → dòng "Bằng việc tiếp tục, bạn đồng ý với…" link các trang chính sách đã đăng |
 | `/ca-nhan` 🔒           | Client        | store user, `GET /listings/mine`, `PATCH /users/me`; "Dữ liệu & tài khoản" (`AccountSection`): `GET /users/me/export` → file JSON, `DELETE /users/me` (gõ "XOA TAI KHOAN") → đăng xuất |
 | `/kenh-nguoi-dang` 🔒   | Client        | `GET /listings/mine` + `GET /products/mine` → lời chào, số liệu, tin xem nhiều nhất, "Cần chú ý" (tin hết hạn / còn ≤ 7 ngày / chờ duyệt), tóm tắt đồ bán Chợ ơi. bản đồ các tin có vị trí (`address.geo`). Khung toàn màn hình (DashboardShell), sidebar có thẻ người dùng |
 | `/tin-nhan` 🔒          | Client        | `GET /conversations`, `POST /conversations` (mở theo `?listingId=` hoặc `?productId=`, `?text=` điền sẵn), `GET /conversations/:id/messages`; gửi/nhận/đã đọc qua Socket.IO `/chat` |
@@ -204,7 +205,8 @@ src/
 | `/yeu-thich` 🔒         | Client        | store favorites + favoriteProducts + savedSearches (`GET /users/me/favorites`, `/favorite-products`, `/saved-searches`) |
 | `/thong-bao` 🔒         | Client        | `GET /notifications`, `PATCH /notifications/:id/read`, `/read-all`; khối "Cách nhận thông báo" (`NotificationSettings`): `GET/PATCH /notifications/preferences`, bật push trên trình duyệt này; thông báo mới qua socket chèn đầu trang 1 |
 | `/dang-tin` 🔒          | Client        | `POST /uploads`, `POST /listings`, `PATCH /listings/:id` |
-| `/cho-oi`               | Server        | Bố cục như trang chủ Trọ ơi: dải danh mục icon 3D (`public/images/cho-oi/<category>.png`, Fluent Emoji — MIT; tràn khung → nút mũi tên cuộn) → "Đồ bạn đã xem" (localStorage) → tab "Dành cho bạn" (client: danh mục xem nhiều nhất + đồ mới) / "Mới nhất" (`GET /products` từ searchParams: `keyword, category, condition, city, ward, price (khoảng, `cho-tang` = 0đ), sort, page` + ô lọc tình trạng/giá/sắp xếp). Có query → mở sẵn tab "Mới nhất". Tắt Chợ ơi → trang báo tạm đóng |
+| `/cho-oi`               | Server        | Bố cục như trang chủ Trọ ơi: `CategoryStrip` (icon 3D `public/images/cho-oi/<category>.png`, Fluent Emoji — MIT) → "Đồ bạn đã xem" (localStorage) → tab "Dành cho bạn" (client: danh mục xem nhiều nhất + đồ mới) / "Mới nhất" (`GET /products` 20 món mới, nút "Xem tất cả" → `/cho-oi/tim-kiem`). Ô tìm, dải danh mục, ô khu vực trên Navbar → `/cho-oi/tim-kiem`. Có query (link cũ `/cho-oi?category=…`) → redirect sang `/cho-oi/tim-kiem` giữ query. Tắt Chợ ơi → trang báo tạm đóng |
+| `/cho-oi/tim-kiem`      | Server        | Tìm đồ cũ, bố cục như `/tim-kiem`: `ProductSearchFilters` (tiêu đề theo bộ lọc; nút Lọc / Danh mục / Tình trạng / Khoảng giá chọn rồi Áp dụng; Xóa lọc; `CategoryStrip`) + `ProductResultsList` (như `SearchResultsList`: thanh `HeaderToolbar` "N món đồ" + sắp xếp trên URL + lưới / danh sách, `ProductCard column` = thẻ ngang), 24 món/trang. `GET /products` từ searchParams: `keyword, category, condition, city, ward, price (khoảng, `cho-tang` = 0đ), sort, page` |
 | `/dieu-khoan-su-dung`, `/chinh-sach-bao-mat` | Server | `GET /pages/:slug` (404 → notFound). Chân trang lấy link từ `GET /pages` |
 | `/cho-oi/[id]`          | Server        | `GET /products/:id`, đồ tương tự; nút "Chat với người đăng" → `/tin-nhan?productId=` |
 | `/cho-oi/dang-ban` 🔒   | Client        | `POST /uploads`, `POST/PATCH /products`               |
@@ -225,12 +227,12 @@ Breadcrumb (`BreadcrumbItem`) tự sinh từ URL theo `ROUTE_LABELS` — thêm r
 | `HeaderToolbar`    | Sort dropdown + toggle list/grid                                         |
 | `PaginationControl`| Phân trang đồng bộ `?page=`                                              |
 | `AreaPicker`       | Popup chọn tỉnh/thành + quận → điều hướng `/tim-kiem`                    |
-| `ButtonDropdown`, `CardDropdown` | Nút mở dropdown / khung popup có header-footer             |
+| `ButtonDropdown`, `CardDropdown` | Nút mở dropdown / khung popup có header-footer. `keepOpenOnSelect`: chọn mục không đóng (bộ lọc "chọn rồi Áp dụng") |
 | `FloatingInput`    | Input label nổi                                                          |
 | `LocationCard`   | Ảnh khu vực + số lượng (`unit`: "tin đăng" / "món đồ"); ghép thành lưới 1 lớn + 4 nhỏ bằng `LocationMosaic` (sections/LocationGrid) |
 | `VietnamMap`     | Bản đồ duy nhất của web (MapLibre, client-only): `value` = ghim, có `onChange` → bấm/kéo ghim để chọn vị trí; `markers` = nhiều ghim chỉ xem: nguồn GeoJSON gom cụm (bấm cụm → phóng to; cụm trùng toạ độ không tách được → popup danh sách), bấm ghim → popup tiêu đề/dòng phụ/link, tự thu phóng vừa hết. Cao mặc định `h-120` (480px); modal chi tiết tin `75vh`. Style chủ quyền ở `lib/vietnamMapStyle.ts` |
 | `ImageLightbox`    | Xem ảnh toàn màn hình + thông tin tin đăng                               |
-| `ProductCard`      | Thẻ món đồ Chợ ơi, cùng kiểu thẻ tin Trọ ơi (thời gian + số ảnh trên ảnh) |
+| `ProductCard`      | Thẻ món đồ Chợ ơi, cùng bố cục `CardItem` của Trọ ơi: thẻ dọc (thời gian + số ảnh trên ảnh, ♡) và `column` = hàng ngang (dòng tóm tắt, ảnh 160px, nút Lưu, tình trạng · danh mục, địa chỉ, người bán, giá) |
 | `NotificationList` | Danh sách thông báo (icon theo `kind`, chấm = chưa đọc) — chuông Navbar và `/thong-bao` |
 | `RelativeTime`     | "x giờ trước" an toàn khi SSR: server + lần hydrate in ngày `dd/mm/yyyy` giờ VN (`formatVietnamDate`), sau hydrate mới đổi sang tương đối |
 | `useIsClient`      | Hook: `false` lúc SSR/hydrate, `true` sau đó — đọc localStorage / thời gian hiện tại mà không lệch HTML |
@@ -341,7 +343,7 @@ Web dùng qua `transpilePackages: ['@tro-oi/shared']`; package trỏ thẳng `sr
 - Tin tức, việc làm: mới có type ở shared. (Khảo sát: quyết định không làm — type `survey.ts` còn để lại, không phát triển.)
 - Báo tin mới khớp tìm kiếm đã lưu so khớp từng tìm kiếm bằng JS (không dùng index) — rất nhiều user cần lưu bộ lọc có cấu trúc để query thẳng Mongo. Tìm kiếm đã lưu dạng cũ có `district=` bị bỏ qua tham số đó.
 - Ứng dụng mobile / link tải app.
-- Đăng nhập Google/Facebook (nút hiển thị nhưng chưa nối).
+- Đăng nhập Google/Facebook: đã nối, cần bật 2 nhà cung cấp trong Firebase Console (Facebook cần App ID / App Secret + OAuth redirect URI) và thêm tên miền vào Authorized domains; chưa thử với Firebase thật. Tài khoản Google/Facebook tách riêng với tài khoản SĐT (không gộp theo email), chưa có chức năng liên kết / thêm SĐT vào tài khoản Google/Facebook.
 - Bản đồ dùng dịch vụ miễn phí OpenFreeMap (không SLA) — cần ổn định/cam kết thì chuyển sang nhà cung cấp trong nước (vd Vietmap, cũng dựa trên MapLibre, giữ nguyên `patchVietnamStyle`) hoặc tự host tile; quy tắc lọc nhãn đã kiểm tra bằng trình duyệt tự động, chưa có test tự động trong repo (web chưa có test runner).
 - SMS mới là chỗ cắm (`SMS_PROVIDER=log` chỉ ghi log) — cần hợp đồng + brandname với nhà cung cấp (eSMS, SpeedSMS...) rồi thêm nhánh trong `SmsService`. Push / email cần điền cấu hình Firebase (VAPID) / SMTP mới chạy; chưa thử với dịch vụ thật.
 - Email gửi mọi thông báo khi người dùng có email và bật (kể cả "tin mới khớp tìm kiếm") — nhiều thì cần gom thành bản tin ngày. Chưa có link huỷ nhận 1 chạm trong email.
