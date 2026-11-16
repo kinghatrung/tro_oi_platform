@@ -37,7 +37,12 @@ const FIREBASE_ERRORS: Record<string, string> = {
     'Trình duyệt đã chặn cửa sổ đăng nhập — hãy cho phép cửa sổ bật lên rồi thử lại',
   'auth/account-exists-with-different-credential':
     'Email này đã đăng nhập bằng cách khác (Google hoặc Facebook) — hãy dùng lại cách đó',
-  'auth/operation-not-allowed': 'Cách đăng nhập này chưa được bật, vui lòng dùng số điện thoại',
+  // Firebase trả mã này cả khi chưa bật nhà cung cấp lẫn khi vùng SMS (Việt Nam) chưa được cho phép
+  'auth/operation-not-allowed':
+    'Cách đăng nhập này chưa được bật, hoặc chưa cho phép gửi SMS tới Việt Nam — liên hệ quản trị viên',
+  'auth/billing-not-enabled':
+    'Hệ thống chưa bật gửi SMS thật (cần gói trả phí Firebase) — liên hệ quản trị viên',
+  'auth/quota-exceeded': 'Đã hết hạn mức gửi SMS hôm nay, vui lòng thử lại sau',
   'auth/unauthorized-domain': 'Tên miền này chưa được cho phép đăng nhập, liên hệ quản trị viên',
 };
 

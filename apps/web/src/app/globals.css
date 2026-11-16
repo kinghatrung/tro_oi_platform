@@ -544,6 +544,36 @@ select {
   scrollbar-color: color-mix(in srgb, var(--subtle) 45%, transparent) transparent;
 }
 
+/* /dang-nhap: chuyển giữa màn SĐT ↔ màn nhập OTP (trượt theo hướng đi) */
+@keyframes slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(32px);
+  }
+}
+
+@keyframes slide-in-left {
+  from {
+    opacity: 0;
+    transform: translateX(-32px);
+  }
+}
+
+.slide-in-right {
+  animation: slide-in-right 0.28s ease-out;
+}
+
+.slide-in-left {
+  animation: slide-in-left 0.28s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .slide-in-right,
+  .slide-in-left {
+    animation: none;
+  }
+}
+
 /* Trang lỗi (app/error.tsx): dây điện đung đưa quanh đỉnh cột, tia lửa nhấp nháy */
 @keyframes error-swing {
   0%,
