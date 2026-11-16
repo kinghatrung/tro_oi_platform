@@ -21,10 +21,8 @@ export default async function Container() {
   ]);
 
   return (
-    <section
-      className="w-full bg-cover bg-center bg-no-repeat bg-fixed"
-      style={{ backgroundImage: "url('/images/test2.png')" }}
-    >
+    // Nền ô caro lấy từ body (globals.css)
+    <section className="w-full">
       <div className="w-full max-w-300 mx-auto pt-22 pb-3">
         <Property stats={stats} />
         <RecentlyViewed />

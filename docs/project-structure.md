@@ -170,6 +170,7 @@ src/
 ├── lib/youtube.ts                     # YOUTUBE_URL_PATTERN (trùng api) + youtubeEmbedUrl(): link → iframe youtube-nocookie
 ├── lib/viewHistory.ts                 # lịch sử đã xem (localStorage, 15 mục): recordView()/readViewHistory() cho tin Trọ ơi, recordProductView()/readProductHistory() cho món Chợ ơi; 3 từ khoá tìm kiếm gần nhất riêng theo basePath (recordSearch / readRecentSearches / removeRecentSearch) cho chip dưới SearchInput
 ├── components/
+│   ├── assistant/AssistantWidget.tsx  # nút tròn góc phải dưới → khung chat trợ lý AI (gắn ở providers.tsx, ẩn ở /quan-tri, /kenh-nguoi-dang, /dang-nhap, /tin-nhan; giữ hội thoại khi chuyển trang). CHƯA nối model: askAssistant() trả lời giả
 │   ├── layout/                        # Header (banner: trang chủ, Chợ ơi), SubHeader, Navbar (+ NotificationBell: nhận "notification:new" qua socket (badge + toast), hỏi lại khi kết nối lại và mỗi 5 phút dự phòng; MessagesButton: mở socket chat, badge tin nhắn; co theo màn: < lg ẩn ô khu vực + cặp "Trọ ơi!/Chợ ơi!" (Chợ ơi vào từ menu danh mục), < sm ẩn sáng/tối, Tin đã lưu, chuông, Đăng nhập; Tin nhắn / Đăng tin thành nút chỉ-icon), Container, Footer
 │   ├── common/                        # UI thuần dùng lại (xem bảng dưới)
 │   ├── chat/                          # UI chat thuần: ConversationList, ChatWindow (dòng "đang nhập…"), MessageBubble (ảnh → ImageLightbox; cột phải ghi người gửi + giờ, gõ tin ở đó = trả lời kèm đúng ảnh đang xem), ChatComposer (đính kèm ≤4 ảnh qua POST /uploads, báo typing ≤1 lần/2,5s)
@@ -348,6 +349,7 @@ Web dùng qua `transpilePackages: ['@tro-oi/shared']`; package trỏ thẳng `sr
 
 ## Chưa làm (backlog)
 
+- Trợ lý AI: mới có giao diện (AssistantWidget); chưa có API `/assistant/chat`, model, công cụ tìm/thống kê, log, RAG, agent thao tác giao diện.
 - Tin tức, việc làm: mới có type ở shared. (Khảo sát: quyết định không làm — type `survey.ts` còn để lại, không phát triển.)
 - Báo tin mới khớp tìm kiếm đã lưu so khớp từng tìm kiếm bằng JS (không dùng index) — rất nhiều user cần lưu bộ lọc có cấu trúc để query thẳng Mongo. Tìm kiếm đã lưu dạng cũ có `district=` bị bỏ qua tham số đó.
 - Ứng dụng mobile / link tải app.

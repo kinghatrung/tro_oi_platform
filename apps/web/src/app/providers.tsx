@@ -6,6 +6,7 @@ import { ConfigProvider, App as AntdApp } from 'antd';
 import viVN from 'antd/locale/vi_VN';
 import { ThemeMode, type SiteSettings } from '@tro-oi/shared';
 
+import { AssistantWidget } from '@/components/assistant/AssistantWidget';
 import { buildAntTheme } from '@/theme/buildTheme';
 
 const THEME_COOKIE = 'theme';
@@ -84,7 +85,11 @@ export function Providers({ children, settings, initialTheme }: ProvidersProps) 
         <ConfigProvider locale={viVN} theme={antTheme}>
           {/* globals.css: body:has([data-section='market']) đổi token màu, cả popup gắn vào body */}
           <div data-section={isMarket ? 'market' : undefined} className="contents">
-            <AntdApp>{children}</AntdApp>
+            <AntdApp>
+              {children}
+              {/* Ở cấp gốc để hội thoại không mất khi chuyển trang */}
+              <AssistantWidget />
+            </AntdApp>
           </div>
         </ConfigProvider>
       </ThemeContext.Provider>

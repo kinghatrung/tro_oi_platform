@@ -105,7 +105,7 @@ export async function getListing(id: string) {
 
   | Class | Dùng cho |
   | --- | --- |
-  | `bg-surface` / `bg-page` / `bg-soft` | nền thẻ / nền trang / nền phụ (thay `bg-white`, `#f4f4f4`) |
+  | `bg-surface` / `bg-page` / `bg-soft` | nền thẻ / nền trang / nền phụ (thay `bg-white`, `#f4f4f4`). Trang công khai để trong suốt để thấy nền ô caro của `body` (`--grid-line` theo màu brand, globals.css); `bg-page` chỉ dùng khi cần nền phẳng (dashboard, trang lỗi) |
   | `text-ink` / `text-body` / `text-subtle` | chữ đậm / chữ thường / chữ phụ (thay `#222`, `#595959`, `#8c8c8c`) |
   | `border-line` | viền (thay `#f0f0f0`, `#e8e8e8`) |
   | `text-brand` `bg-brand` `bg-brand-soft` `text-brand-dark` | màu chủ đạo (thay `#16a6a3`) |

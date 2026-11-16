@@ -53,7 +53,7 @@ export default async function MarketplacePage({ searchParams }: MarketplacePageP
   return (
     <main>
       <Header title={HERO_TITLE} search={SEARCH_CONFIG} heroImage="/images/cho-oi-hero.svg" />
-      <section className="w-full bg-page">
+      <section className="w-full">
         <div className="mx-auto w-full max-w-300 px-4 pt-22 pb-3">
           {result ? (
             <>
