@@ -160,7 +160,8 @@ export class AdminService {
 
   /** Người dùng + số tin đã đăng (Trọ ơi, Chợ ơi). */
   async listUsers(query: AdminUserQueryDto) {
-    const filter: Record<string, unknown> = {};
+    // Tài khoản đã xoá (ẩn danh) không còn gì để quản lý → ẩn khỏi danh sách
+    const filter: Record<string, unknown> = { deletedAt: null };
     const keyword = query.keyword?.trim();
     if (keyword) {
       const regex = new RegExp(escapeRegex(keyword), 'i');

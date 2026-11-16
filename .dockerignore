@@ -1,0 +1,27 @@
+# Build context là gốc repo (yarn.lock ở đây). Loại bí mật và mọi thứ image không cần.
+
+# Bí mật — "**/" bắt buộc: ".env" trần chỉ khớp thư mục gốc
+**/.env
+**/.env.*
+!**/.env.example
+
+# Đồ đã cài / đã build (build lại trong image)
+**/node_modules
+**/.next
+**/dist
+**/*.tsbuildinfo
+**/*.log
+**/coverage
+apps/api/uploads
+
+# Không thuộc image web/api
+apps/mobile
+deploy
+docs
+scripts
+.git
+.github
+.claude
+.vscode
+DEPLOY-PORTFOLIO.md
+*.png

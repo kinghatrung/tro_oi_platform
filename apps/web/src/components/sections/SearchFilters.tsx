@@ -2,8 +2,8 @@
 
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useState } from 'react';
-import { Card, Checkbox, Space, Button, Flex, type MenuProps } from 'antd';
-import { Bookmark, ListFilter, BedDouble, Building2 } from 'lucide-react';
+import { Card, Checkbox, Space, Button, Flex, Input, type MenuProps } from 'antd';
+import { Bookmark, ListFilter, BedDouble, Building2, Search } from 'lucide-react';
 import {
   PROPERTY_CATEGORY_LABELS,
   TRANSACTION_TYPE_LABELS,
@@ -16,6 +16,7 @@ import { CATEGORIES } from '@/constants';
 import { useSaveToggle } from '@/hooks/useSaveToggle';
 import { AMENITY_ITEMS } from '@/lib/constants/constantsRoom';
 import { parsePriceRange, searchQueryKey } from '@/lib/searchFilters';
+import { recordSearch } from '@/lib/viewHistory';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { formatVietnamDate } from '@/utils/helpers';
 
@@ -49,6 +50,7 @@ const BEDROOM_ITEMS: MenuProps['items'] = [1, 2, 3, 4].map((count) => ({
 }));
 
 const FILTER_KEYS = [
+  'keyword',
   'transaction',
   'category',
   'minPrice',
@@ -123,7 +125,8 @@ function SearchFiltersForm({ serializedParams }: { serializedParams: string }) {
 
   const [priceError, setPriceError] = useState(false);
 
-  const navigateWithFilters = (nextFilters: FilterState) => {
+  const navigateWithFilters = (rawFilters: FilterState) => {
+    const nextFilters = { ...rawFilters, keyword: rawFilters.keyword.trim() };
     const { valid } = parsePriceRange(nextFilters.minPrice, nextFilters.maxPrice);
     setPriceError(!valid);
     if (!valid) return null;
@@ -134,6 +137,7 @@ function SearchFiltersForm({ serializedParams }: { serializedParams: string }) {
       else params.delete(key);
     });
     params.delete('page');
+    if (nextFilters.keyword) recordSearch(pathname, nextFilters.keyword);
 
     const query = params.toString();
     router.push(query ? `${pathname}?${query}` : pathname);
@@ -164,23 +168,35 @@ function SearchFiltersForm({ serializedParams }: { serializedParams: string }) {
             thiểu.
           </p>
         )}
-        <Space size={20}>
-          <h1 className="text-primary text-[16px]! first-letter:uppercase">
-            {buildTitle(new URLSearchParams(serializedParams))}
-          </h1>
-          <Button
-            size="small"
-            icon={<Bookmark size={20} strokeWidth={2.2} />}
-            className="rounded-2xl! font-bold!"
-            type={saved ? 'primary' : 'default'}
-            onClick={toggleSaveSearch}
-          >
-            {saved ? 'Đã lưu tìm kiếm' : 'Lưu tìm kiếm'}
-          </Button>
-        </Space>
+        <Flex align="center" justify="space-between" wrap gap={12}>
+          <Space size={20}>
+            <h1 className="text-primary text-[16px]! first-letter:uppercase">
+              {buildTitle(new URLSearchParams(serializedParams))}
+            </h1>
+            <Button
+              size="small"
+              icon={<Bookmark size={20} strokeWidth={2.2} />}
+              className="rounded-2xl! font-bold!"
+              type={saved ? 'primary' : 'default'}
+              onClick={toggleSaveSearch}
+            >
+              {saved ? 'Đã lưu tìm kiếm' : 'Lưu tìm kiếm'}
+            </Button>
+          </Space>
+          <Input
+            allowClear
+            aria-label="Từ khoá tìm kiếm"
+            placeholder="Từ khoá, vd: gần trường"
+            prefix={<Search size={16} className="text-subtle" />}
+            value={filters.keyword}
+            onChange={(event) => setFilters({ ...filters, keyword: event.target.value })}
+            onPressEnter={() => navigateWithFilters(filters)}
+            className="w-full! rounded-2xl! sm:w-72!"
+          />
+        </Flex>
 
-        <Flex align="center" justify="space-between">
-          <Space>
+        <Flex align="center" justify="space-between" wrap gap={8}>
+          <Space wrap>
             <Button
               size="small"
               className="rounded-2xl! btn-gray"

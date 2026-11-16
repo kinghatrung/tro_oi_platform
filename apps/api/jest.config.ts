@@ -20,6 +20,8 @@ const config: Config = {
   moduleNameMapper: {
     ...pathsToModuleNameMapper(paths, { prefix: '<rootDir>/' }),
     '^(\\.{1,2}/.*)\\.js$': '$1',
+    // Gói CJS require @nestjs/common (ESM) → Jest lỗi vòng require; xem test/throttler.stub.ts
+    '^@nestjs/throttler$': '<rootDir>/test/throttler.stub.ts',
   },
   collectCoverageFrom: [
     'src/**/*.(t|j)s',

@@ -112,3 +112,6 @@ desktop.ini
 
 # Personal Claude settings
 .claude/settings.local.json
+
+# Ghi chú deploy riêng (có IP VPS) — không commit
+DEPLOY-PORTFOLIO.md

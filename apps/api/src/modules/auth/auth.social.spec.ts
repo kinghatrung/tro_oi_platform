@@ -16,6 +16,7 @@ const setup = (
     isBlocked: false,
     createdAt: new Date(),
     updatedAt: new Date(),
+    save: async () => undefined,
     ...values,
   });
   const userModel = {

@@ -20,6 +20,11 @@ export interface User {
   email?: string;
   /** Ẩn ở hồ sơ công khai (GET /users/:id). */
   phone?: string;
+  /**
+   * Google / Facebook đã liên kết (đăng nhập được bằng cách đó). 'social' = tài khoản cũ chưa ghi
+   * nhà cung cấp. Chỉ có ở /users/me, /auth/*, admin.
+   */
+  socialProvider?: 'google.com' | 'facebook.com' | 'social';
   bio?: string;
   avatar?: string;
   /** Ảnh bìa hồ sơ (không có → dải màu mặc định). */

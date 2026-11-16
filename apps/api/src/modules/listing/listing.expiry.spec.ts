@@ -33,6 +33,7 @@ const serviceWith = (doc: ReturnType<typeof fakeDoc>) => {
     {} as never,
     {} as never,
     {} as never,
+    {} as never,
   );
 };
 
@@ -108,6 +109,7 @@ describe('checkExpiry nhiều instance', () => {
         {} as never,
         {} as never,
         { notify } as never,
+        {} as never,
       );
 
     await Promise.all([instance().checkExpiry(), instance().checkExpiry()]);

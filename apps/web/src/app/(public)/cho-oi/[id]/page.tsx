@@ -8,6 +8,7 @@ import { ApiError } from '@/api/axiosClient';
 import { getProduct, searchProducts } from '@/api/products';
 import { ProductCard } from '@/components/common';
 import { AgentCard, ProductDetail } from '@/components/sections';
+import { buildOpenGraph } from '@/lib/seo';
 import { loadSiteSettings } from '@/lib/siteSettings';
 import { formatVietnameseCurrency } from '@/utils/helpers';
 
@@ -28,10 +29,12 @@ const getProductOrNotFound = cache(async (id: string) => {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const product = await getProductOrNotFound((await params).id);
+  const path = `/cho-oi/${product.id}`;
   return {
     title: product.title,
     description: `${formatVietnameseCurrency(product.price)} - ${product.address?.city ?? ''}`,
-    openGraph: { images: product.images.slice(0, 1) },
+    alternates: { canonical: path },
+    openGraph: buildOpenGraph((await loadSiteSettings()).siteName, path, product.images),
   };
 }
 

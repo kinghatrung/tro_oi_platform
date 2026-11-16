@@ -2,6 +2,10 @@ import React from 'react';
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 
+import { NO_INDEX } from '@/lib/seo';
+
+export const metadata = NO_INDEX;
+
 /**
  * Authentication layout component that redirects authenticated users to the home page.
  * Checks for access token in cookies and redirects if present.

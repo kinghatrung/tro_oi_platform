@@ -423,19 +423,32 @@ export function PropertyOverview({ listing, similarListings = [] }: PropertyOver
         </Card>
       )}
 
-      {videoEmbed && (
+      {listing.video ? (
         <Card variant="borderless">
           <p className="text-primary mb-3">Video</p>
-          <iframe
-            src={videoEmbed}
-            title={`Video: ${listing.title}`}
-            className="aspect-video w-full rounded-lg border-0"
-            loading="lazy"
-            referrerPolicy="strict-origin-when-cross-origin"
-            allow="accelerometer; encrypted-media; gyroscope; picture-in-picture; web-share"
-            allowFullScreen
+          <video
+            src={listing.video}
+            controls
+            preload="metadata"
+            playsInline
+            className="aspect-video w-full rounded-lg bg-black"
           />
         </Card>
+      ) : (
+        videoEmbed && (
+          <Card variant="borderless">
+            <p className="text-primary mb-3">Video</p>
+            <iframe
+              src={videoEmbed}
+              title={`Video: ${listing.title}`}
+              className="aspect-video w-full rounded-lg border-0"
+              loading="lazy"
+              referrerPolicy="strict-origin-when-cross-origin"
+              allow="accelerometer; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowFullScreen
+            />
+          </Card>
+        )
       )}
 
       {listing.description && (

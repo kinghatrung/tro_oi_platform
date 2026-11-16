@@ -43,6 +43,11 @@ export async function updateAdminUser(id: string, body: AdminUpdateUserRequest) 
   return res.data;
 }
 
+/** Xoá (ẩn danh hoá) tài khoản: xoá tin, món đồ, ảnh đã upload; giữ tin nhắn dưới tên "Người dùng đã xoá". */
+export async function deleteAdminUser(id: string) {
+  await axiosClient.delete(`/admin/users/${id}`);
+}
+
 export async function searchAdminListings(params: AdminListingQuery) {
   const res = (await axiosClient.get('/admin/listings', { params })) as ApiResponse<
     PagedResponse<Listing>

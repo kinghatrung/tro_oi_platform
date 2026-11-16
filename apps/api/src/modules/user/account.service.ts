@@ -36,6 +36,7 @@ import {
 } from '../product/schemas/product.schema.js';
 import { Report, type ReportDocument } from '../report/report.schema.js';
 import { Review, type ReviewDocument } from '../review/review.schema.js';
+import { StorageService } from '../upload/storage.service.js';
 
 /** Tên hiển thị thay thế sau khi người dùng tự xoá tài khoản. */
 export const DELETED_USER_NAME = 'Người dùng đã xoá';
@@ -64,6 +65,7 @@ export class AccountService {
     @InjectModel(Report.name)
     private readonly reportModel: Model<ReportDocument>,
     private readonly auditService: AuditService,
+    private readonly storage: StorageService,
   ) {}
 
   /**
@@ -159,17 +161,31 @@ export class AccountService {
   }
 
   /**
-   * Tự xoá tài khoản: xoá tin / món đồ / đánh giá về mình / thông báo; ẩn danh hồ sơ (tên, ảnh,
-   * email, SĐT thay bằng giá trị nội bộ để số đó đăng ký lại được), khoá để token cũ hết hiệu lực.
-   * shortcut: ảnh đã upload (ổ đĩa / S3) chưa bị xoá — cần job dọn ảnh không còn tham chiếu.
+   * Xoá tài khoản (người dùng tự xoá, hoặc admin xoá khi có `adminId`): xoá tin / món đồ / đánh giá
+   * về họ / thông báo + ảnh đã upload của các mục đó và avatar, ảnh bìa; ẩn danh hồ sơ (tên, email,
+   * SĐT thay bằng giá trị nội bộ để số đó đăng ký lại được), khoá để token cũ hết hiệu lực.
+   * Ảnh trong tin nhắn giữ lại cùng tin nhắn (người còn lại trong cuộc trò chuyện vẫn xem được).
    */
-  async deleteAccount(userId: string) {
+  async deleteAccount(userId: string, adminId?: string) {
+    if (adminId === userId) {
+      throw new BadRequestException(
+        'Không thể tự xoá chính mình ở trang quản trị',
+      );
+    }
     const user = await this.findActive(userId);
     if (user.role === 'admin') {
       throw new BadRequestException(
-        'Tài khoản quản trị không tự xoá được — nhờ quản trị viên khác hạ quyền trước',
+        adminId
+          ? 'Hạ quyền quản trị của tài khoản này trước khi xoá'
+          : 'Tài khoản quản trị không tự xoá được — nhờ quản trị viên khác hạ quyền trước',
       );
     }
+    // Lấy URL ảnh trước khi xoá document
+    const [listingImages, listingVideos, productImages] = await Promise.all([
+      this.listingModel.distinct('images', { author: user._id }).exec(),
+      this.listingModel.distinct('video', { author: user._id }).exec(),
+      this.productModel.distinct('images', { seller: user._id }).exec(),
+    ]);
     await Promise.all([
       this.listingModel.deleteMany({ author: user._id }).exec(),
       this.productModel.deleteMany({ seller: user._id }).exec(),
@@ -201,10 +217,18 @@ export class AccountService {
         },
       )
       .exec();
-    await this.auditService.log(user.id as string, {
-      action: 'Tự xoá tài khoản',
+    await this.storage.remove([
+      ...(listingImages as string[]),
+      ...(listingVideos as string[]),
+      ...(productImages as string[]),
+      user.avatar,
+      user.coverImage,
+    ]);
+    await this.auditService.log(adminId ?? (user.id as string), {
+      action: adminId ? 'Xoá tài khoản' : 'Tự xoá tài khoản',
       targetType: 'user',
       targetId: user.id as string,
+      targetTitle: adminId ? user.name : undefined,
     });
     return null;
   }

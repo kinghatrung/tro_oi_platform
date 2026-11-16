@@ -139,6 +139,8 @@ export interface Listing {
   description?: string;
   /** Link YouTube. */
   videoUrl?: string;
+  /** Video tự tải lên (POST /uploads/video, MP4 / WEBM / MOV ≤ 50MB). */
+  video?: string;
   category: PropertyCategory;
   transaction: TransactionType;
   status: ListingStatus;
@@ -212,6 +214,8 @@ export interface CreateListingRequest {
   description?: string;
   /** Link YouTube; "" = gỡ video khi sửa. */
   videoUrl?: string;
+  /** URL từ POST /uploads/video; "" = gỡ video. */
+  video?: string;
   category: PropertyCategory;
   transaction: TransactionType;
   price: number;

@@ -31,3 +31,4 @@ export * from './ProductCard';
 export * from './NotificationList';
 export * from './RelativeTime';
 export * from './useIsClient';
+export * from './usePersistedViewMode';

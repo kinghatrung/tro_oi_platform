@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
@@ -22,6 +23,7 @@ import { PageService } from '../page/page.service.js';
 import { ReportQueryDto, UpdateReportDto } from '../report/report.dto.js';
 import { ReportService } from '../report/report.service.js';
 import { UpdateSettingsDto } from '../settings/update-settings.dto.js';
+import { AccountService } from '../user/account.service.js';
 import {
   AdminListingQueryDto,
   AdminProductQueryDto,
@@ -42,6 +44,7 @@ export class AdminController {
     private readonly reportService: ReportService,
     private readonly auditService: AuditService,
     private readonly pageService: PageService,
+    private readonly accountService: AccountService,
   ) {}
 
   @Get('stats')
@@ -61,6 +64,12 @@ export class AdminController {
     @Body() dto: AdminUpdateUserDto,
   ) {
     return this.adminService.updateUser(admin.sub, id, dto);
+  }
+
+  /** Xoá (ẩn danh hoá) tài khoản người khác — như người dùng tự xoá, ghi nhật ký tên admin. */
+  @Delete('users/:id')
+  deleteUser(@CurrentUser() admin: AuthUser, @Param('id') id: string) {
+    return this.accountService.deleteAccount(id, admin.sub);
   }
 
   @Get('listings')

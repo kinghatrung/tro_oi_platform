@@ -99,6 +99,10 @@ export class Listing {
   @Prop()
   videoUrl?: string;
 
+  /** Video tự tải lên (URL /uploads của hệ thống, POST /uploads/video). Rỗng = không có. */
+  @Prop()
+  video?: string;
+
   @Prop({ type: String, enum: LISTING_CATEGORIES, required: true })
   category: ListingCategory;
 

@@ -7,7 +7,7 @@ Thư mục này là **nguồn sự thật duy nhất** cho người và AI khi l
 | [coding-rules.md](coding-rules.md)           | Quy tắc code bắt buộc (chung, web, api) + checklist trước commit  |
 | [project-structure.md](project-structure.md) | Cấu trúc monorepo, route web, component, luồng dữ liệu, env       |
 | [api.md](api.md)                             | Hợp đồng REST API: endpoint, request, response, auth, lỗi         |
-| [deploy.md](deploy.md)                       | Deploy lên VPS (PM2 + Nginx + Cloudflare) và CI/CD GitHub Actions |
+| [deploy.md](deploy.md)                       | Deploy Docker lên VPS (GHCR + Nginx + Cloudflare) và CI/CD       |
 
 ## Quy tắc bắt buộc về tài liệu
 

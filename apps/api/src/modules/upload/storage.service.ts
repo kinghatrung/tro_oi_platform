@@ -1,9 +1,13 @@
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, unlink, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import {
+  DeleteObjectCommand,
+  PutObjectCommand,
+  S3Client,
+} from '@aws-sdk/client-s3';
 
 export const UPLOAD_DIR = join(process.cwd(), 'uploads');
 
@@ -13,6 +17,7 @@ export const UPLOAD_DIR = join(process.cwd(), 'uploads');
  */
 @Injectable()
 export class StorageService {
+  private readonly logger = new Logger(StorageService.name);
   private readonly s3?: S3Client;
   private readonly bucket?: string;
   private readonly publicUrl: string;
@@ -67,5 +72,41 @@ export class StorageService {
       await writeFile(join(UPLOAD_DIR, name), body);
     }
     return `${this.publicUrl.replace(/\/$/, '')}/${key}`;
+  }
+
+  /**
+   * Xoá file đã upload. Bỏ qua URL không phải của hệ thống (isStoredUrl cũng chặn "../").
+   * Cố gắng hết sức: file lỗi chỉ ghi log, không làm hỏng thao tác gọi tới. Trả số file đã xoá.
+   */
+  async remove(urls: (string | null | undefined)[]) {
+    const names = [
+      ...new Set(
+        urls
+          .filter((url): url is string => !!url && this.isStoredUrl(url))
+          .map((url) => url.slice(url.lastIndexOf('/') + 1)),
+      ),
+    ];
+    const results = await Promise.allSettled(
+      names.map((name) =>
+        this.s3
+          ? this.s3.send(
+              new DeleteObjectCommand({
+                Bucket: this.bucket,
+                Key: `uploads/${name}`,
+              }),
+            )
+          : unlink(join(UPLOAD_DIR, name)),
+      ),
+    );
+    // File đã không còn trên đĩa (ENOENT) coi như xoá xong
+    const failed = results.filter(
+      (result) =>
+        result.status === 'rejected' &&
+        (result.reason as NodeJS.ErrnoException)?.code !== 'ENOENT',
+    ).length;
+    if (failed > 0) {
+      this.logger.warn(`Không xoá được ${failed}/${names.length} file upload`);
+    }
+    return names.length - failed;
   }
 }

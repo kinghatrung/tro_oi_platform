@@ -1,0 +1,65 @@
+# Stack production cho room.kun.io.vn — nằm ở /opt/tro-oi trên VPS (CI chép lên mỗi lần deploy).
+# Nginx trên host (deploy/nginx/) lo HTTPS và chuyển tới các cổng 127.0.0.1 bên dưới.
+# Image build trên GitHub Actions, kéo về từ GHCR; VPS không build gì.
+# Bí mật lấy từ /opt/tro-oi/.env (xem .env.example), không bao giờ nằm trong image.
+name: tro-oi
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: '10m'
+    max-file: '3'
+
+services:
+  api:
+    image: ${IMAGE_PREFIX:?set IMAGE_PREFIX in .env}/trooi-api:${API_TAG:-latest}
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      PORT: '5000'
+      # 1 proxy: nginx trên host đã lấy IP thật từ Cloudflare (cloudflare-realip.conf)
+      TRUST_PROXY: '1'
+    # Chỉ 127.0.0.1: Docker đi vòng qua ufw, thiếu tiền tố này là cổng lộ ra internet
+    ports:
+      - '127.0.0.1:5200:5000'
+    volumes:
+      - uploads:/app/apps/api/uploads
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:5000/settings').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    mem_limit: 512m
+    logging: *logging
+
+  web:
+    image: ${IMAGE_PREFIX}/trooi-web:${WEB_TAG:-latest}
+    restart: unless-stopped
+    ports:
+      - '127.0.0.1:3200:3000'
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:3000/dang-nhap').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    mem_limit: 512m
+    logging: *logging
+
+volumes:
+  # Ảnh upload (khi chưa dùng S3/R2) — giữ qua các lần tạo lại container
+  uploads:

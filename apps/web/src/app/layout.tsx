@@ -8,6 +8,7 @@ import { AnnouncementBar } from '@/components/layout/AnnouncementBar';
 import { cookies } from 'next/headers';
 import { ThemeMode, type SiteSettings } from '@tro-oi/shared';
 
+import { buildOpenGraph, SITE_URL } from '@/lib/seo';
 import { loadSiteSettings } from '@/lib/siteSettings';
 
 import { Providers } from './providers';
@@ -31,11 +32,14 @@ async function resolveThemeMode(settings: SiteSettings): Promise<ThemeMode> {
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await loadSiteSettings();
   return {
+    // URL tương đối (canonical, og:url, og:image) ghép với domain thật
+    metadataBase: new URL(SITE_URL),
     title: {
       default: `${settings.siteName}: ${settings.tagline}`,
       template: `%s | ${settings.siteName}`,
     },
     description: settings.description,
+    openGraph: buildOpenGraph(settings.siteName, '/'),
   };
 }
 

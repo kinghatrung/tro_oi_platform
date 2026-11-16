@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ForbiddenException,
   Injectable,
   Logger,
@@ -18,6 +19,7 @@ import { assertOwnerStatusChange } from '../../common/status-rules.js';
 import { AuditService } from '../audit/audit.service.js';
 import { NotificationService } from '../notification/notification.service.js';
 import { SettingsService } from '../settings/settings.service.js';
+import { StorageService } from '../upload/storage.service.js';
 import type {
   CreateListingDto,
   SearchListingDto,
@@ -59,6 +61,7 @@ export class ListingService implements OnModuleInit, OnModuleDestroy {
     private readonly settingsService: SettingsService,
     private readonly auditService: AuditService,
     private readonly notificationService: NotificationService,
+    private readonly storage: StorageService,
   ) {}
 
   // Mỗi instance API đều chạy hẹn giờ; checkExpiry nhận tin nguyên tử nên không báo trùng
@@ -259,6 +262,7 @@ export class ListingService implements OnModuleInit, OnModuleDestroy {
 
   /** Tin mới: chờ duyệt nếu admin bật requireListingApproval, ngược lại hiển thị ngay. */
   async create(user: AuthUser, dto: CreateListingDto) {
+    this.assertStoredVideo(dto.video);
     const { requireListingApproval } = await this.settingsService.get();
     const doc = await this.listingModel.create({
       ...dto,
@@ -273,8 +277,10 @@ export class ListingService implements OnModuleInit, OnModuleDestroy {
   }
 
   async update(user: AuthUser, id: string, dto: UpdateListingDto) {
+    this.assertStoredVideo(dto.video);
     const doc = await this.findOwned(user, id);
     const from = doc.status;
+    const oldVideo = doc.video;
     assertOwnerStatusChange(
       doc.status,
       dto.status,
@@ -304,6 +310,9 @@ export class ListingService implements OnModuleInit, OnModuleDestroy {
       ),
     );
     await doc.save();
+    // Đổi / gỡ video → xoá file cũ (video nặng, không để mồ côi)
+    if (oldVideo && oldVideo !== doc.video)
+      void this.storage.remove([oldVideo]);
     await this.moderated(user, doc, from, doc.status, moderationNote?.trim());
     if (from === 'pending' && doc.status === 'active') {
       void this.alertSavedSearches(doc, doc.author); // tin vừa được duyệt = tin mới
@@ -315,8 +324,16 @@ export class ListingService implements OnModuleInit, OnModuleDestroy {
   async remove(user: AuthUser, id: string) {
     const doc = await this.findOwned(user, id);
     await doc.deleteOne();
+    void this.storage.remove([...doc.images, doc.video]);
     await this.moderated(user, doc, doc.status, null);
     return null;
+  }
+
+  /** Video phải là file đã tải lên qua /uploads/video — không nhúng link ngoài (lộ IP người xem). */
+  private assertStoredVideo(video?: string) {
+    if (video && !this.storage.isStoredUrl(video)) {
+      throw new BadRequestException('Video phải được tải lên từ Trọ ơi');
+    }
   }
 
   /**

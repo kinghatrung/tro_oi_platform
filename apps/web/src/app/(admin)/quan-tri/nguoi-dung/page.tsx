@@ -4,10 +4,10 @@ import Link from 'next/link';
 import { useCallback, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Flex, Form, Select, Tag, type TableColumnsType } from 'antd';
-import { Ban, ExternalLink, House, LockOpen, Pencil, ShoppingBag } from 'lucide-react';
-import { USER_ROLE_LABELS, type AdminUser, type AdminUserQuery } from '@tro-oi/shared';
+import { Ban, ExternalLink, House, LockOpen, Pencil, ShoppingBag, Trash2 } from 'lucide-react';
+import { USER_ROLE_LABELS, UserRole, type AdminUser, type AdminUserQuery } from '@tro-oi/shared';
 
-import { searchAdminUsers, updateAdminUser } from '@/api/admin';
+import { deleteAdminUser, searchAdminUsers, updateAdminUser } from '@/api/admin';
 import {
   DataTable,
   EntityCell,
@@ -105,7 +105,7 @@ export default function AdminUsersPage() {
       {
         title: 'Thao tác',
         key: 'actions',
-        width: 120,
+        width: 150,
         fixed: 'right',
         render: (_, user) => (
           <RowActions>
@@ -132,6 +132,22 @@ export default function AdminUsersPage() {
                     () => updateAdminUser(user.id, { isBlocked: !user.isBlocked }),
                     user.isBlocked ? `Đã mở khoá ${user.name}` : `Đã khoá ${user.name}`,
                   )
+                }
+              />
+            )}
+            {user.id !== currentUserId && user.role !== UserRole.ADMIN && (
+              <IconAction
+                title="Xoá tài khoản"
+                icon={<Trash2 size={14} />}
+                danger
+                confirm={{
+                  title: `Xoá tài khoản ${user.name}?`,
+                  description:
+                    'Xoá tin đăng, món đồ, ảnh đã tải lên và ẩn danh hồ sơ. Không hoàn tác được.',
+                  okText: 'Xoá',
+                }}
+                onClick={() =>
+                  runAction(() => deleteAdminUser(user.id), `Đã xoá tài khoản ${user.name}`)
                 }
               />
             )}

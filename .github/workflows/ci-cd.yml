@@ -1,18 +1,53 @@
-# CI: kiểm tra mọi push / PR vào main, dev. CD: push vào main + CI xanh → SSH vào VPS chạy scripts/deploy.sh.
-# Secrets cần tạo (Settings → Secrets and variables → Actions): xem docs/deploy.md mục CI/CD.
+# CI/CD monorepo cho room.kun.io.vn (mẫu giống Mivo / chat.kun.io.vn)
+#  - mọi push / PR: lint, typecheck, test
+#  - push main: build image Docker của app thay đổi → GHCR → SSH vào VPS: docker compose pull + up
+# apps/mobile không build / deploy ở đây. Cách cài đặt: docs/deploy.md
 name: CI/CD
 
 on:
   push:
     branches: [main, dev]
   pull_request:
-    branches: [main, dev]
+  workflow_dispatch:
+    inputs:
+      deploy_all:
+        description: 'Build lại và deploy cả api lẫn web'
+        type: boolean
+        default: false
 
 concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  group: cicd-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
 
 jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      api: ${{ steps.filter.outputs.api == 'true' || inputs.deploy_all == true }}
+      web: ${{ steps.filter.outputs.web == 'true' || inputs.deploy_all == true }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            shared: &shared
+              - 'package.json'
+              - 'yarn.lock'
+              - '.dockerignore'
+              - '.github/workflows/ci-cd.yml'
+            api:
+              - *shared
+              - 'apps/api/**'
+            web:
+              - *shared
+              - 'apps/web/**'
+              - 'packages/shared/**'
+
+  # ── Kiểm tra (yarn 1 không cài riêng 1 workspace được → cài cả repo, có cache) ──
   check:
     runs-on: ubuntu-latest
     steps:
@@ -21,15 +56,18 @@ jobs:
         with:
           node-version: 24
           cache: yarn
-      - run: yarn install --frozen-lockfile
+      - run: yarn install --frozen-lockfile --non-interactive
 
-      - name: API — lint, typecheck, test, build
+      # Lỗ hổng thư viện production: critical trong api/web → đỏ, high chỉ cảnh báo (bỏ qua mobile)
+      - name: Audit thư viện
+        run: yarn audit --json --groups dependencies | node scripts/audit-prod.mjs
+
+      - name: API — lint, typecheck, test
         working-directory: apps/api
         run: |
           yarn lint
           npx tsc --noEmit -p tsconfig.json
           yarn test
-          yarn build
 
       - name: Web — typecheck, lint
         working-directory: apps/web
@@ -38,25 +76,100 @@ jobs:
           npx tsc --noEmit -p .
           npx eslint src
 
-  deploy:
-    needs: check
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+  # ── Image (chỉ main) ──────────────────────────────────────────────────────────
+  build:
+    needs: [changes, check]
+    if: >-
+      github.event_name != 'pull_request' && github.ref == 'refs/heads/main' &&
+      (needs.changes.outputs.api == 'true' || needs.changes.outputs.web == 'true')
     runs-on: ubuntu-latest
-    concurrency: deploy-production
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: true
+      matrix:
+        app: [api, web]
     steps:
-      - name: Deploy lên VPS
-        env:
-          SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
-          KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
-          HOST: ${{ secrets.VPS_HOST }}
-          PORT: ${{ secrets.VPS_PORT || '22' }}
-          USER: ${{ secrets.VPS_USER }}
-          APP_DIR: ${{ secrets.VPS_APP_DIR }}
+      - name: Bỏ qua app không đổi
+        id: gate
+        run: echo "run=${{ (matrix.app == 'api' && needs.changes.outputs.api == 'true') || (matrix.app == 'web' && needs.changes.outputs.web == 'true') }}" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v4
+        if: steps.gate.outputs.run == 'true'
+      - name: Tên image (GHCR cần chữ thường)
+        if: steps.gate.outputs.run == 'true'
+        run: echo "IMAGE=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/trooi-${{ matrix.app }}" >> "$GITHUB_ENV"
+      - uses: docker/setup-buildx-action@v3
+        if: steps.gate.outputs.run == 'true'
+      - uses: docker/login-action@v3
+        if: steps.gate.outputs.run == 'true'
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        if: steps.gate.outputs.run == 'true'
+        with:
+          context: .
+          file: apps/${{ matrix.app }}/Dockerfile
+          push: true
+          # :latest là bản VPS chạy; :<sha> giữ lại để quay về bản cũ
+          tags: |
+            ${{ env.IMAGE }}:latest
+            ${{ env.IMAGE }}:${{ github.sha }}
+          # NEXT_PUBLIC_* gắn vào bundle lúc build → lấy từ GitHub Variables (api bỏ qua các arg này)
+          build-args: |
+            NEXT_PUBLIC_SITE_URL=${{ vars.NEXT_PUBLIC_SITE_URL }}
+            NEXT_PUBLIC_API_URL=${{ vars.NEXT_PUBLIC_API_URL }}
+            NEXT_PUBLIC_UPLOAD_URL=${{ vars.NEXT_PUBLIC_UPLOAD_URL }}
+            NEXT_PUBLIC_FIREBASE_API_KEY=${{ vars.NEXT_PUBLIC_FIREBASE_API_KEY }}
+            NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=${{ vars.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN }}
+            NEXT_PUBLIC_FIREBASE_PROJECT_ID=${{ vars.NEXT_PUBLIC_FIREBASE_PROJECT_ID }}
+            NEXT_PUBLIC_FIREBASE_APP_ID=${{ vars.NEXT_PUBLIC_FIREBASE_APP_ID }}
+            NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=${{ vars.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID }}
+            NEXT_PUBLIC_FIREBASE_VAPID_KEY=${{ vars.NEXT_PUBLIC_FIREBASE_VAPID_KEY }}
+          cache-from: type=gha,scope=${{ matrix.app }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.app }}
+
+  # ── Deploy (chỉ main) ─────────────────────────────────────────────────────────
+  deploy:
+    needs: [changes, build]
+    # Tắt cho tới khi VPS sẵn sàng: đặt biến repo DEPLOY_ENABLED=true để bật
+    if: always() && needs.build.result == 'success' && vars.DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      contents: read
+      packages: read # token của job kéo được image private trên VPS
+    steps:
+      - uses: actions/checkout@v4
+      - name: Service cần cập nhật
         run: |
-          mkdir -p ~/.ssh
-          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
-          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
-          # Lấy code trước rồi mới chạy script → luôn chạy bản deploy.sh mới nhất
-          ssh -i ~/.ssh/deploy_key -p "$PORT" "$USER@$HOST" \
-            "cd '$APP_DIR' && git fetch --prune origin main && git reset --hard origin/main && bash scripts/deploy.sh"
+          s=""
+          [ "${{ needs.changes.outputs.api }}" = "true" ] && s="$s api"
+          [ "${{ needs.changes.outputs.web }}" = "true" ] && s="$s web"
+          echo "SERVICES=${s# }" >> "$GITHUB_ENV"
+      # Như portfolio: key base64 + host key ghim sẵn (không dùng action bên thứ ba)
+      - name: SSH setup
+        env:
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          echo "$VPS_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          echo "$VPS_SSH_KEY" | base64 -di > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+      - name: Chép compose, pull và khởi động lại
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          scp deploy/docker-compose.yml "deploy@$VPS_HOST:/opt/tro-oi/docker-compose.yml"
+          # Token chỉ sống trong lần chạy này: đi qua stdin (không nằm trên dòng lệnh), dùng xong logout
+          printf '%s\n' "$GHCR_TOKEN" | ssh "deploy@$VPS_HOST" "set -e; cd /opt/tro-oi
+            docker login ghcr.io -u '$GITHUB_ACTOR' --password-stdin
+            docker compose pull $SERVICES
+            docker logout ghcr.io
+            docker compose up -d --remove-orphans $SERVICES
+            docker image prune -f
+            docker compose ps"

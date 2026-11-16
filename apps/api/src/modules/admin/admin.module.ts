@@ -7,6 +7,7 @@ import { ListingModule } from '../listing/listing.module.js';
 import { ProductModule } from '../product/product.module.js';
 import { ReportModule } from '../report/report.module.js';
 import { SettingsModule } from '../settings/settings.module.js';
+import { UserModule } from '../user/user.module.js';
 import { AdminController } from './admin.controller.js';
 import { AdminService } from './admin.service.js';
 
@@ -19,6 +20,7 @@ import { AdminService } from './admin.service.js';
     ProductModule,
     ReportModule,
     SettingsModule,
+    UserModule,
   ],
   controllers: [AdminController],
   providers: [AdminService],

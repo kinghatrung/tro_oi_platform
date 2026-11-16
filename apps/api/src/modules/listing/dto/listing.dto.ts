@@ -198,6 +198,12 @@ export class CreateListingDto {
   })
   videoUrl?: string;
 
+  /** URL video từ POST /uploads/video (service kiểm tra là file của hệ thống); "" = gỡ. */
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  video?: string;
+
   @IsIn(LISTING_CATEGORIES)
   category: ListingCategory;
 

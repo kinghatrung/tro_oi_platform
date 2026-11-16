@@ -46,6 +46,10 @@ export class User {
   @Prop()
   firebaseUid?: string;
 
+  /** Nhà cung cấp của firebaseUid: 'google.com' | 'facebook.com' (tài khoản cũ có thể thiếu). */
+  @Prop()
+  socialProvider?: string;
+
   @Prop({ required: true })
   name: string;
 
@@ -126,6 +130,10 @@ export function toUser(user: UserDocument) {
   return {
     id: user.id as string,
     phone: user.phone,
+    // 'social' = đã liên kết nhưng tài khoản cũ chưa ghi nhà cung cấp
+    socialProvider: user.firebaseUid
+      ? (user.socialProvider ?? 'social')
+      : undefined,
     name: user.name,
     email: user.email,
     bio: user.bio,

@@ -32,7 +32,9 @@ describe('matchesSavedSearch', () => {
       ),
     ).toBe(true);
     expect(match('city=H%E1%BB%93+Ch%C3%AD+Minh')).toBe(false);
-    expect(match('ward=Ph%C6%B0%E1%BB%9Dng+Ngh%C4%A9a+%C4%90%C3%B4')).toBe(false); // phường khác
+    expect(match('ward=Ph%C6%B0%E1%BB%9Dng+Ngh%C4%A9a+%C4%90%C3%B4')).toBe(
+      false,
+    ); // phường khác
     expect(match('maxPrice=3')).toBe(false);
     expect(match('category=can-ho')).toBe(false);
     expect(match('amenities=wifi,elevator')).toBe(false);

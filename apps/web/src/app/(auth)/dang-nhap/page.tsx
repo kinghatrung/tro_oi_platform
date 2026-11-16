@@ -20,39 +20,23 @@ import type { AuthResponse, PageSummary } from '@tro-oi/shared';
 import { devLogin, socialLogin, verifyPhone } from '@/api/auth';
 import { getPublishedPages } from '@/api/pages';
 import { FloatingInput } from '@/components/common';
-import { getFirebaseAuth } from '@/lib/firebase';
+import {
+  firebaseErrorMessage as errorMessage,
+  getFirebaseAuth,
+  isPopupCancelled,
+  PHONE_PATTERN,
+  toE164,
+} from '@/lib/firebase';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { useSiteSettings } from '@/app/providers';
 
 type LoginStep = 'phone' | 'otp';
+const RESEND_SECONDS = 60;
 type SocialProvider = 'google' | 'facebook';
-
-const PHONE_PATTERN = /^(0|\+84)(3|5|7|8|9)[0-9]{8}$/;
-const FIREBASE_ERRORS: Record<string, string> = {
-  'auth/invalid-verification-code': 'Mã OTP không đúng',
-  'auth/code-expired': 'Mã OTP đã hết hạn, vui lòng gửi lại',
-  'auth/too-many-requests': 'Bạn thử quá nhiều lần, vui lòng đợi ít phút',
-  'auth/invalid-phone-number': 'Số điện thoại không hợp lệ',
-  'auth/popup-blocked':
-    'Trình duyệt đã chặn cửa sổ đăng nhập — hãy cho phép cửa sổ bật lên rồi thử lại',
-  'auth/account-exists-with-different-credential':
-    'Email này đã đăng nhập bằng cách khác (Google hoặc Facebook) — hãy dùng lại cách đó',
-  'auth/operation-not-allowed': 'Cách đăng nhập này chưa được bật, vui lòng dùng số điện thoại',
-  'auth/unauthorized-domain': 'Tên miền này chưa được cho phép đăng nhập, liên hệ quản trị viên',
-};
-/** Người dùng tự đóng cửa sổ đăng nhập — không báo lỗi. */
-const CANCELLED_CODES = new Set(['auth/popup-closed-by-user', 'auth/cancelled-popup-request']);
-
-const toE164 = (phone: string) => phone.replace(/^0/, '+84');
 
 /** Chỉ cho phép redirect nội bộ (chặn open redirect kiểu //evil.com). */
 const safeRedirect = (value: string | null) =>
   value && value.startsWith('/') && !value.startsWith('//') ? value : '/';
-
-const errorMessage = (error: unknown) => {
-  const code = (error as { code?: string }).code;
-  return (code && FIREBASE_ERRORS[code]) || (error as Error).message || 'Đăng nhập thất bại';
-};
 
 /**
  * Đăng nhập/Đăng ký bằng SĐT: Firebase OTP → POST /auth/verify-phone.
@@ -89,6 +73,14 @@ function SignInPage() {
     [login, message, redirectTo, router],
   );
 
+  // Đếm ngược trước khi cho gửi lại OTP (Firebase cũng giới hạn số SMS / số điện thoại)
+  const [resendIn, setResendIn] = useState(0);
+  useEffect(() => {
+    if (resendIn <= 0) return;
+    const timer = setTimeout(() => setResendIn((seconds) => seconds - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [resendIn]);
+
   const handleSendPhone = useCallback(
     async ({ phone }: { phone: string }) => {
       setIsLoading(true);
@@ -107,7 +99,11 @@ function SignInPage() {
           verifierRef.current,
         );
         setStep('otp');
+        setResendIn(RESEND_SECONDS);
       } catch (error) {
+        // reCAPTCHA đã dùng không gửi lại được → tạo mới ở lần thử sau
+        verifierRef.current?.clear();
+        verifierRef.current = null;
         message.error(errorMessage(error));
       } finally {
         setIsLoading(false);
@@ -128,7 +124,7 @@ function SignInPage() {
       );
       await finishLogin(await socialLogin(await credential.user.getIdToken()));
     } catch (error) {
-      if (!CANCELLED_CODES.has((error as { code?: string }).code ?? '')) {
+      if (!isPopupCancelled(error)) {
         message.error(errorMessage(error));
       }
     } finally {
@@ -215,17 +211,26 @@ function SignInPage() {
                 { pattern: PHONE_PATTERN, message: 'Số điện thoại không hợp lệ' },
               ]}
             >
-              <FloatingInput title="Số điện thoại" className="h-12! px-4! border-2!" />
+              <FloatingInput
+                title="Số điện thoại"
+                className="h-12! px-4! border-2!"
+                disabled={step === 'otp'}
+              />
             </Form.Item>
 
             {step === 'otp' && (
-              <Form.Item
-                name="otp"
-                className="mb-0!"
-                rules={[{ required: true, len: 6, message: 'Nhập mã OTP 6 số' }]}
-              >
-                <Input.OTP length={6} size="large" autoFocus />
-              </Form.Item>
+              <>
+                <p className="text-sm text-body">
+                  Nhập mã 6 số vừa gửi qua SMS tới <b>{form.getFieldValue('phone')}</b>
+                </p>
+                <Form.Item
+                  name="otp"
+                  className="mb-0!"
+                  rules={[{ required: true, len: 6, message: 'Nhập mã OTP 6 số' }]}
+                >
+                  <Input.OTP length={6} size="large" autoFocus />
+                </Form.Item>
+              </>
             )}
 
             <Button
@@ -238,9 +243,26 @@ function SignInPage() {
             </Button>
 
             {step === 'otp' && (
-              <Button type="link" onClick={() => setStep('phone')}>
-                Đổi số điện thoại / gửi lại mã
-              </Button>
+              <Flex justify="space-between">
+                <Button
+                  type="link"
+                  className="px-0!"
+                  onClick={() => {
+                    setStep('phone');
+                    form.resetFields(['otp']);
+                  }}
+                >
+                  Đổi số điện thoại
+                </Button>
+                <Button
+                  type="link"
+                  className="px-0!"
+                  disabled={resendIn > 0 || isLoading}
+                  onClick={() => handleSendPhone({ phone: form.getFieldValue('phone') })}
+                >
+                  {resendIn > 0 ? `Gửi lại mã sau ${resendIn}s` : 'Gửi lại mã'}
+                </Button>
+              </Flex>
             )}
             {!isFirebaseEnabled && (
               <p className="text-xs text-subtle text-center">

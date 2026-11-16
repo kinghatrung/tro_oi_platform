@@ -1,4 +1,7 @@
 import SubHeader from '@/components/layout/SubHeader';
+import { NO_INDEX } from '@/lib/seo';
+
+export const metadata = NO_INDEX;
 
 // Trang riêng từng người dùng (đã chặn đăng nhập ở src/proxy.ts): không prerender lúc build
 export const dynamic = 'force-dynamic';

@@ -14,7 +14,7 @@ import {
   PaginationControl,
   ProductCard,
   useIsClient,
-  type ViewMode,
+  usePersistedViewMode,
 } from '@/components/common';
 import { PRODUCT_SORT_OPTIONS } from '@/lib/constants/constantsProduct';
 import { readProductHistory } from '@/lib/viewHistory';
@@ -58,7 +58,7 @@ export function ProductResultsList({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  const [viewMode, setViewMode] = usePersistedViewMode('viewModeProducts', 'grid');
   const sortKey = searchParams.get('sort') ?? DEFAULT_SORT;
 
   const handleSortChange = useCallback(

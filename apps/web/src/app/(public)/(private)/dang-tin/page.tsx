@@ -39,6 +39,7 @@ import { formatListingPrice, formatNumber } from '@/utils/helpers';
 
 import { CategoryPicker } from './CategoryPicker';
 import { PostSidebar, type PostPreview } from './PostSidebar';
+import { VideoUploadField } from './VideoUploadField';
 import {
   CITY_OPTIONS,
   DIRECTION_OPTIONS,
@@ -122,6 +123,7 @@ export default function PostListingPage() {
           ...formValues,
           images,
           videoUrl: formValues.videoUrl?.trim() ?? '',
+          video: formValues.video ?? '',
         };
         const saved = editing ? await updateListing(editing.id, body) : await createListing(body);
         if (saved.status === ListingStatus.PENDING) {
@@ -233,7 +235,7 @@ export default function PostListingPage() {
               </Upload>
               <Form.Item
                 name="videoUrl"
-                label="Video YouTube (tuỳ chọn)"
+                label="Video YouTube"
                 className="mt-4! mb-0!"
                 rules={[
                   {
@@ -248,6 +250,9 @@ export default function PostListingPage() {
                   prefix={<FaYoutube size={16} className="text-red-500" />}
                   placeholder="https://youtu.be/..."
                 />
+              </Form.Item>
+              <Form.Item name="video" label="Hoặc tải video lên" className="mt-4! mb-0!">
+                <VideoUploadField />
               </Form.Item>
             </FormSection>
 

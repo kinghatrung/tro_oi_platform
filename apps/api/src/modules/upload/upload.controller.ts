@@ -4,11 +4,12 @@ import {
   BadRequestException,
   Controller,
   Post,
+  UploadedFile,
   UploadedFiles,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import { FilesInterceptor } from '@nestjs/platform-express';
+import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 
 import { JwtAuthGuard } from '../auth/jwt-auth.guard.js';
@@ -21,6 +22,16 @@ const EXTENSION_BY_MIME: Record<string, string> = {
   'image/webp': '.webp',
   'image/gif': '.gif',
 };
+
+const VIDEO_EXTENSION_BY_MIME: Record<string, string> = {
+  'video/mp4': '.mp4',
+  'video/webm': '.webm',
+  'video/quicktime': '.mov',
+};
+export const VIDEO_MAX_MB = 50;
+
+const fileName = (extension: string) =>
+  `${Date.now()}-${randomBytes(6).toString('hex')}${extension}`;
 
 @Controller('uploads')
 export class UploadController {
@@ -48,12 +59,40 @@ export class UploadController {
     const urls = await Promise.all(
       files.map((file) =>
         this.storageService.save(
-          `${Date.now()}-${randomBytes(6).toString('hex')}${EXTENSION_BY_MIME[file.mimetype]}`,
+          fileName(EXTENSION_BY_MIME[file.mimetype]),
           file.buffer,
           file.mimetype,
         ),
       ),
     );
     return { urls };
+  }
+
+  /** 1 video tin đăng (MP4 / WEBM / MOV). Nginx production phải cho body ≥ VIDEO_MAX_MB. */
+  @Post('video')
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(
+    FileInterceptor('file', {
+      // shortcut: giữ cả file trong RAM (≤ 50MB/request) — video lớn hơn / nhiều người cùng tải
+      // thì chuyển sang upload thẳng lên S3 bằng presigned URL
+      storage: memoryStorage(),
+      limits: { fileSize: VIDEO_MAX_MB * 1024 * 1024 },
+      fileFilter: (_req, file, callback) =>
+        file.mimetype in VIDEO_EXTENSION_BY_MIME
+          ? callback(null, true)
+          : callback(
+              new BadRequestException('Chỉ chấp nhận video MP4, WEBM, MOV'),
+              false,
+            ),
+    }),
+  )
+  async uploadVideo(@UploadedFile() file: Express.Multer.File | undefined) {
+    if (!file) throw new BadRequestException('Chưa chọn video');
+    const url = await this.storageService.save(
+      fileName(VIDEO_EXTENSION_BY_MIME[file.mimetype]),
+      file.buffer,
+      file.mimetype,
+    );
+    return { url };
   }
 }

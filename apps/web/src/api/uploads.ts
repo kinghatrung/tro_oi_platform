@@ -20,3 +20,17 @@ export const antdUploadRequest: NonNullable<UploadProps['customRequest']> = ({
     .then(([url]) => onSuccess?.(url))
     .catch((error: Error) => onError?.(error));
 };
+
+/** Tối đa của POST /uploads/video (VIDEO_MAX_MB bên API). */
+export const VIDEO_MAX_MB = 50;
+
+/** Tải 1 video tin đăng; `onProgress` nhận % đã gửi. */
+export async function uploadVideo(file: Blob, onProgress?: (percent: number) => void) {
+  const body = new FormData();
+  body.append('file', file);
+  const res = (await axiosClient.post('/uploads/video', body, {
+    onUploadProgress: (event) =>
+      event.total && onProgress?.(Math.round((event.loaded / event.total) * 100)),
+  })) as ApiResponse<{ url: string }>;
+  return res.data.url;
+}

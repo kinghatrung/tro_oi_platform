@@ -2,8 +2,8 @@
 
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useState } from 'react';
-import { Button, Card, Flex, Space, type MenuProps } from 'antd';
-import { ListFilter } from 'lucide-react';
+import { Button, Card, Flex, Input, Space, type MenuProps } from 'antd';
+import { ListFilter, Search } from 'lucide-react';
 import {
   PRODUCT_CATEGORY_LABELS,
   PRODUCT_CONDITION_LABELS,
@@ -13,6 +13,7 @@ import {
 
 import { ButtonDropdown, CardDropdown } from '@/components/common';
 import { PRODUCT_CONDITION_OPTIONS, PRODUCT_PRICE_RANGES } from '@/lib/constants/constantsProduct';
+import { recordSearch } from '@/lib/viewHistory';
 import { formatVietnamDate } from '@/utils/helpers';
 
 import { CategoryStrip, PRODUCT_CATEGORY_ITEMS } from './CategoryStrip';
@@ -27,7 +28,7 @@ const CONDITION_MENU = toMenu(PRODUCT_CONDITION_OPTIONS);
 const PRICE_MENU = PRODUCT_PRICE_RANGES.map(({ key, label }) => ({ key, label }));
 
 /** Bộ lọc chọn trong dropdown, chỉ đẩy lên URL khi bấm "Áp dụng" / "Lọc" (như /tim-kiem). */
-const FILTER_KEYS = ['category', 'condition', 'price'] as const;
+const FILTER_KEYS = ['keyword', 'category', 'condition', 'price'] as const;
 type FilterState = Record<(typeof FILTER_KEYS)[number], string>;
 const EMPTY_FILTERS = Object.fromEntries(FILTER_KEYS.map((key) => [key, ''])) as FilterState;
 const readFilters = (params: URLSearchParams) =>
@@ -64,7 +65,9 @@ function ProductFiltersForm({ serializedParams }: { serializedParams: string }) 
   const [filters, setFilters] = useState<FilterState>(() => readFilters(params));
 
   /** Đẩy bộ lọc lên URL (giữ sắp xếp, từ khoá, khu vực), về trang 1. */
-  const navigate = (next: FilterState) => {
+  const navigate = (raw: FilterState) => {
+    const next = { ...raw, keyword: raw.keyword.trim() };
+    if (next.keyword) recordSearch(pathname, next.keyword);
     const query = new URLSearchParams(serializedParams);
     FILTER_KEYS.forEach((key) => (next[key] ? query.set(key, next[key]) : query.delete(key)));
     query.delete('page');
@@ -106,7 +109,19 @@ function ProductFiltersForm({ serializedParams }: { serializedParams: string }) 
   return (
     <Card variant="borderless">
       <Flex gap={16} vertical>
-        <h1 className="text-primary text-[16px]! first-letter:uppercase">{buildTitle(params)}</h1>
+        <Flex align="center" justify="space-between" wrap gap={12}>
+          <h1 className="text-primary text-[16px]! first-letter:uppercase">{buildTitle(params)}</h1>
+          <Input
+            allowClear
+            aria-label="Từ khoá tìm kiếm"
+            placeholder="Từ khoá, vd: tủ lạnh"
+            prefix={<Search size={16} className="text-subtle" />}
+            value={filters.keyword}
+            onChange={(event) => pick('keyword')(event.target.value)}
+            onPressEnter={() => navigate(filters)}
+            className="w-full! rounded-2xl! sm:w-72!"
+          />
+        </Flex>
 
         <Flex align="center" justify="space-between" wrap gap={8}>
           <Space wrap>

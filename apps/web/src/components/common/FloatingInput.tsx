@@ -8,6 +8,7 @@ interface FloatingInputProps {
   className?: string;
   value?: string;
   onChange?: ChangeEventHandler<HTMLInputElement>;
+  disabled?: boolean;
 }
 
 /**
@@ -15,7 +16,7 @@ interface FloatingInputProps {
  * @param title - Label text to display
  * @param className - Additional CSS classes to apply to the input
  */
-export function FloatingInput({ title, className, value, onChange }: FloatingInputProps) {
+export function FloatingInput({ title, className, value, onChange, disabled }: FloatingInputProps) {
   const inputId = useId();
   const [internalValue, setInternalValue] = useState('');
   const [focused, setFocused] = useState(false);
@@ -35,6 +36,7 @@ export function FloatingInput({ title, className, value, onChange }: FloatingInp
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
         placeholder=" "
+        disabled={disabled}
         className={className}
       />
 

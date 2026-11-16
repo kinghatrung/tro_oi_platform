@@ -1,3 +1,4 @@
+import path from 'node:path';
 import type { NextConfig } from 'next';
 
 /** Nơi phục vụ ảnh upload: API (ổ đĩa) và — khi API lưu ảnh lên S3 — domain công khai của bucket. */
@@ -9,6 +10,9 @@ const uploadHosts = [
   .map((value) => new URL(value));
 
 const nextConfig: NextConfig = {
+  // Image Docker chỉ chép .next/standalone; trace từ gốc monorepo để kèm packages/shared + node_modules gốc
+  output: 'standalone',
+  outputFileTracingRoot: path.join(__dirname, '../..'),
   // @tro-oi/shared là TS source (enum runtime) nên Next phải tự biên dịch
   transpilePackages: ['@tro-oi/shared'],
   images: {

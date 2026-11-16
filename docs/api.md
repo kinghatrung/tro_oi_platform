@@ -37,6 +37,8 @@
 | 500    | Lỗi không mong muốn phía server                   |
 | 503    | Firebase chưa cấu hình trên server                |
 
+**Rate limit** (`WriteThrottlerGuard`, theo IP — sau proxy cần `TRUST_PROXY`): chỉ request ghi HTTP (POST/PATCH/PUT/DELETE) — 60 / phút; `/auth/*` 10 / phút. GET và Socket.IO không giới hạn (SSR của web gọi GET từ 1 IP). Vượt → `429 "Bạn thao tác quá nhanh, vui lòng thử lại sau ít phút"`. Header bảo mật: `helmet` (`Cross-Origin-Resource-Policy: cross-origin` để web nhúng ảnh `/uploads`).
+
 ## Xác thực
 
 - Header `Authorization: Bearer <accessToken>` (JWT HS256, hạn `JWT_EXPIRES_IN`, mặc định 7d).
@@ -74,8 +76,23 @@ Response `data` — Type `AuthResponse`:
 - Chỉ nhận token có `sign_in_provider` = `google.com` / `facebook.com` (khác → 400). Firebase chưa cấu hình → 503.
 - Tài khoản nhận diện theo **Firebase UID** (`users.firebaseUid`), **không** gộp với tài khoản SĐT theo email (email hồ sơ chưa xác minh — gộp sẽ cho phép chiếm tài khoản). Lần đầu tạo tài khoản: tên (2–50 ký tự, không có → "Người dùng mới"), ảnh đại diện, email **chỉ khi nhà cung cấp đã xác minh**; **không có `phone`** (trang tin không hiện "Hiện số" / Zalo, không gửi SMS).
 - Bị khoá → 403. Tự xoá tài khoản → bỏ `firebaseUid`, đăng nhập lại = tài khoản mới.
+- Lưu `users.socialProvider` (`google.com` / `facebook.com`); tài khoản cũ thiếu thì bổ sung ở lần đăng nhập sau.
 
 Response giống `verify-phone`.
+
+---
+
+### Liên kết tài khoản 🔒 — `/auth/link/*`
+
+1 tài khoản đăng nhập được bằng SĐT **và** 1 Google hoặc 1 Facebook. Web gọi Firebase (popup / OTP) lấy ID token như lúc đăng nhập rồi gửi lên. Response: `User` (đã cập nhật). Chung giới hạn 10 request / phút của `/auth`.
+
+| Method | Path                 | Body                | Ghi chú |
+| ------ | -------------------- | ------------------- | ------- |
+| POST   | `/auth/link/social`  | `{ firebaseToken }` | Token Google / Facebook (khác → 400). Gán `firebaseUid` + `socialProvider`, thêm email đã xác minh nếu hồ sơ chưa có. Đã gắn cái khác → 400; UID đã thuộc tài khoản khác → **409** (không tự gộp 2 tài khoản) |
+| DELETE | `/auth/link/social`  | —                   | Huỷ liên kết. Tài khoản chưa có SĐT → 400 (sẽ không đăng nhập lại được) |
+| POST   | `/auth/link/phone`   | `{ firebaseToken }` | Token sau khi xác minh OTP (`phone_number`). Đã có SĐT → 400; SĐT thuộc tài khoản khác → **409** |
+
+`User.socialProvider`: `google.com` / `facebook.com` / `social` (đã liên kết nhưng tài khoản cũ chưa ghi nhà cung cấp) / không có. Chỉ trả ở `/users/me`, `/auth/*`, admin.
 
 ---
 
@@ -111,7 +128,7 @@ Type `SavedSearch`: `{ id, query, title, createdAt }` — web mở lại bằng 
 | POST   | `/users/me/saved-searches` 🔒      | `{ query (≤1000, query string /tim-kiem không có page), title (≤200) }`. Trùng `query` → trả bản đã có; tối đa 20 (400) | `SavedSearch` |
 | DELETE | `/users/me/saved-searches/:id` 🔒  | Xoá tìm kiếm đã lưu (idempotent)        | `null`                  |
 | GET    | `/users/me/export` 🔒              | Tải toàn bộ dữ liệu của tôi: `profile`, tin / món đồ, đánh giá đã viết & nhận, cuộc trò chuyện kèm tin nhắn (`fromMe`), thông báo, báo cáo đã gửi, tin đã lưu, tìm kiếm đã lưu | JSON |
-| DELETE | `/users/me` 🔒                     | Tự xoá tài khoản (**ẩn danh hoá**), body `{ confirm: "XOA TAI KHOAN" }` (sai → 400). Xoá tin, món đồ, đánh giá về mình, thông báo, tin / tìm kiếm đã lưu, token push; tên → "Người dùng đã xoá", bỏ email/ảnh/bio, SĐT → `deleted:<id>` (số đó đăng ký lại được), `isBlocked` + `deletedAt` (token cũ → 403, `GET /users/:id` → 404). Tin nhắn / đánh giá đã viết giữ lại. Admin → 400. Ghi nhật ký "Tự xoá tài khoản" | `null` |
+| DELETE | `/users/me` 🔒                     | Tự xoá tài khoản (**ẩn danh hoá**), body `{ confirm: "XOA TAI KHOAN" }` (sai → 400). Xoá tin, món đồ, đánh giá về mình, thông báo, tin / tìm kiếm đã lưu, token push; tên → "Người dùng đã xoá", bỏ email/ảnh/bio, SĐT → `deleted:<id>` (số đó đăng ký lại được), `isBlocked` + `deletedAt` (token cũ → 403, `GET /users/:id` → 404). Xoá luôn file ảnh đã upload của tin, món đồ, avatar, ảnh bìa (`StorageService.remove`, lỗi từng file chỉ ghi log). Tin nhắn (kèm ảnh) / đánh giá đã viết giữ lại. Admin → 400. Ghi nhật ký "Tự xoá tài khoản" | `null` |
 | GET    | `/users/:id`                       | Hồ sơ công khai (ẩn `phone`, `email`)   | `User`                  |
 
 `PATCH /users/me` body — Type `UpdateProfileRequest` (tất cả tuỳ chọn):
@@ -156,6 +173,7 @@ Type `Listing` (rút gọn):
 - `viewCount`: mỗi lần gọi `GET /listings/:id` +1 (không đổi `updatedAt`).
 - `favoriteCount` (số người đã lưu) chỉ có ở `GET /listings/mine` — dùng cho Kênh người đăng.
 - `videoUrl`: link YouTube (không có video → không có field).
+- `video`: video tự tải lên (URL `/uploads/...mp4`); web ưu tiên hiện video này, không có mới dùng `videoUrl`.
 - `amenities` ∈ `wifi | air-conditioner | water-heater | washing-machine | fridge | kitchen | private-wc | balcony | elevator | parking | security | free-hours | pets` (luôn là mảng, có thể rỗng).
 - `expiresAt`: tin hiển thị 30 ngày (`LISTING_TTL_DAYS`) kể từ lần gần nhất chuyển sang `active` (đăng không cần duyệt / admin duyệt / hiện lại / gia hạn). Quá hạn → API tự chuyển `expired` (kiểm tra lúc khởi động + mỗi giờ). Chủ tin gia hạn bằng `PATCH /listings/:id { status: 'active' }`. Tin `active` cũ chưa có hạn được cấp 1 kỳ khi API khởi động. Còn ≤ 3 ngày → gửi thông báo "Tin sắp hết hạn" (1 lần mỗi kỳ); hết hạn → thông báo "Tin đã hết hạn" (xem [Notifications](#notifications--notifications)).
 
@@ -206,6 +224,7 @@ Response: `{ "items": Listing[], "total": 120, "page": 1, "pageSize": 10 }`.
 | `title`       | string        | ✔        | 10–150 ký tự                 |
 | `description` | string        |          | ≤ 5000 ký tự                 |
 | `videoUrl`    | string        |          | Link YouTube **https**: `youtube.com/watch?v=`, `youtu.be/`, `/shorts/`, `/embed/` (id 11 ký tự). `""` = gỡ video khi sửa |
+| `video`       | string        |          | URL từ `POST /uploads/video` — phải là file của hệ thống (`StorageService.isStoredUrl`, khác → 400). `""` = gỡ. Đổi / gỡ / xoá tin → file video cũ bị xoá (xoá tin xoá cả ảnh) |
 | `category`    | enum          | ✔        |                              |
 | `transaction` | enum          | ✔        |                              |
 | `price`       | number        | ✔        | ≥ 0 (VND)                    |
@@ -232,6 +251,10 @@ Admin đổi trạng thái / xoá tin **của người khác** (Trọ ơi và Ch
 Response `data` — Type `UploadResponse`: `{ "urls": ["http://localhost:5000/uploads/1730450000000-ab12cd.jpg"] }`
 
 Lưu ở S3 khi có env `S3_BUCKET` (URL `S3_PUBLIC_URL/uploads/<tên>`), ngược lại ở ổ đĩa (URL `API_PUBLIC_URL/uploads/<tên>`). Tên file do server sinh ngẫu nhiên. Đuôi file lấy theo MIME (không theo tên file gửi lên); file tĩnh trả kèm `X-Content-Type-Options: nosniff`.
+
+### `POST /uploads/video` 🔒
+
+Video tin đăng Trọ ơi: `multipart/form-data`, field **`file`** (1 file) ≤ 50 MB, MIME `video/mp4|webm|quicktime` (`.mp4/.webm/.mov`). Response `data`: `{ "url": "http://localhost:5000/uploads/1730450000000-ab12cd.mp4" }`. Lưu giống ảnh (ổ đĩa / S3). File giữ trong RAM khi nhận (≤ 50 MB) — production nginx `client_max_body_size` ≥ 50m.
 
 ### `GET /uploads/<file>`
 
@@ -369,8 +392,9 @@ Mọi route: `JwtAuthGuard` + `AdminGuard` (không phải admin → 403). Sửa/
 | Method | Path | Mô tả | `data` |
 | --- | --- | --- | --- |
 | GET | `/admin/stats` | Người dùng (tổng, bị khoá, mới 7 ngày, `byRole`); tin Trọ ơi (`byStatus`, `byCategory`, `topCities` 6 tỉnh nhiều tin đang hiển thị nhất, `views` tổng lượt xem); tin Chợ ơi (`byStatus`, `byCategory`, `views`); báo cáo đang mở; `daily` = 90 ngày gần nhất `{ date: YYYY-MM-DD, users, listings, products }` số bản ghi mới mỗi ngày theo **giờ Việt Nam**, cũ → mới, ngày trống = 0 | `AdminStats` |
-| GET | `/admin/users` | `keyword` (tên / SĐT — gõ `09…` được / email), `role`, `isBlocked`, `page`, `pageSize` | `PagedResponse<AdminUser>` (kèm `listingCount`, `productCount`) |
+| GET | `/admin/users` | Không gồm tài khoản đã xoá (`deletedAt`). `keyword` (tên / SĐT — gõ `09…` được / email), `role`, `isBlocked`, `page`, `pageSize` | `PagedResponse<AdminUser>` (kèm `listingCount`, `productCount`) |
 | PATCH | `/admin/users/:id` | `{ role?, isBlocked? }` — không tự sửa chính mình (400) | `User` |
+| DELETE | `/admin/users/:id` | Xoá tài khoản người khác — y như `DELETE /users/me` (ẩn danh hoá + dọn ảnh). Chính mình / tài khoản quản trị (phải hạ quyền trước) → 400. Nhật ký "Xoá tài khoản" kèm tên | `null` |
 | GET | `/admin/listings` | Như `GET /listings` + `status` (bỏ trống = mọi trạng thái) | `PagedResponse<Listing>` |
 | GET | `/admin/listings/map` | Tin **có toạ độ** (`address.geo`) cho bản đồ quản trị: lọc như `/admin/listings` (`status`, `category`, `city`, `keyword`...), **không phân trang**, tối đa 5000 tin mới nhất. Mỗi phần tử `{ id, title, price, transaction, status, category, city, ward, geo }` | `ListingMapPoint[]` |
 | GET | `/admin/products/map` | Món **có toạ độ** (`address.geo`) cho bản đồ quản trị: lọc như `/admin/products` (`status`, `category`, `city`, `keyword`...), **không phân trang**, tối đa 5000 món mới nhất. Mỗi phần tử `{ id, title, price, status, category, city, ward, geo }` | `ProductMapPoint[]` |

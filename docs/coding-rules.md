@@ -146,6 +146,7 @@ export async function getListing(id: string) {
 - Secret/config chỉ đọc qua `ConfigService`; thêm biến mới → cập nhật `.env.example` + `project-structure.md`.
 - Thông báo cho người dùng **luôn** qua `NotificationService.notify` (lưu + realtime + push / email / SMS theo cài đặt) — không tự emit socket hay gửi email ở module khác. Sự kiện realtime khác dùng `RealtimeService.emitToUser`.
 - URL ảnh do người dùng gửi để hiển thị cho **người khác** (chat) phải qua `StorageService.isStoredUrl` — chỉ nhận ảnh đã upload qua `/uploads`.
+- Xoá file upload qua `StorageService.remove(urls)` (tự bỏ qua URL ngoài hệ thống, lỗi chỉ ghi log) — không `unlink` / gọi S3 trực tiếp.
 - Logic không tầm thường (filter, quyền, parse) → có ít nhất 1 unit test `*.spec.ts`.
 
 ## 5. Shared (`packages/shared`)

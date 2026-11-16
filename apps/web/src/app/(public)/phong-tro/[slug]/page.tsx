@@ -6,6 +6,8 @@ import { Row, Col } from 'antd';
 import { ApiError } from '@/api/axiosClient';
 import { getListing, searchListings } from '@/api/listings';
 import { SectionNews, AgentCard, PropertyOverview } from '@/components/sections';
+import { buildOpenGraph } from '@/lib/seo';
+import { loadSiteSettings } from '@/lib/siteSettings';
 import { formatListingPrice } from '@/utils/helpers';
 
 interface PageProps {
@@ -29,10 +31,12 @@ const getListingOrNotFound = cache(async (id: string) => {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const listing = await getListingOrNotFound((await params).slug);
+  const path = `/phong-tro/${listing.id}`;
   return {
     title: `${listing.title}`,
     description: `${formatListingPrice(listing.price, listing.transaction)} - ${listing.address?.fullAddress ?? ''}`,
-    openGraph: { images: listing.images.slice(0, 1) },
+    alternates: { canonical: path },
+    openGraph: buildOpenGraph((await loadSiteSettings()).siteName, path, listing.images),
   };
 }
 

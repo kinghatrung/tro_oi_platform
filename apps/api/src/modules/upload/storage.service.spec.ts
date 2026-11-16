@@ -1,5 +1,9 @@
 import { jest } from '@jest/globals';
-import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import {
+  DeleteObjectCommand,
+  PutObjectCommand,
+  S3Client,
+} from '@aws-sdk/client-s3';
 
 import { StorageService } from './storage.service.js';
 
@@ -51,6 +55,34 @@ describe('StorageService', () => {
     expect(() => new StorageService(configOf(missingUrl))).toThrow(
       'S3_PUBLIC_URL',
     );
+  });
+
+  it('remove: chỉ xoá file của hệ thống, mỗi file 1 lần', async () => {
+    const send = jest
+      .spyOn(S3Client.prototype, 'send')
+      .mockResolvedValue({} as never);
+    const removed = await new StorageService(configOf(S3_ENV)).remove([
+      'https://cdn.example.com/uploads/a.jpg',
+      'https://cdn.example.com/uploads/a.jpg',
+      'https://evil.example/uploads/b.jpg',
+      'https://cdn.example.com/uploads/../secret',
+      null,
+      undefined,
+    ]);
+
+    expect(removed).toBe(1);
+    expect(send).toHaveBeenCalledTimes(1);
+    expect((send.mock.calls[0][0] as DeleteObjectCommand).input).toEqual({
+      Bucket: 'tro-oi',
+      Key: 'uploads/a.jpg',
+    });
+  });
+
+  it('remove trên ổ đĩa: file đã mất (ENOENT) không tính là lỗi', async () => {
+    const storage = new StorageService(configOf({}));
+    await expect(
+      storage.remove(['http://localhost:5000/uploads/khong-ton-tai-123.jpg']),
+    ).resolves.toBe(1);
   });
 
   it('isStoredUrl: chỉ nhận URL uploads/ của chính hệ thống', () => {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useCallback } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Row, Col, Flex } from 'antd';
 import type { Listing } from '@tro-oi/shared';
@@ -8,10 +8,11 @@ import type { Listing } from '@tro-oi/shared';
 import { DEFAULT_SORT } from '@/constants';
 import { formatNumber } from '@/utils/helpers';
 
-import { HeaderToolbar, type ViewMode } from './HeaderToolbar';
+import { HeaderToolbar } from './HeaderToolbar';
 import { CardItem } from './CardItem';
 import { EmptyState, EmptyVariant } from './EmptyState';
 import { PaginationControl } from './PaginationControl';
+import { usePersistedViewMode } from './usePersistedViewMode';
 
 interface SearchResultsListProps {
   items: Listing[];
@@ -30,7 +31,7 @@ export function SearchResultsList({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const [viewMode, setViewMode] = useState<ViewMode>('list');
+  const [viewMode, setViewMode] = usePersistedViewMode('viewModeListings', 'list');
   const sortKey = searchParams.get('sort') ?? DEFAULT_SORT;
 
   const handleSortChange = useCallback(

@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Injectable,
   Logger,
@@ -9,7 +10,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { JwtService, type JwtSignOptions } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
-import type { Model } from 'mongoose';
+import { isValidObjectId, type Model } from 'mongoose';
 
 import { FirebaseService } from './firebase.service.js';
 import { User, toUser } from './schemas/user.schema.js';
@@ -18,6 +19,10 @@ import type { UserDocument } from './schemas/user.schema.js';
 /** Nhà cung cấp Firebase được nhận ở /auth/social (SĐT đi qua /auth/verify-phone). */
 export const SOCIAL_PROVIDERS = ['google.com', 'facebook.com'];
 const NAME_MAX = 50;
+const LINKED_ELSEWHERE = {
+  social: 'Tài khoản Google/Facebook này đã dùng cho một tài khoản Trọ ơi khác',
+  phone: 'Số điện thoại này đã dùng cho một tài khoản Trọ ơi khác',
+};
 
 @Injectable()
 export class AuthService implements OnModuleInit {
@@ -75,21 +80,23 @@ export class AuthService implements OnModuleInit {
    * Nhận diện theo Firebase UID — không gộp với tài khoản SĐT theo email (email hồ sơ chưa xác minh).
    */
   async socialLogin(firebaseToken: string) {
-    const decoded = await this.firebaseService.verifyIdToken(firebaseToken);
-    if (!SOCIAL_PROVIDERS.includes(decoded.firebase?.sign_in_provider)) {
-      throw new BadRequestException(
-        'Chỉ hỗ trợ đăng nhập bằng Google hoặc Facebook',
-      );
-    }
+    const decoded = await this.verifySocialToken(firebaseToken);
+    const provider = decoded.firebase.sign_in_provider;
 
     let user = await this.userModel
       .findOne({ firebaseUid: decoded.uid })
       .exec();
     const isNewUser = !user;
+    if (user && !user.socialProvider) {
+      // Tài khoản tạo trước khi lưu nhà cung cấp → bổ sung để trang cá nhân hiện đúng
+      user.socialProvider = provider;
+      await user.save();
+    }
     if (!user) {
       const name = (decoded.name ?? '').trim().slice(0, NAME_MAX);
       user = await this.userModel.create({
         firebaseUid: decoded.uid,
+        socialProvider: provider,
         name: name.length >= 2 ? name : 'Người dùng mới',
         // Chỉ lấy email nhà cung cấp đã xác minh (Facebook có thể trả email chưa xác minh)
         email: decoded.email_verified ? decoded.email : undefined,
@@ -99,6 +106,99 @@ export class AuthService implements OnModuleInit {
       });
     }
     return this.issueSession(user, isNewUser);
+  }
+
+  /**
+   * Gắn Google / Facebook vào tài khoản đang đăng nhập (vd tài khoản SĐT) → lần sau đăng nhập cách
+   * nào cũng vào cùng 1 tài khoản. Mỗi tài khoản gắn được 1 Google hoặc 1 Facebook.
+   * shortcut: tài khoản Google đã có tài khoản Trọ ơi riêng → 409, chưa hỗ trợ gộp 2 tài khoản.
+   */
+  async linkSocial(userId: string, firebaseToken: string) {
+    const decoded = await this.verifySocialToken(firebaseToken);
+    const user = await this.findActiveUser(userId);
+    if (user.firebaseUid === decoded.uid) return toUser(user);
+    if (user.firebaseUid) {
+      throw new BadRequestException(
+        'Tài khoản đã liên kết Google/Facebook — huỷ liên kết cũ trước',
+      );
+    }
+    if (await this.userModel.exists({ firebaseUid: decoded.uid })) {
+      throw new ConflictException(LINKED_ELSEWHERE.social);
+    }
+    user.firebaseUid = decoded.uid;
+    user.socialProvider = decoded.firebase.sign_in_provider;
+    if (!user.email && decoded.email_verified && decoded.email) {
+      user.email = decoded.email;
+    }
+    await this.saveUnique(user, LINKED_ELSEWHERE.social);
+    return toUser(user);
+  }
+
+  /** Gắn SĐT (đã xác minh OTP qua Firebase) vào tài khoản Google / Facebook đang đăng nhập. */
+  async linkPhone(userId: string, firebaseToken: string) {
+    const decoded = await this.firebaseService.verifyIdToken(firebaseToken);
+    const phone = decoded.phone_number;
+    if (!phone) {
+      throw new BadRequestException('Token không chứa số điện thoại');
+    }
+    const user = await this.findActiveUser(userId);
+    if (user.phone === phone) return toUser(user);
+    if (user.phone) {
+      throw new BadRequestException('Tài khoản đã có số điện thoại');
+    }
+    if (await this.userModel.exists({ phone })) {
+      throw new ConflictException(LINKED_ELSEWHERE.phone);
+    }
+    user.phone = phone;
+    await this.saveUnique(user, LINKED_ELSEWHERE.phone);
+    return toUser(user);
+  }
+
+  /** Huỷ liên kết Google / Facebook — chỉ khi còn SĐT để đăng nhập lại. */
+  async unlinkSocial(userId: string) {
+    const user = await this.findActiveUser(userId);
+    if (!user.firebaseUid) return toUser(user);
+    if (!user.phone) {
+      throw new BadRequestException(
+        'Thêm số điện thoại trước khi huỷ liên kết, nếu không bạn sẽ không đăng nhập lại được',
+      );
+    }
+    user.firebaseUid = undefined;
+    user.socialProvider = undefined;
+    await user.save();
+    return toUser(user);
+  }
+
+  private async verifySocialToken(firebaseToken: string) {
+    const decoded = await this.firebaseService.verifyIdToken(firebaseToken);
+    if (!SOCIAL_PROVIDERS.includes(decoded.firebase?.sign_in_provider)) {
+      throw new BadRequestException(
+        'Chỉ hỗ trợ đăng nhập bằng Google hoặc Facebook',
+      );
+    }
+    return decoded;
+  }
+
+  private async findActiveUser(userId: string) {
+    const user = isValidObjectId(userId)
+      ? await this.userModel.findById(userId).exec()
+      : null;
+    if (!user || user.deletedAt) {
+      throw new NotFoundException('Không tìm thấy người dùng');
+    }
+    return user;
+  }
+
+  /** Lưu; 2 request liên kết cùng lúc vượt qua bước kiểm tra → index unique chặn → 409. */
+  private async saveUnique(user: UserDocument, conflictMessage: string) {
+    try {
+      await user.save();
+    } catch (error) {
+      if ((error as { code?: number }).code === 11000) {
+        throw new ConflictException(conflictMessage);
+      }
+      throw error;
+    }
   }
 
   /** Đăng nhập không OTP — chỉ khi AUTH_DEV_LOGIN=true (dev/test). */

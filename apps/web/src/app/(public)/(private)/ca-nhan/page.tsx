@@ -12,6 +12,7 @@ import { ProfileHeader, ProfileListings } from '@/components/sections';
 import { useAuthStore, useRequireUser } from '@/stores/useAuthStore';
 
 import { AccountSection } from './AccountSection';
+import { LinkedAccounts } from './LinkedAccounts';
 import { ProfileEditModal } from './ProfileEditModal';
 
 /** Hồ sơ của tôi: sửa hồ sơ + xem tin đã đăng. Quản lý tin ở /kenh-nguoi-dang. */
@@ -60,6 +61,10 @@ export default function ProfilePage() {
             <Skeleton active />
           </Card>
         )}
+      </Col>
+
+      <Col span={24}>
+        <LinkedAccounts user={user} />
       </Col>
 
       <Col span={24}>
