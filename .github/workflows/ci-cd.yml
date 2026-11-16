@@ -1,0 +1,62 @@
+# CI: kiểm tra mọi push / PR vào main, dev. CD: push vào main + CI xanh → SSH vào VPS chạy scripts/deploy.sh.
+# Secrets cần tạo (Settings → Secrets and variables → Actions): xem docs/deploy.md mục CI/CD.
+name: CI/CD
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: yarn
+      - run: yarn install --frozen-lockfile
+
+      - name: API — lint, typecheck, test, build
+        working-directory: apps/api
+        run: |
+          yarn lint
+          npx tsc --noEmit -p tsconfig.json
+          yarn test
+          yarn build
+
+      - name: Web — typecheck, lint
+        working-directory: apps/web
+        run: |
+          npx next typegen
+          npx tsc --noEmit -p .
+          npx eslint src
+
+  deploy:
+    needs: check
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    concurrency: deploy-production
+    steps:
+      - name: Deploy lên VPS
+        env:
+          SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+          HOST: ${{ secrets.VPS_HOST }}
+          PORT: ${{ secrets.VPS_PORT || '22' }}
+          USER: ${{ secrets.VPS_USER }}
+          APP_DIR: ${{ secrets.VPS_APP_DIR }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          # Lấy code trước rồi mới chạy script → luôn chạy bản deploy.sh mới nhất
+          ssh -i ~/.ssh/deploy_key -p "$PORT" "$USER@$HOST" \
+            "cd '$APP_DIR' && git fetch --prune origin main && git reset --hard origin/main && bash scripts/deploy.sh"

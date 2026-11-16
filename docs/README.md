@@ -2,11 +2,12 @@
 
 Thư mục này là **nguồn sự thật duy nhất** cho người và AI khi làm việc với repo.
 
-| File                                           | Nội dung                                                        |
-| ---------------------------------------------- | --------------------------------------------------------------- |
-| [coding-rules.md](coding-rules.md)             | Quy tắc code bắt buộc (chung, web, api) + checklist trước commit |
-| [project-structure.md](project-structure.md)   | Cấu trúc monorepo, route web, component, luồng dữ liệu, env     |
-| [api.md](api.md)                               | Hợp đồng REST API: endpoint, request, response, auth, lỗi       |
+| File                                         | Nội dung                                                          |
+| -------------------------------------------- | ----------------------------------------------------------------- |
+| [coding-rules.md](coding-rules.md)           | Quy tắc code bắt buộc (chung, web, api) + checklist trước commit  |
+| [project-structure.md](project-structure.md) | Cấu trúc monorepo, route web, component, luồng dữ liệu, env       |
+| [api.md](api.md)                             | Hợp đồng REST API: endpoint, request, response, auth, lỗi         |
+| [deploy.md](deploy.md)                       | Deploy lên VPS (PM2 + Nginx + Cloudflare) và CI/CD GitHub Actions |
 
 ## Quy tắc bắt buộc về tài liệu
 

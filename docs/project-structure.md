@@ -11,6 +11,8 @@ tro-oi/
 ├── packages/
 │   └── shared/     # @tro-oi/shared — type, enum, label map dùng chung
 ├── docs/           # Tài liệu cho người & AI (file này)
+├── scripts/        # geo:build, geo:territory, deploy.sh (chạy trên VPS — xem deploy.md)
+├── .github/workflows/ci-cd.yml  # CI (lint/typecheck/test) + CD (SSH deploy khi push main)
 ├── CLAUDE.md / AGENTS.md  # Trỏ AI tới docs/
 └── package.json    # scripts: dev:web, dev:api, dev:mobile
 ```
@@ -354,5 +356,5 @@ Web dùng qua `transpilePackages: ['@tro-oi/shared']`; package trỏ thẳng `sr
 - Bản đồ quản trị tối đa 5000 điểm mới nhất mỗi nguồn (`MAP_LIMIT`). Món Chợ ơi đăng trước khi có ô ghim vị trí không có toạ độ → không lên bản đồ tới khi người bán sửa và ghim (seed mới đã có toạ độ).
 - Địa chỉ cũ không tự xác định được phường (vd quận cũ tách thành nhiều phường như "Quận 1") cần chủ tin sửa tay; API chưa kiểm tra `ward` thuộc đúng tỉnh.
 - Redis adapter và lưu S3 mới test bằng mock/unit test, chưa chạy với Redis/S3 thật.
-- API chưa giới hạn tần suất gọi (rate limit) và chưa có header bảo mật (helmet). Chưa có CI; web chưa có test tự động, test e2e API chỉ kiểm tra `GET /settings`.
+- API chưa giới hạn tần suất gọi (rate limit) và chưa có header bảo mật (helmet). CI chưa chạy `next build` (build ở bước deploy trên VPS) và chưa có `yarn audit`; web chưa có test tự động, test e2e API chỉ kiểm tra `GET /settings`.
 - Trang chính sách: mẫu `policyTemplates.ts` đã điền đủ (mô tả đúng hệ thống + cam kết chung theo pháp luật VN, ngày hiệu lực = ngày chèn, liên hệ lấy từ thiết lập) và đã đăng ở DB dev. **Chưa có tên / địa chỉ đơn vị vận hành**; nên nhờ người có chuyên môn pháp lý rà soát trước khi vận hành chính thức. Website rao vặt / sàn kết nối có thể thuộc diện phải thông báo hoặc đăng ký với Bộ Công Thương (thương mại điện tử) — cần xác minh.
