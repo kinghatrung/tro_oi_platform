@@ -5,6 +5,7 @@ Nền tảng tìm phòng trọ / căn hộ / nguyên căn / ở ghép (thuê & m
 ```
 tro-oi/
 ├── apps/
+│   ├── ai/         # Trợ lý AI (NestJS, port 5300) — model + công cụ đọc API công khai, không vào MongoDB (docs/ai.md)
 │   ├── api/        # NestJS 12 + MongoDB (Mongoose) — REST API, port 5000
 │   ├── web/        # Next.js 16 (App Router) + AntD 6 + Tailwind 4 — port 3001
 │   └── mobile/     # Expo / React Native (chưa phát triển, có AGENTS.md riêng)
@@ -170,7 +171,7 @@ src/
 ├── lib/youtube.ts                     # YOUTUBE_URL_PATTERN (trùng api) + youtubeEmbedUrl(): link → iframe youtube-nocookie
 ├── lib/viewHistory.ts                 # lịch sử đã xem (localStorage, 15 mục): recordView()/readViewHistory() cho tin Trọ ơi, recordProductView()/readProductHistory() cho món Chợ ơi; 3 từ khoá tìm kiếm gần nhất riêng theo basePath (recordSearch / readRecentSearches / removeRecentSearch) cho chip dưới SearchInput
 ├── components/
-│   ├── assistant/AssistantWidget.tsx  # nút tròn góc phải dưới → khung chat trợ lý AI (gắn ở providers.tsx, ẩn ở /quan-tri, /kenh-nguoi-dang, /dang-nhap, /tin-nhan; giữ hội thoại khi chuyển trang). CHƯA nối model: askAssistant() trả lời giả
+│   ├── assistant/AssistantWidget.tsx  # nút tròn góc phải dưới → khung chat trợ lý AI (gắn ở providers.tsx, ẩn ở /quan-tri, /kenh-nguoi-dang, /dang-nhap, /tin-nhan; giữ hội thoại khi chuyển trang). gọi apps/ai qua src/api/assistant.ts (SSE: dòng trạng thái, câu trả lời, thẻ tin bấm được)
 │   ├── layout/                        # Header (banner: trang chủ, Chợ ơi), SubHeader, Navbar (+ NotificationBell: nhận "notification:new" qua socket (badge + toast), hỏi lại khi kết nối lại và mỗi 5 phút dự phòng; MessagesButton: mở socket chat, badge tin nhắn; co theo màn: < lg ẩn ô khu vực + cặp "Trọ ơi!/Chợ ơi!" (Chợ ơi vào từ menu danh mục), < sm ẩn sáng/tối, Tin đã lưu, chuông, Đăng nhập; Tin nhắn / Đăng tin thành nút chỉ-icon), Container, Footer
 │   ├── common/                        # UI thuần dùng lại (xem bảng dưới)
 │   ├── chat/                          # UI chat thuần: ConversationList, ChatWindow (dòng "đang nhập…"), MessageBubble (ảnh → ImageLightbox; cột phải ghi người gửi + giờ, gõ tin ở đó = trả lời kèm đúng ảnh đang xem), ChatComposer (đính kèm ≤4 ảnh qua POST /uploads, báo typing ≤1 lần/2,5s)
@@ -218,7 +219,7 @@ src/
 | `/cho-oi/[id]`          | Server        | `GET /products/:id`, đồ tương tự; nút "Chat với người đăng" → `/tin-nhan?productId=` |
 | `/cho-oi/dang-ban` 🔒   | Client        | `POST /uploads`, `POST/PATCH /products`               |
 | `/kenh-nguoi-dang/do-ban` 🔒 | Client   | `GET /products/mine`, `PATCH/DELETE /products/:id`    |
-| `/quan-tri/*` 🔒 admin  | Client        | `/admin/*`, `PATCH/DELETE /listings|products/:id`, `PUT /admin/settings` |
+| `/quan-tri/*` 🔒 admin  | Client        | `/admin/*`, `PATCH/DELETE /listings|products/:id`, `PUT /admin/settings`; `/quan-tri/tro-ly-ai`: nhật ký trợ lý AI (`GET {AI_URL}/admin/conversations` của apps/ai — lọc Cần xem lại / 👎 / 👍 / Tất cả, xem công cụ AI đã gọi) |
 
 Breadcrumb (`BreadcrumbItem`) tự sinh từ URL theo `ROUTE_LABELS` — thêm route mới thì thêm nhãn vào đó.
 
@@ -349,7 +350,7 @@ Web dùng qua `transpilePackages: ['@tro-oi/shared']`; package trỏ thẳng `sr
 
 ## Chưa làm (backlog)
 
-- Trợ lý AI: mới có giao diện (AssistantWidget); chưa có API `/assistant/chat`, model, công cụ tìm/thống kê, log, RAG, agent thao tác giao diện.
+- Trợ lý AI: xem mục "Chưa làm" trong docs/ai.md (deploy, stream chữ, log, 👍/👎, RAG, thống kê giá, agent).
 - Tin tức, việc làm: mới có type ở shared. (Khảo sát: quyết định không làm — type `survey.ts` còn để lại, không phát triển.)
 - Báo tin mới khớp tìm kiếm đã lưu so khớp từng tìm kiếm bằng JS (không dùng index) — rất nhiều user cần lưu bộ lọc có cấu trúc để query thẳng Mongo. Tìm kiếm đã lưu dạng cũ có `district=` bị bỏ qua tham số đó.
 - Ứng dụng mobile / link tải app.

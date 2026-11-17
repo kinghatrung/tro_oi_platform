@@ -1,4 +1,5 @@
 import {
+  Bot,
   FileText,
   Flag,
   History,
@@ -21,6 +22,7 @@ export const ADMIN_MENU = [
   { key: `${ADMIN_BASE}/tin-cho`, label: 'Tin Chợ ơi', icon: <ShoppingBag size={18} /> },
   { key: `${ADMIN_BASE}/bao-cao`, label: 'Báo cáo vi phạm', icon: <Flag size={18} /> },
   { key: `${ADMIN_BASE}/nhat-ky`, label: 'Nhật ký thao tác', icon: <History size={18} /> },
+  { key: `${ADMIN_BASE}/tro-ly-ai`, label: 'Trợ lý AI', icon: <Bot size={18} /> },
   {
     key: `${ADMIN_BASE}/trang-chinh-sach`,
     label: 'Trang chính sách',

@@ -69,6 +69,13 @@ jobs:
           npx tsc --noEmit -p tsconfig.json
           yarn test
 
+      - name: AI — lint, typecheck, test
+        working-directory: apps/ai
+        run: |
+          yarn lint
+          npx tsc --noEmit -p tsconfig.json
+          yarn test
+
       - name: Web — typecheck, lint
         working-directory: apps/web
         run: |

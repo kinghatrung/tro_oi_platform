@@ -24,7 +24,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
         <SearchFilters />
       </Col>
 
-      <Col lg={18} md={24} xs={24}>
+      <Col lg={24} md={24} xs={24}>
         {!isPriceValid && (
           <p role="alert" className="mb-4 text-red-600">
             Khoảng giá không hợp lệ. Vui lòng nhập số không âm và giá tối đa không nhỏ hơn giá tối

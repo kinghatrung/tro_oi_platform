@@ -1,14 +1,44 @@
 'use client';
 
 import clsx from 'clsx';
+import Image from 'next/image';
+import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { Button, Input, Tag, Tooltip } from 'antd';
-import { Bot, SendHorizontal, Sparkles, X } from 'lucide-react';
+import { Bot, SendHorizontal, Sparkles, ThumbsDown, ThumbsUp, X } from 'lucide-react';
+import type { TransactionType } from '@tro-oi/shared';
+
+import { rateAssistantAnswer, streamAssistant, type AssistantCard } from '@/api/assistant';
+import { NO_IMAGE } from '@/constants';
+import { formatListingPrice, formatVietnameseCurrency } from '@/utils/helpers';
 
 interface ChatMessage {
   role: 'user' | 'assistant';
   text: string;
+  cards?: AssistantCard[];
+  /** Id lượt trả lời (sự kiện done) — có thì hiện 👍 / 👎. */
+  messageId?: string;
+  rating?: 1 | -1;
+}
+
+/** Số lượt gần nhất gửi kèm làm ngữ cảnh (dịch vụ AI chưa lưu phiên). */
+const HISTORY_SIZE = 10;
+
+const SESSION_KEY = 'assistantSessionId';
+
+/** Id phiên chat theo tab trình duyệt — nhật ký gom các lượt của 1 cuộc trò chuyện. */
+function getSessionId() {
+  try {
+    let id = sessionStorage.getItem(SESSION_KEY);
+    if (!id) {
+      id = crypto.randomUUID();
+      sessionStorage.setItem(SESSION_KEY, id);
+    }
+    return id;
+  } catch {
+    return crypto.randomUUID(); // chặn storage (chế độ riêng tư) → mỗi câu 1 phiên
+  }
 }
 
 /** Trang có giao diện riêng (quản trị, kênh người đăng, đăng nhập, tin nhắn) → không hiện nút. */
@@ -27,14 +57,34 @@ const SUGGESTIONS = {
   ],
 };
 
-/**
- * shortcut: chưa nối model AI — trả lời giả để dựng giao diện.
- * Khi có API (POST /assistant/chat) thì thay hàm này, giữ nguyên chữ ký.
- */
-async function askAssistant(history: ChatMessage[]): Promise<string> {
-  await new Promise((resolve) => setTimeout(resolve, 700));
-  const question = history.at(-1)?.text ?? '';
-  return `Mình đã nhận câu hỏi “${question}”. Trợ lý AI đang được kết nối nên chưa trả lời được — trong lúc chờ, bạn thử dùng ô tìm kiếm và bộ lọc nhé!`;
+/** Thẻ tin / món đồ trong câu trả lời — bấm mở trang chi tiết. */
+function ResultCard({ card, onOpen }: { card: AssistantCard; onOpen: () => void }) {
+  const isListing = card.kind === 'listing';
+  return (
+    <Link
+      href={isListing ? `/phong-tro/${card.id}` : `/cho-oi/${card.id}`}
+      onClick={onOpen}
+      className="flex gap-2 rounded-xl border border-line bg-surface p-2 transition-colors hover:border-brand"
+    >
+      <Image
+        src={card.image || NO_IMAGE}
+        alt=""
+        width={64}
+        height={64}
+        className="size-16 shrink-0 rounded-lg object-cover"
+      />
+      <div className="min-w-0 text-left">
+        <p className="line-clamp-2 text-sm font-semibold leading-snug text-ink">{card.title}</p>
+        <p className="text-sm font-bold text-price">
+          {isListing && card.transaction
+            ? formatListingPrice(card.price, card.transaction as TransactionType)
+            : formatVietnameseCurrency(card.price)}
+          {card.area ? <span className="font-normal text-subtle"> · {card.area}m²</span> : null}
+        </p>
+        {card.address && <p className="truncate text-xs text-subtle">{card.address}</p>}
+      </div>
+    </Link>
+  );
 }
 
 /** Nút tròn góc phải dưới → khung chat với trợ lý AI (giữ hội thoại khi chuyển trang). */
@@ -45,6 +95,8 @@ export function AssistantWidget() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [draft, setDraft] = useState('');
   const [isThinking, setIsThinking] = useState(false);
+  /** Dòng trạng thái dịch vụ AI gửi về, vd "Đang tìm phòng ở Phường Cầu Giấy…". */
+  const [status, setStatus] = useState('');
   const listRef = useRef<HTMLDivElement>(null);
 
   // Cuộn xuống tin mới nhất
@@ -69,17 +121,51 @@ export function AssistantWidget() {
     setMessages(history);
     setDraft('');
     setIsThinking(true);
+    setStatus('');
+
+    const reply: ChatMessage = { role: 'assistant', text: '' };
+    const showReply = (patch: Partial<ChatMessage>) => {
+      Object.assign(reply, patch);
+      setMessages([...history, { ...reply }]);
+    };
     try {
-      const reply = await askAssistant(history);
-      setMessages((current) => [...current, { role: 'assistant', text: reply }]);
-    } catch {
-      setMessages((current) => [
-        ...current,
-        { role: 'assistant', text: 'Xin lỗi, trợ lý đang bận. Bạn thử lại sau ít phút nhé.' },
-      ]);
+      await streamAssistant(
+        {
+          sessionId: getSessionId(),
+          messages: history
+            .slice(-HISTORY_SIZE)
+            .filter((message) => message.text)
+            .map(({ role, text: body }) => ({ role, content: body })),
+          context: { page: pathname, section: isMarket ? 'market' : 'housing' },
+        },
+        ({ event, data }) => {
+          if (event === 'status') setStatus(data.text);
+          else if (event === 'text') showReply({ text: data.text });
+          else if (event === 'cards') showReply({ cards: data.items });
+          else if (event === 'error') showReply({ text: data.message });
+          else if (event === 'done') showReply({ messageId: data.messageId });
+        },
+      );
+    } catch (error) {
+      showReply({ text: (error as Error).message });
     } finally {
+      if (!reply.text && !reply.cards)
+        showReply({ text: 'Mình chưa trả lời được, bạn thử lại nhé.' });
       setIsThinking(false);
+      setStatus('');
     }
+  };
+
+  /** 👍 / 👎: hiện ngay, gửi lỗi thì bỏ chọn lại. */
+  const rate = (messageId: string, rating: 1 | -1) => {
+    const setRating = (value?: 1 | -1) =>
+      setMessages((current) =>
+        current.map((message) =>
+          message.messageId === messageId ? { ...message, rating: value } : message,
+        ),
+      );
+    setRating(rating);
+    rateAssistantAnswer(messageId, rating).catch(() => setRating(undefined));
   };
 
   return (
@@ -139,16 +225,57 @@ export function AssistantWidget() {
                     message.role === 'user' ? 'justify-end' : 'justify-start',
                   )}
                 >
-                  <p
-                    className={clsx(
-                      'max-w-[85%] whitespace-pre-line rounded-2xl px-3 py-2 text-sm',
-                      message.role === 'user'
-                        ? 'rounded-br-sm bg-brand text-white'
-                        : 'rounded-bl-sm bg-surface text-ink shadow-sm',
+                  <div className="flex max-w-[85%] flex-col gap-2">
+                    {message.text && (
+                      <p
+                        className={clsx(
+                          'whitespace-pre-line rounded-2xl px-3 py-2 text-sm',
+                          message.role === 'user'
+                            ? 'self-end rounded-br-sm bg-brand text-white'
+                            : 'rounded-bl-sm bg-surface text-ink shadow-sm',
+                        )}
+                      >
+                        {message.text}
+                      </p>
                     )}
-                  >
-                    {message.text}
-                  </p>
+                    {message.cards?.map((card) => (
+                      <ResultCard
+                        key={`${card.kind}-${card.id}`}
+                        card={card}
+                        // Màn hình nhỏ: khung chat che cả trang → đóng để thấy tin vừa mở
+                        onOpen={() => window.innerWidth < 640 && setIsOpen(false)}
+                      />
+                    ))}
+                    {message.messageId && (
+                      <div className="flex items-center gap-1 text-subtle">
+                        {(
+                          [
+                            [1, ThumbsUp, 'Câu trả lời hữu ích'],
+                            [-1, ThumbsDown, 'Câu trả lời chưa tốt'],
+                          ] as const
+                        ).map(([value, Icon, label]) => (
+                          <button
+                            key={value}
+                            type="button"
+                            aria-label={label}
+                            aria-pressed={message.rating === value}
+                            title={label}
+                            onClick={() => rate(message.messageId!, value)}
+                            className={clsx(
+                              'flex size-7 cursor-pointer items-center justify-center rounded-full border-0 bg-transparent transition-colors hover:bg-soft',
+                              message.rating === value && 'text-brand',
+                            )}
+                          >
+                            <Icon
+                              size={15}
+                              fill={message.rating === value ? 'currentColor' : 'none'}
+                            />
+                          </button>
+                        ))}
+                        {message.rating && <span className="text-xs">Cảm ơn bạn!</span>}
+                      </div>
+                    )}
+                  </div>
                 </div>
               ))
             )}
@@ -158,14 +285,17 @@ export function AssistantWidget() {
                 aria-live="polite"
                 aria-label="Trợ lý đang trả lời"
               >
-                <span className="flex gap-1 rounded-2xl rounded-bl-sm bg-surface px-3 py-3 shadow-sm">
-                  {[0, 1, 2].map((dot) => (
-                    <span
-                      key={dot}
-                      className="assistant-dot size-1.5 rounded-full bg-subtle"
-                      style={{ animationDelay: `${dot * 0.15}s` }}
-                    />
-                  ))}
+                <span className="flex items-center gap-2 rounded-2xl rounded-bl-sm bg-surface px-3 py-2.5 shadow-sm">
+                  <span className="flex gap-1">
+                    {[0, 1, 2].map((dot) => (
+                      <span
+                        key={dot}
+                        className="assistant-dot size-1.5 rounded-full bg-subtle"
+                        style={{ animationDelay: `${dot * 0.15}s` }}
+                      />
+                    ))}
+                  </span>
+                  {status && <span className="text-xs text-body">{status}</span>}
                 </span>
               </div>
             )}

@@ -71,6 +71,7 @@ Bằng việc đăng nhập và sử dụng ${siteName}, bạn đồng ý cho ch
 - Khi đăng nhập bằng Google / Facebook: mã định danh tài khoản, tên, ảnh đại diện và email (chỉ khi nhà cung cấp đã xác minh) do Google / Facebook cung cấp. Chúng tôi không nhận mật khẩu, danh bạ hay dữ liệu khác từ tài khoản đó.
 - Nội dung bạn đăng: tin cho thuê/mua bán, món đồ rao bán (ảnh, địa chỉ, vị trí ghim trên bản đồ, giá, mô tả, tiện ích, link video), đánh giá, báo cáo vi phạm.
 - Tin nhắn (chữ và ảnh) trao đổi giữa bạn và người dùng khác.
+- Trò chuyện với trợ lý AI: câu hỏi, câu trả lời, các thao tác tìm kiếm trợ lý đã thực hiện và đánh giá 👍/👎 của bạn — lưu tối đa 90 ngày, không gắn với tài khoản, chỉ Ban quản trị xem để cải thiện trợ lý. Vui lòng không nhập số điện thoại, địa chỉ nhà hay thông tin cá nhân khác vào khung chat AI.
 - Dữ liệu sử dụng: tin và món đồ đã lưu, tìm kiếm đã lưu, thông báo, cài đặt nhận thông báo, số lượt xem tin (đếm chung, không gắn với danh tính người xem).
 - Chúng tôi không thu thập dữ liệu cá nhân nhạy cảm (sức khoẻ, tôn giáo, sinh trắc học, tài chính...). Vui lòng không đăng các thông tin này trong tin đăng hoặc tin nhắn.
 
@@ -102,6 +103,7 @@ Tin nhắn chỉ hiển thị cho hai người trong cuộc trò chuyện trên 
 - Google, Facebook (Meta): chỉ khi bạn chọn đăng nhập bằng tài khoản của họ — họ xác thực bạn và chia sẻ các thông tin nêu ở mục 2.
 - Dịch vụ gửi email do Ban quản trị thuê (chỉ khi tính năng email được bật): nhận địa chỉ email và nội dung thông báo để gửi đi.
 - SMS: hiện chưa sử dụng. Khi triển khai, chúng tôi sẽ cập nhật tên nhà cung cấp tại đây trước khi gửi tin.
+- Nhà cung cấp mô hình AI (hiện là Google Gemini): nhận câu hỏi bạn gửi cho trợ lý AI cùng dữ liệu tin đăng công khai liên quan để tạo câu trả lời.
 - YouTube (chế độ youtube-nocookie): phát video nhúng trong tin đăng.
 - OpenFreeMap (dữ liệu OpenStreetMap): tải bản đồ nền hiển thị vị trí tin đăng.
 - Nominatim (OpenStreetMap): khi người đăng bấm "Tìm theo địa chỉ", địa chỉ đã nhập được gửi đi để tìm toạ độ.

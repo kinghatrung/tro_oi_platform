@@ -8,6 +8,7 @@
   "scripts": {
     "dev:web": "yarn workspace web dev",
     "dev:api": "yarn workspace api dev",
+    "dev:ai": "yarn workspace ai-service dev",
     "dev:mobile": "yarn workspace mobile start",
     "geo:build": "node scripts/build-admin-units.mjs",
     "geo:territory": "node scripts/build-vietnam-territory.mjs"

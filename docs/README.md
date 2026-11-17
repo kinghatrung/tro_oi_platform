@@ -2,12 +2,13 @@
 
 Thư mục này là **nguồn sự thật duy nhất** cho người và AI khi làm việc với repo.
 
-| File                                         | Nội dung                                                          |
-| -------------------------------------------- | ----------------------------------------------------------------- |
-| [coding-rules.md](coding-rules.md)           | Quy tắc code bắt buộc (chung, web, api) + checklist trước commit  |
-| [project-structure.md](project-structure.md) | Cấu trúc monorepo, route web, component, luồng dữ liệu, env       |
-| [api.md](api.md)                             | Hợp đồng REST API: endpoint, request, response, auth, lỗi         |
-| [deploy.md](deploy.md)                       | Deploy Docker lên VPS (GHCR + Nginx + Cloudflare) và CI/CD       |
+| File                                         | Nội dung                                                               |
+| -------------------------------------------- | ---------------------------------------------------------------------- |
+| [coding-rules.md](coding-rules.md)           | Quy tắc code bắt buộc (chung, web, api) + checklist trước commit       |
+| [project-structure.md](project-structure.md) | Cấu trúc monorepo, route web, component, luồng dữ liệu, env            |
+| [api.md](api.md)                             | Hợp đồng REST API: endpoint, request, response, auth, lỗi              |
+| [deploy.md](deploy.md)                       | Deploy Docker lên VPS (GHCR + Nginx + Cloudflare) và CI/CD             |
+| [ai.md](ai.md)                               | Dịch vụ trợ lý AI `apps/ai`: chạy, cấu trúc, công cụ, SSE `POST /chat` |
 
 ## Quy tắc bắt buộc về tài liệu
 

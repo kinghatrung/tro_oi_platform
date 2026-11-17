@@ -11,6 +11,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ```bash
 yarn dev:api                      # NestJS watch, http://localhost:5000 (cần MongoDB + apps/api/.env.local)
 yarn dev:web                      # Next.js, http://localhost:3001
+yarn dev:ai                       # trợ lý AI, http://localhost:5300 (apps/ai/.env.local; AI_PROVIDER=mock không cần key) — docs/ai.md
 yarn workspace api seed           # dữ liệu mẫu; đăng nhập dev (AUTH_DEV_LOGIN=true): admin 0900000000, người đăng 0900000001
 
 # API (chạy trong apps/api)
