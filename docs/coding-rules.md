@@ -105,7 +105,7 @@ export async function getListing(id: string) {
 
   | Class | Dùng cho |
   | --- | --- |
-  | `bg-surface` / `bg-page` / `bg-soft` | nền thẻ / nền trang / nền phụ (thay `bg-white`, `#f4f4f4`). Trang công khai để trong suốt để thấy nền ô caro của `body` (`--grid-line` theo màu brand, globals.css); `bg-page` chỉ dùng khi cần nền phẳng (dashboard, trang lỗi) |
+  | `bg-surface` / `bg-page` / `bg-soft` | nền thẻ / nền trang / nền phụ (thay `bg-white`, `#f4f4f4`). Trang công khai để trong suốt để thấy nền của `body`: ô caro cố định (`body::before`, `--grid-line`) + "đèn" chỉ bật ở giao diện tối (`body::after`: 2 đèn tường + đèn trần màu brand, lưới gần đèn sáng `--grid-lit`, đổi theme sáng/tắt dần 0,7s) — globals.css; bóng đèn treo ở 2 lề (`LampBackdrop` trong layout gốc, chỉ hiện khi lề ≥ 1300px: tắt ở giao diện sáng, chập chờn rồi sáng ở giao diện tối); banner ảnh (`Header.tsx`) dùng class `hero-lamp` (giao diện tối phủ lớp đêm + đèn 2 góc) và `HeroLights` (dây đèn mắc dưới mép menu, đoạn giữa võng nông để không đè khẩu hiệu). Màu đèn `--bulb-light` / `--bulb-cord` khai báo trên `body` để mọi đèn (kể cả Chợ ơi) dùng chung; không dùng z-index âm cho nội dung kẻo nằm dưới lớp nền; `bg-page` chỉ dùng khi cần nền phẳng (dashboard, trang lỗi) |
   | `text-ink` / `text-body` / `text-subtle` | chữ đậm / chữ thường / chữ phụ (thay `#222`, `#595959`, `#8c8c8c`) |
   | `border-line` | viền (thay `#f0f0f0`, `#e8e8e8`) |
   | `text-brand` `bg-brand` `bg-brand-soft` `text-brand-dark` | màu chủ đạo (thay `#16a6a3`) |

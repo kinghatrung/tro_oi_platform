@@ -8,6 +8,7 @@ import { AnnouncementBar } from '@/components/layout/AnnouncementBar';
 import { cookies } from 'next/headers';
 import { ThemeMode, type SiteSettings } from '@tro-oi/shared';
 
+import { LampBackdrop } from '@/components/layout/LampBackdrop';
 import { buildOpenGraph, SITE_URL } from '@/lib/seo';
 import { loadSiteSettings } from '@/lib/siteSettings';
 
@@ -63,6 +64,7 @@ export default async function RootLayout({ children }: LayoutProps<'/'>) {
       }
     >
       <body className="min-h-full flex flex-col">
+        <LampBackdrop />
         <AntdRegistry>
           <Providers settings={settings} initialTheme={themeMode}>
             {settings.announcementEnabled && settings.announcementText && (

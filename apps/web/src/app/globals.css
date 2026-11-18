@@ -253,20 +253,342 @@ html {
 body {
   /* Ô caro mảnh theo màu chủ đạo — khai báo ở body để Chợ ơi (đổi --brand trên body) ra màu cam */
   --grid-line: color-mix(in srgb, var(--brand) 9%, transparent);
+  --grid-lit: color-mix(in srgb, var(--brand) 40%, transparent);
+  --lamp-glow: color-mix(in srgb, var(--brand) 30%, transparent);
+  /* Bóng đèn (LampBackdrop + dây đèn banner): ánh vàng ấm pha màu brand */
+  --bulb-light: color-mix(in srgb, var(--brand) 35%, #ffd27a);
+  --bulb-cord: color-mix(in srgb, var(--ink) 30%, transparent);
   font-family: var(--font-sans);
   color: var(--ink);
   background-color: var(--page);
-  background-image:
-    linear-gradient(var(--grid-line) 1px, transparent 1px),
-    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
-  background-size: 28px 28px;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Tối: lưới chìm hẳn, chỉ sáng dưới "đèn" (body::after) */
 :root[data-theme='dark'] body {
-  --grid-line: color-mix(in srgb, var(--brand) 14%, transparent);
+  --grid-line: color-mix(in srgb, var(--brand) 6%, transparent);
+}
+
+/*
+ * Nền ô caro + "đèn": 2 lớp cố định sau nội dung (z-index -1), cùng gốc toạ độ nên lưới khớp nhau.
+ * ::before = lưới; ::after = đèn trần — giao diện sáng tắt đèn, giao diện tối bật đèn (đổi theme → sáng/tắt dần).
+ */
+body::before,
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-size: 28px 28px;
+}
+
+body::before {
+  background-image:
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+}
+
+/* Nội dung che giữa trang → 2 đèn tường chiếu xuống 2 lề + 1 đèn trần dưới thanh menu */
+body::after {
+  background-image:
+    linear-gradient(var(--grid-lit) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-lit) 1px, transparent 1px),
+    radial-gradient(circle at 0% 28%, var(--lamp-glow), transparent 38%),
+    radial-gradient(circle at 100% 28%, var(--lamp-glow), transparent 38%),
+    radial-gradient(ellipse 45% 30% at 50% 0%, var(--lamp-glow), transparent 75%);
+  background-size:
+    28px 28px,
+    28px 28px,
+    100% 100%,
+    100% 100%,
+    100% 100%;
+  /* Vùng đèn chiếu: sáng nhất gần đèn, tắt dần ra xa (các lớp mask cộng dồn) */
+  mask-image:
+    radial-gradient(circle at 0% 28%, black 5%, transparent 42%),
+    radial-gradient(circle at 100% 28%, black 5%, transparent 42%),
+    radial-gradient(ellipse 55% 40% at 50% 0%, black 10%, transparent 80%);
+  opacity: 0;
+  transition: opacity 0.7s ease;
+}
+
+:root[data-theme='dark'] body::after {
+  opacity: 1;
+}
+
+/*
+ * Bóng đèn treo (LampBackdrop.tsx): ở 2 lề, sau nội dung. Sáng = đèn tắt (thuỷ tinh trong, đung đưa nhẹ);
+ * tối = từng bóng chập chờn rồi sáng (lệch nhau theo --delay), quầng sáng màu ấm pha màu brand.
+ * Số bóng mỗi bên theo độ rộng lề (nội dung rộng tối đa 1200px).
+ */
+.lamp-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.lamp-side {
+  position: absolute;
+  top: 0;
+  width: calc((100% - 1200px) / 2);
+  display: none;
+  justify-content: space-evenly;
+}
+
+.lamp-side-left {
+  left: 0;
+}
+
+.lamp-side-right {
+  right: 0;
+}
+
+/* Lề đủ rộng mới treo đèn: 1 bóng / bên, rộng hơn thì 2, rồi 3 */
+@media (min-width: 1300px) {
+  .lamp-side {
+    display: flex;
+  }
+
+  .lamp-side .lamp:nth-child(n + 2) {
+    display: none;
+  }
+}
+
+@media (min-width: 1600px) {
+  .lamp-side .lamp:nth-child(2) {
+    display: flex;
+  }
+}
+
+@media (min-width: 1850px) {
+  .lamp-side .lamp:nth-child(3) {
+    display: flex;
+  }
+}
+
+.lamp {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transform-origin: top center;
+  animation: lamp-swing var(--swing) ease-in-out infinite alternate;
+  /* Lệch pha đung đưa giữa các bóng */
+  animation-delay: calc(var(--swing) * -0.4);
+}
+
+.lamp-cord {
+  width: 1.5px;
+  height: var(--cord);
+  background: var(--bulb-cord);
+}
+
+.lamp-bulb {
+  position: relative;
+  width: 40px;
+  height: 56px;
+}
+
+.lamp-svg {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+}
+
+.lamp-socket {
+  fill: color-mix(in srgb, var(--ink) 55%, var(--page));
+}
+
+.lamp-glass {
+  fill: color-mix(in srgb, var(--surface) 55%, transparent);
+  stroke: color-mix(in srgb, var(--ink) 35%, transparent);
+  stroke-width: 1.2;
+}
+
+.lamp-filament {
+  fill: none;
+  stroke: color-mix(in srgb, var(--ink) 45%, transparent);
+  stroke-width: 1.2;
+  stroke-linecap: round;
+}
+
+/* Phần "đèn sáng": thuỷ tinh ấm + dây tóc trắng + quầng sáng — tắt ở giao diện sáng */
+.lamp-light {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  opacity: 0;
+  transition: opacity 0.35s ease;
+}
+
+.lamp-svg-lit .lamp-glass {
+  fill: color-mix(in srgb, var(--bulb-light) 85%, white);
+  stroke: var(--bulb-light);
+  filter: drop-shadow(0 0 6px var(--bulb-light)) drop-shadow(0 0 18px var(--bulb-light));
+}
+
+.lamp-svg-lit .lamp-filament {
+  stroke: #fffbe8;
+  stroke-width: 1.6;
+}
+
+.lamp-halo {
+  position: absolute;
+  left: 50%;
+  top: 60%;
+  width: 320px;
+  height: 320px;
+  translate: -50% -50%;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--bulb-light) 45%, transparent) 0%,
+    color-mix(in srgb, var(--bulb-light) 12%, transparent) 35%,
+    transparent 68%
+  );
+}
+
+:root[data-theme='dark'] .lamp-light {
+  opacity: 1;
+  animation: lamp-on 1.2s var(--delay) both;
+}
+
+:root[data-theme='dark'] .lamp-cord {
+  background: color-mix(in srgb, var(--bulb-light) 35%, var(--line-strong));
+}
+
+@keyframes lamp-swing {
+  from {
+    rotate: -2.5deg;
+  }
+  to {
+    rotate: 2.5deg;
+  }
+}
+
+/* Dây đèn trên banner (HeroLights trong Header.tsx): ngay dưới thanh menu, 2 góc; điện thoại ẩn */
+.hero-lights {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 68px;
+  height: 40px;
+  display: none;
+  pointer-events: none;
+}
+
+@media (min-width: 768px) {
+  .hero-lights {
+    display: block;
+  }
+}
+
+.hero-lights-wire {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  fill: none;
+  stroke: color-mix(in srgb, var(--ink) 40%, transparent);
+  stroke-width: 1.5;
+}
+
+/* Móc mắc dây vào mép dưới menu */
+.hero-lights-hook {
+  position: absolute;
+  top: 0;
+  width: 6px;
+  height: 6px;
+  translate: -50% 0;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--ink) 55%, transparent);
+}
+
+.hero-lamp-bulb {
+  position: absolute;
+  translate: -50% 0;
+}
+
+.hero-lamp-bulb .lamp-bulb {
+  width: 14px;
+  height: 20px;
+}
+
+.hero-lamp-bulb .lamp-halo {
+  width: 90px;
+  height: 90px;
+}
+
+/* Đèn sợi đốt bật: chập chờn vài nhịp rồi sáng hẳn */
+@keyframes lamp-on {
+  0% {
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.85;
+  }
+  16% {
+    opacity: 0.1;
+  }
+  28% {
+    opacity: 0.95;
+  }
+  34% {
+    opacity: 0.35;
+  }
+  50%,
+  100% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lamp,
+  :root[data-theme='dark'] .lamp-light {
+    animation: none;
+  }
+}
+
+/*
+ * Banner ảnh (Header.tsx): ảnh vẽ ban ngày → giao diện tối phủ lớp đêm + quầng đèn brand.
+ * isolation tạo ngữ cảnh xếp lớp riêng: lớp phủ z-index -1 nằm trên ảnh nền nhưng dưới menu / ô tìm kiếm.
+ */
+.hero-lamp {
+  isolation: isolate;
+}
+
+.hero-lamp::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  /* Đèn ở 2 góc (giữa để tối cho tab Trọ ơi / Chợ ơi và khẩu hiệu cùng màu brand nổi lên) */
+  background:
+    radial-gradient(ellipse 35% 90% at 0% 0%, var(--lamp-glow), transparent 70%),
+    radial-gradient(ellipse 35% 90% at 100% 0%, var(--lamp-glow), transparent 70%),
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--page) 62%, transparent),
+      color-mix(in srgb, var(--page) 90%, transparent)
+    );
+  opacity: 0;
+  transition: opacity 0.7s ease;
+}
+
+:root[data-theme='dark'] .hero-lamp::before {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body::after,
+  .hero-lamp::before {
+    transition: none;
+  }
 }
 
 /* ========================================
