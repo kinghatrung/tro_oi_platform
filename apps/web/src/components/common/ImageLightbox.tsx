@@ -480,7 +480,7 @@ export function ImageLightbox({
                   <button
                     onClick={handleLikeClick}
                     aria-label="Yêu thích"
-                    className="p-2 rounded-full hover:bg-gray-100 text-subtle transition-colors shrink-0 cursor-pointer"
+                    className="p-2 rounded-full hover:bg-soft text-subtle transition-colors shrink-0 cursor-pointer"
                   >
                     <Heart
                       size={22}
@@ -496,7 +496,7 @@ export function ImageLightbox({
                   {tags.map((tag, i) => (
                     <Tag
                       key={i}
-                      className="bg-gray-100! text-ink! border-none! text-xs font-medium px-3 py-1 rounded-none!"
+                      className="bg-soft! text-ink! border-none! text-xs font-medium px-3 py-1 rounded-none!"
                     >
                       {tag}
                     </Tag>
@@ -526,10 +526,10 @@ export function ImageLightbox({
 
           {/* CONTACT BUTTONS */}
           {agent && (
-            <div className="sticky bottom-0 z-30 -mx-6 px-6 py-3 bg-white/95 backdrop-blur-sm flex items-center gap-2 mb-2 justify-end">
+            <div className="sticky bottom-0 z-30 -mx-6 px-6 py-3 bg-surface/95 backdrop-blur-sm flex items-center gap-2 mb-2 justify-end">
               {agent.phone && (
                 <Button
-                  className="bg-gray-100! hover:bg-gray-200! border-none! text-ink! font-semibold text-xs h-10 rounded-xl"
+                  className="bg-soft! hover:bg-line! border-none! text-ink! font-semibold text-xs h-10 rounded-xl"
                   onClick={() => setShowPhone(!showPhone)}
                 >
                   {showPhone ? agent.phone : `Hiện số ${agent.phone}`}
@@ -546,7 +546,7 @@ export function ImageLightbox({
           )}
 
           {/* QUICK MESSAGE INPUT */}
-          <div className="relative flex items-center text-ink bg-[#f7f8f8] rounded-full px-4 py-1 border border-line focus-within:border-brand transition-all">
+          <div className="relative flex items-center text-ink bg-soft rounded-full px-4 py-1 border border-line focus-within:border-brand transition-all">
             <Input
               variant="borderless"
               placeholder={messagePlaceholder}
@@ -584,7 +584,7 @@ export function ImageLightbox({
                   <span
                     key={idx}
                     onClick={() => handleSendMessage(q)}
-                    className="shrink-0 text-sm font-medium bg-gray-100 hover:bg-line text-ink px-3 py-1.5 rounded-full border-none transition-colors cursor-pointer whitespace-nowrap"
+                    className="shrink-0 text-sm font-medium bg-soft hover:bg-line text-ink px-3 py-1.5 rounded-full border-none transition-colors cursor-pointer whitespace-nowrap"
                   >
                     {q}
                   </span>

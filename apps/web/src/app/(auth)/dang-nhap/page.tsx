@@ -180,7 +180,8 @@ function SignInPage() {
 
   return (
     <main
-      className="min-h-screen bg-cover bg-center bg-no-repeat flex justify-center items-center"
+      // hero-lamp (globals.css): giao diện tối phủ lớp "ban đêm" lên ảnh minh hoạ sáng
+      className="hero-lamp relative min-h-screen bg-cover bg-center bg-no-repeat flex justify-center items-center"
       style={{ backgroundImage: "url('/images/bg-tro-oi-login.svg')" }}
     >
       <Card className="w-120 overflow-hidden" styles={{ body: { padding: '20px 40px 40px' } }}>
