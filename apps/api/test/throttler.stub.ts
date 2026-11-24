@@ -17,4 +17,8 @@ export class ThrottlerModule {
   static forRoot() {
     return { module: ThrottlerModule };
   }
+
+  static forRootAsync() {
+    return { module: ThrottlerModule };
+  }
 }

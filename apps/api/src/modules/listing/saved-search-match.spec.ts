@@ -1,5 +1,6 @@
 import {
   matchesSavedSearch,
+  parseSavedSearch,
   type MatchableListing,
 } from './saved-search-match.js';
 
@@ -49,5 +50,17 @@ describe('matchesSavedSearch', () => {
 
   it('giá trị sai định dạng → bỏ qua bộ lọc đó', () => {
     expect(match('minPrice=abc&sort=newest&page=3')).toBe(true);
+  });
+
+  it('parseSavedSearch: giá triệu → VND, bỏ field trống / sai định dạng / sort, page', () => {
+    expect(
+      parseSavedSearch(
+        'city=H%C3%A0+N%E1%BB%99i&minPrice=3&maxPrice=abc&amenities=wifi,parking&keyword=+&sort=newest&page=2',
+      ),
+    ).toEqual({
+      city: 'Hà Nội',
+      minPrice: 3_000_000,
+      amenities: ['wifi', 'parking'],
+    });
   });
 });

@@ -82,6 +82,7 @@ describe('AccountService.deleteAccount', () => {
     expect(storage.remove).toHaveBeenCalledWith([
       'http://x/uploads/listing.jpg',
       'http://x/uploads/listing.jpg', // distinct('video') của mock trả cùng giá trị
+      'http://x/uploads/listing.jpg', // distinct('videoPoster')
       'http://x/uploads/product.jpg',
       'http://x/uploads/avatar.jpg',
       undefined,

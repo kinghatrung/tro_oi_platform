@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { isValidObjectId, type Model } from 'mongoose';
+import { isValidObjectId, Types, type Model } from 'mongoose';
 
 import {
   User,
@@ -13,6 +13,7 @@ import {
   type UserDocument,
 } from '../auth/schemas/user.schema.js';
 import { AUTHOR_FIELDS, toListing } from '../listing/listing.mapper.js';
+import { parseSavedSearch } from '../listing/saved-search-match.js';
 import {
   Listing,
   type ListingDocument,
@@ -25,7 +26,20 @@ import {
 import type { CreateSavedSearchDto } from './dto/saved-search.dto.js';
 import type { UpdateProfileDto } from './dto/update-profile.dto.js';
 
-const MAX_SAVED_SEARCHES = 20;
+export const MAX_SAVED_SEARCHES = 20;
+/** Số tin / món đồ đã xem giữ lại mỗi tài khoản. */
+export const MAX_VIEWED = 15;
+
+/** Giữ thứ tự theo danh sách id đã lưu (mới xem trước). */
+function sortByIds<T extends { id: unknown }>(
+  docs: T[],
+  ids: Types.ObjectId[],
+) {
+  const order = ids.map(String);
+  return [...docs].sort(
+    (a, b) => order.indexOf(String(a.id)) - order.indexOf(String(b.id)),
+  );
+}
 
 const toSavedSearch = (item: SavedSearch) => ({
   id: String(item._id),
@@ -148,6 +162,66 @@ export class UserService {
     return null;
   }
 
+  /** Tin đã xem gần đây (đồng bộ giữa thiết bị), còn active, mới xem trước. */
+  async getViewedListings(userId: string) {
+    const user = await this.findOrThrow(userId);
+    const docs = await this.listingModel
+      .find({ _id: { $in: user.viewedListingIds }, status: 'active' })
+      .populate('author', AUTHOR_FIELDS)
+      .exec();
+    return sortByIds(docs, user.viewedListingIds).map((doc) => toListing(doc));
+  }
+
+  async recordViewedListing(userId: string, listingId: string) {
+    const exists =
+      isValidObjectId(listingId) &&
+      (await this.listingModel.exists({ _id: listingId }));
+    if (!exists) throw new NotFoundException('Không tìm thấy tin đăng');
+    await this.pushViewed(userId, 'viewedListingIds', listingId);
+    return null;
+  }
+
+  /** Món đồ đã xem gần đây, còn đang bán, mới xem trước. */
+  async getViewedProducts(userId: string) {
+    const user = await this.findOrThrow(userId);
+    const docs = await this.productModel
+      .find({ _id: { $in: user.viewedProductIds }, status: 'active' })
+      .populate('seller', SELLER_FIELDS)
+      .exec();
+    return sortByIds(docs, user.viewedProductIds).map((doc) => toProduct(doc));
+  }
+
+  async recordViewedProduct(userId: string, productId: string) {
+    const exists =
+      isValidObjectId(productId) &&
+      (await this.productModel.exists({ _id: productId }));
+    if (!exists) throw new NotFoundException('Không tìm thấy món đồ');
+    await this.pushViewed(userId, 'viewedProductIds', productId);
+    return null;
+  }
+
+  /** Đưa lên đầu lịch sử (bỏ bản cũ của chính nó), giữ tối đa MAX_VIEWED. */
+  private async pushViewed(
+    userId: string,
+    field: 'viewedListingIds' | 'viewedProductIds',
+    id: string,
+  ) {
+    const objectId = new Types.ObjectId(id);
+    await this.userModel
+      .updateOne({ _id: userId }, { $pull: { [field]: objectId } })
+      .exec();
+    await this.userModel
+      .updateOne(
+        { _id: userId },
+        {
+          $push: {
+            [field]: { $each: [objectId], $position: 0, $slice: MAX_VIEWED },
+          },
+        },
+      )
+      .exec();
+  }
+
   /** Mới lưu trước. */
   async getSavedSearches(userId: string) {
     const user = await this.findOrThrow(userId);
@@ -166,7 +240,10 @@ export class UserService {
         `Chỉ lưu được tối đa ${MAX_SAVED_SEARCHES} tìm kiếm, hãy xoá bớt`,
       );
     }
-    user.savedSearches.push(dto as SavedSearch);
+    user.savedSearches.push({
+      ...dto,
+      filter: parseSavedSearch(dto.query),
+    } as SavedSearch);
     await user.save();
     return toSavedSearch(user.savedSearches[user.savedSearches.length - 1]);
   }

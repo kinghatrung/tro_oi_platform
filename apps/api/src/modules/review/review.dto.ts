@@ -29,6 +29,22 @@ export class ReviewQueryDto {
   pageSize: number = 10;
 }
 
+/** Admin: GET /admin/reviews (đánh giá chờ duyệt). */
+export class PendingReviewQueryDto {
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  page: number = 1;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  pageSize: number = 20;
+}
+
 export class MyReviewQueryDto {
   @IsMongoId({ message: 'Người dùng không hợp lệ' })
   userId: string;

@@ -45,7 +45,7 @@ yarn dev:web                 # http://localhost:3001
 | `PORT`                   |          | Mặc định `5000`                                           |
 | `WEB_ORIGIN`             |          | CORS origin, mặc định `http://localhost:3001` (nhiều origin ngăn cách bởi dấu phẩy) |
 | `API_PUBLIC_URL`         |          | URL công khai của API để tạo link ảnh upload (khi lưu ổ đĩa), mặc định `http://localhost:5000` |
-| `REDIS_URL`              |          | Redis cho chat realtime khi chạy nhiều instance (Socket.IO redis-adapter). Bỏ trống = 1 instance. Không kết nối được → API không khởi động |
+| `REDIS_URL`              |          | Redis khi chạy nhiều instance: chat realtime (Socket.IO redis-adapter) + bộ đếm rate limit dùng chung. Bỏ trống = 1 instance. Không kết nối được lúc khởi động → API không khởi động; Redis lỗi khi đang chạy → rate limit tạm cho qua (ghi log) |
 | `S3_BUCKET`              |          | Bật lưu ảnh lên dịch vụ tương thích S3 (R2, MinIO, AWS). Bỏ trống = ổ đĩa `apps/api/uploads` |
 | `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_PUBLIC_URL` | khi có `S3_BUCKET` | Khoá truy cập + URL công khai đọc ảnh (domain bucket/CDN). Thiếu → API báo lỗi lúc khởi động |
 | `S3_REGION`, `S3_ENDPOINT`, `S3_FORCE_PATH_STYLE` |  | Mặc định `auto` / AWS / `false`. R2: endpoint `https://<account>.r2.cloudflarestorage.com`; MinIO: `S3_FORCE_PATH_STYLE=true` |
@@ -62,6 +62,7 @@ yarn dev:web                 # http://localhost:3001
 | `NEXT_PUBLIC_API_URL`                  | URL API, mặc định `http://localhost:5000`                |
 | `NEXT_PUBLIC_SITE_URL`                 | Domain công khai của web (canonical, sitemap, og:url), mặc định `http://localhost:3001`. Production: `https://room.kun.io.vn` (GitHub Variable lúc build image) |
 | `NEXT_PUBLIC_UPLOAD_URL`               | = `S3_PUBLIC_URL` của API khi ảnh lưu trên S3 (whitelist cho `next/image`). Bỏ trống nếu ảnh lưu trên API |
+| `NEXT_PUBLIC_MAP_STYLE_URL`            | URL style bản đồ MapLibre (schema OpenMapTiles, vd Vietmap / tile tự host). Bỏ trống = OpenFreeMap. Đổi → kiểm tra lại chủ quyền (coding-rules mục Bản đồ) |
 | `NEXT_PUBLIC_FIREBASE_API_KEY`, `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`, `NEXT_PUBLIC_FIREBASE_PROJECT_ID`, `NEXT_PUBLIC_FIREBASE_APP_ID` | Firebase Client. **Bỏ trống → trang đăng nhập dùng `/auth/dev-login`** |
 | `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID`, `NEXT_PUBLIC_FIREBASE_VAPID_KEY` | Thông báo đẩy (FCM): Sender ID ở Project Settings > General, VAPID key ở Cloud Messaging > Web Push certificates. Bỏ trống → ẩn công tắc push |
 
@@ -132,6 +133,7 @@ src/
 │       ├── tim-kiem/                  # Tìm kiếm (server, filter qua URL) + loading.tsx skeleton
 │       ├── phong-tro/[slug]/          # Chi tiết tin, slug = listing id
 │       ├── dieu-khoan-su-dung/, chinh-sach-bao-mat/  # Trang chính sách (ContentPage, server); chưa đăng → 404
+│       ├── huy-nhan-email/            # Huỷ nhận email từ link trong email (bấm xác nhận)
 │       ├── nguoi-dung/[id]/           # Hồ sơ công khai người đăng + đánh giá (ProfileReviews)
 │       ├── cho-oi/[id]/               # Chi tiết món đồ Chợ ơi
 │       ├── cho-oi/tim-kiem/           # Tìm đồ cũ (bộ lọc + lưới), như /tim-kiem
@@ -154,8 +156,9 @@ src/
 │       ├── page.tsx                   #   Tổng quan (GET /admin/stats): chọn kỳ 7/30/90 ngày, việc cần xử lý (chờ duyệt, báo cáo), 4 thẻ số liệu + sparkline, biểu đồ hoạt động theo ngày (xem dạng bảng được), cơ cấu: vai trò (thanh phân đoạn), trạng thái tin (thanh mảnh + danh sách có icon, màu trạng thái), loại hình / danh mục (cột), tỉnh (lollipop nhấn tỉnh đứng đầu)
 │       ├── nguoi-dung/                #   Người dùng: FilterBar (từ khoá + lọc nâng cao vai trò/trạng thái), UserFormDrawer sửa vai trò/khoá
 │       ├── tin-tro/, tin-cho/         #   Duyệt / ẩn / xoá tin Trọ ơi, Chợ ơi (ModerationActions)
-│       ├── ban-do/                    #   Bản đồ tin: chuyển Trọ ơi (GET /admin/listings/map) / Chợ ơi (GET /admin/products/map); lọc trạng thái / loại hình hoặc danh mục / tỉnh (đổi nguồn → xoá bộ lọc), ghim gom cụm, popup link trang công khai khi đang hiển thị
+│       ├── ban-do/                    #   Bản đồ tin: chuyển Trọ ơi (GET /admin/listings/map) / Chợ ơi (GET /admin/products/map); lọc trạng thái / loại hình hoặc danh mục / tỉnh (đổi nguồn → xoá bộ lọc), ghim gom cụm, popup link trang công khai khi đang hiển thị; chạm 5000 điểm → kéo / phóng to tải lại theo khung nhìn (VietnamMap `onViewportChange`, `fitMarkers={false}`), nút "Xem toàn quốc"
 │       ├── bao-cao/                   #   Báo cáo vi phạm: ẩn tin + đóng báo cáo / bỏ qua
+│       ├── danh-gia/                  #   Đánh giá chờ duyệt (khi bật requireReviewApproval): duyệt / xoá
 │       ├── nhat-ky/                   #   Nhật ký thao tác admin (lọc nhanh theo loại đối tượng)
 │       ├── trang-chinh-sach/          #   Soạn & đăng Điều khoản / Chính sách bảo mật (chèn bản nháp mẫu, chặn đăng khi còn [[...]];
 │       │                              #   nội dung chưa lưu giữ thành bản nháp theo từng trang trong localStorage, nút Bỏ bản nháp)
@@ -205,13 +208,14 @@ src/
 | `/`                     | Server        | `GET /listings` (mua bán, cho thuê mới), `GET /listings/stats`; "Tin bạn đã xem" đọc localStorage phía client |
 | `/tim-kiem`             | Server        | `GET /listings` từ searchParams: `keyword, city, ward, transaction, category, minPrice, maxPrice (triệu), minArea, maxArea, bedrooms, amenities (wifi,parking), sort, page`. Khu vực: `city` (1 trong 34 tỉnh) + `ward` (phường/xã, khớp chính xác). Nút "Lưu tìm kiếm" → `POST/DELETE /users/me/saved-searches`. Ô từ khoá cạnh tiêu đề (Enter / Lọc áp dụng, Xóa lọc xoá cả từ khoá, ghi vào 3 tìm kiếm gần nhất). Dải tab loại hình `CategoryStrip` (Tất cả + 4 loại, ảnh 3D) |
 | `/phong-tro/[id]`       | Server        | `GET /listings/:id`, tin tương tự, tin khác của người đăng |
-| `/nguoi-dung/[id]`      | Server        | `GET /users/:id`, `GET /listings?authorId=`, `GET /reviews?userId=`; client: `GET /reviews/mine`, `PUT/DELETE /reviews` |
+| `/nguoi-dung/[id]`      | Server        | `GET /users/:id`, `GET /listings?authorId=&page=` (10 tin / trang, `?page=` trên URL), `GET /reviews?userId=`; client: `GET /reviews/mine`, `PUT/DELETE /reviews` |
 | `/dang-nhap`            | Client        | SĐT: Firebase gửi OTP (reCAPTCHA ẩn, tạo lại khi gửi lỗi) → card trượt sang màn riêng chỉ nhập mã 6 số (nút ← quay lại màn SĐT, "Gửi lại mã" sau 60s; hiệu ứng `.slide-in-right/left` ở globals.css) → `POST /auth/verify-phone`; chỉ khi web **không** cấu hình Firebase mới dùng `/auth/dev-login` (không OTP, API cũng phải bật `AUTH_DEV_LOGIN`); Google / Facebook: Firebase `signInWithPopup` → `POST /auth/social` (nút tắt khi chưa cấu hình Firebase); `GET /pages` → dòng "Bằng việc tiếp tục, bạn đồng ý với…" link các trang chính sách đã đăng |
 | `/ca-nhan` 🔒           | Client        | store user, `GET /listings/mine`, `PATCH /users/me`; "Liên kết đăng nhập" (`LinkedAccounts`): thêm SĐT (OTP trong modal) / liên kết hoặc huỷ Google, Facebook → `/auth/link/*`; "Dữ liệu & tài khoản" (`AccountSection`): `GET /users/me/export` → file JSON, `DELETE /users/me` (gõ "XOA TAI KHOAN") → đăng xuất |
 | `/kenh-nguoi-dang` 🔒   | Client        | `GET /listings/mine` + `GET /products/mine` → lời chào, số liệu, tin xem nhiều nhất, "Cần chú ý" (tin hết hạn / còn ≤ 7 ngày / chờ duyệt), tóm tắt đồ bán Chợ ơi. bản đồ các tin có vị trí (`address.geo`). Khung toàn màn hình (DashboardShell), sidebar có thẻ người dùng |
 | `/tin-nhan` 🔒          | Client        | `GET /conversations`, `POST /conversations` (mở theo `?listingId=` hoặc `?productId=`, `?text=` điền sẵn), `GET /conversations/:id/messages`; gửi/nhận/đã đọc qua Socket.IO `/chat` |
 | `/kenh-nguoi-dang/tin-dang` 🔒 | Client | `GET /listings/mine`, `PATCH/DELETE /listings/:id` |
 | `/yeu-thich` 🔒         | Client        | store favorites + favoriteProducts + savedSearches (`GET /users/me/favorites`, `/favorite-products`, `/saved-searches`) |
+| `/huy-nhan-email`       | Server + client | Link huỷ nhận trong email (`?token=`), bấm xác nhận → `POST /notifications/unsubscribe`; `noindex` |
 | `/thong-bao` 🔒         | Client        | `GET /notifications`, `PATCH /notifications/:id/read`, `/read-all`; khối "Cách nhận thông báo" (`NotificationSettings`): `GET/PATCH /notifications/preferences`, bật push trên trình duyệt này; thông báo mới qua socket chèn đầu trang 1 |
 | `/dang-tin` 🔒          | Client        | `POST /uploads`, `POST /listings`, `PATCH /listings/:id` |
 | `/cho-oi`               | Server        | Bố cục như trang chủ Trọ ơi: `CategoryStrip` (icon 3D `public/images/cho-oi/<category>.png`, Fluent Emoji — MIT) → "Đồ bạn đã xem" (localStorage) → tab "Dành cho bạn" (client: danh mục xem nhiều nhất + đồ mới) / "Mới nhất" (`GET /products` 20 món mới, nút "Xem tất cả" → `/cho-oi/tim-kiem`). Ô tìm, dải danh mục, ô khu vực trên Navbar → `/cho-oi/tim-kiem`. Có query (link cũ `/cho-oi?category=…`) → redirect sang `/cho-oi/tim-kiem` giữ query. Tắt Chợ ơi → trang báo tạm đóng |
@@ -304,7 +308,7 @@ Trang danh sách mới: `useAdminTable` + `PageCard` > `FilterBar` + `DataTable`
 
 ### Duyệt tin
 
-- `requireListingApproval` / `requireProductApproval` bật → tin mới `pending`, không hiện công khai.
+- `requireListingApproval` / `requireProductApproval` bật → tin mới `pending`, không hiện công khai. `requireReviewApproval` bật → đánh giá mới / vừa sửa chờ duyệt ở `/quan-tri/danh-gia`.
 - Chủ tin không đổi được trạng thái tin `pending`; admin duyệt ở `/quan-tri/tin-tro`, `/quan-tri/tin-cho`.
 - Admin duyệt / từ chối / ẩn / hiện lại / xoá tin của người khác → chủ tin nhận thông báo (chuông Navbar), thao tác được ghi ở `/quan-tri/nhat-ky`.
 
@@ -319,7 +323,7 @@ Web dùng qua `transpilePackages: ['@tro-oi/shared']`; package trỏ thẳng `sr
 ## Ảnh
 
 - Ảnh người dùng upload: `POST /uploads` → `StorageService`: có `S3_BUCKET` thì lưu `uploads/<tên>` trên S3 (URL theo `S3_PUBLIC_URL`), không thì lưu `apps/api/uploads/` (URL theo `API_PUBLIC_URL`).
-- SEO: `app/sitemap.ts` (trang tĩnh + trang chính sách đã đăng + 500 tin / 500 món mới nhất, revalidate 1 giờ), `app/robots.ts` (chặn khu cần đăng nhập), `metadataBase` + openGraph mặc định ở layout gốc, canonical ở trang chủ và trang chi tiết, JSON-LD `WebSite` ở trang chủ.
+- SEO: `app/sitemap.ts` (`/sitemap.xml`: trang tĩnh + trang chính sách đã đăng), sitemap chia phần `(public)/phong-tro/sitemap.ts` / `(public)/cho-oi/sitemap.ts` (`generateSitemaps`, mỗi phần 5.000 tin / món từ `GET /listings|products/sitemap?chunk=`, `lib/sitemapChunks.ts`), revalidate 1 giờ; `app/robots.ts` (chặn khu cần đăng nhập, liệt kê mọi sitemap), `metadataBase` + openGraph mặc định ở layout gốc, canonical ở trang chủ và trang chi tiết, JSON-LD `WebSite` ở trang chủ.
 - `next.config.ts`: `output: 'standalone'` (image Docker, trace từ gốc monorepo); whitelist `NEXT_PUBLIC_API_URL` (+ `NEXT_PUBLIC_UPLOAD_URL` khi dùng S3) + `/uploads/**` cho `next/image`. Dev bật `dangerouslyAllowLocalIP` (API ở localhost); **production phải đặt API ở domain công khai**, nếu không `next/image` trả 400 với ảnh upload.
 - Ảnh tĩnh của web (`/images/*`, `/logo/*`) nằm trong `apps/web/public` — dữ liệu seed dùng các ảnh này.
 
@@ -335,7 +339,7 @@ Web dùng qua `transpilePackages: ['@tro-oi/shared']`; package trỏ thẳng `sr
   - Đường bao: `constants/vietnam-territory.json` — Natural Earth 1:10m bản "quan điểm Việt Nam" (gồm 2 quần đảo), sinh bằng `yarn geo:territory`. Chỉ chính xác cỡ km nên chỉ dùng cho lớp mờ và lọc nhãn ở zoom xa.
 
 - Đơn vị hành chính **2 cấp từ 1/7/2025**: `address.city` (34 tỉnh/thành, tên rút gọn vd "Hồ Chí Minh") → `address.ward` (phường/xã/đặc khu, tên đầy đủ vd "Phường Cầu Giấy"). `address.district` chỉ còn ở dữ liệu cũ (hiển thị: `ward ?? district`).
-- Danh mục sinh từ provinces.open-api.vn v2 bằng `scripts/build-admin-units.mjs` (kiểm tra đủ 34 tỉnh / 3.321 xã trước khi ghi). API chỉ kiểm tra `city` ∈ 34 tỉnh; `ward` do web chọn từ danh mục.
+- Danh mục sinh từ provinces.open-api.vn v2 bằng `scripts/build-admin-units.mjs` (kiểm tra đủ 34 tỉnh / 3.321 xã trước khi ghi). API kiểm tra `city` ∈ 34 tỉnh và `ward` thuộc `city` (`common/wards.ts`, validator `IsWardOf`).
 - Form đăng tin / đăng bán: chọn tỉnh → chọn phường/xã (có tìm kiếm) → ghim bản đồ (`GeoField` + `VietnamMap`): bấm/kéo ghim, hoặc "Tìm theo địa chỉ" (Nominatim, ≤ 1 yêu cầu/giây, người đăng chỉnh lại). Không ghim → tin không có bản đồ. Toạ độ món Chợ ơi (thường là chỗ ở người bán, nhắc ghim gần đúng) hiện **chỉ** dùng cho bản đồ quản trị, không hiện công khai.
 
 ## Chạy nhiều instance API
@@ -343,29 +347,29 @@ Web dùng qua `transpilePackages: ['@tro-oi/shared']`; package trỏ thẳng `sr
 | Phần | Cách dùng chung |
 | --- | --- |
 | Chat realtime | `REDIS_URL` → Socket.IO redis-adapter. Web chỉ dùng transport WebSocket nên load balancer **không cần sticky session** |
+| Rate limit | `REDIS_URL` → `RedisThrottlerStorage` (`common/redis-throttler.storage.ts`, cửa sổ cố định INCR + PEXPIRE) |
 | Ảnh upload | `S3_*` → mọi instance ghi/đọc cùng bucket |
 | Cache thiết lập | Mỗi instance cache 30 giây (`SETTINGS_CACHE_MS`): instance khác thấy thay đổi chậm nhất 30 giây |
 | Hẹn giờ hết hạn tin | Mọi instance đều chạy mỗi giờ; mỗi tin được nhận nguyên tử (`findOneAndUpdate`) nên không báo trùng (có test 2 instance) |
-| Báo tin mới khớp tìm kiếm đã lưu | Chạy ở instance nhận request đăng/duyệt tin; đọc user bằng cursor, ghi thông báo theo lô 500 |
+| Báo tin mới khớp tìm kiếm đã lưu | Chạy ở instance nhận request đăng/duyệt tin; Mongo lọc ứng viên bằng `savedSearches.$elemMatch` trên bộ lọc có cấu trúc (`filter`, `savedSearchCondition`), JS chỉ kiểm tra lại keyword; đọc bằng cursor, ghi thông báo theo lô 500 |
+| Email bản tin ngày | Mọi instance kiểm tra mỗi giờ, từ 8h giờ VN; mỗi người được nhận bằng cách xoá cờ `emailDigest` trước khi gửi nên không gửi lặp |
 | Giới hạn 10 tin/10 giây chat | Theo từng kết nối socket (không cần dùng chung) |
 
 ## Chưa làm (backlog)
 
 - Trợ lý AI: xem mục "Chưa làm" trong docs/ai.md (deploy, stream chữ, log, 👍/👎, RAG, thống kê giá, agent).
 - Tin tức, việc làm: mới có type ở shared. (Khảo sát: quyết định không làm — type `survey.ts` còn để lại, không phát triển.)
-- Báo tin mới khớp tìm kiếm đã lưu so khớp từng tìm kiếm bằng JS (không dùng index) — rất nhiều user cần lưu bộ lọc có cấu trúc để query thẳng Mongo. Tìm kiếm đã lưu dạng cũ có `district=` bị bỏ qua tham số đó.
+- Tìm kiếm đã lưu có `filter` (tách từ query lúc lưu; bản cũ được bổ sung khi API khởi động) để Mongo lọc người cần báo; điều kiện "không đặt hoặc khớp" chưa dùng được index (Mongo vẫn quét user có tìm kiếm đã lưu) — hàng triệu tìm kiếm thì tách collection riêng + index. Tìm kiếm đã lưu dạng cũ có `district=` bị bỏ qua tham số đó.
 - Ứng dụng mobile / link tải app.
-- Đăng nhập Google/Facebook: đã nối, cần bật 2 nhà cung cấp trong Firebase Console (Facebook cần App ID / App Secret + OAuth redirect URI) và thêm tên miền vào Authorized domains; chưa thử với Firebase thật. Liên kết (trang Cá nhân) chỉ gắn SĐT / Google / Facebook **chưa có chủ** — đã lỡ tạo 2 tài khoản riêng thì chưa gộp được (409). Mỗi tài khoản gắn tối đa 1 Google hoặc 1 Facebook; chưa có đổi / bỏ SĐT.
-- Bản đồ dùng dịch vụ miễn phí OpenFreeMap (không SLA) — cần ổn định/cam kết thì chuyển sang nhà cung cấp trong nước (vd Vietmap, cũng dựa trên MapLibre, giữ nguyên `patchVietnamStyle`) hoặc tự host tile; quy tắc lọc nhãn đã kiểm tra bằng trình duyệt tự động, chưa có test tự động trong repo (web chưa có test runner).
+- Đăng nhập Google/Facebook: đã nối, cần bật 2 nhà cung cấp trong Firebase Console (Facebook cần App ID / App Secret + OAuth redirect URI) và thêm tên miền vào Authorized domains; chưa thử với Firebase thật. Liên kết (trang Cá nhân): thêm / đổi / bỏ SĐT, gắn 1 Google hoặc 1 Facebook; định danh đã thuộc tài khoản khác → gộp tài khoản đó vào (không dùng transaction — lỗi giữa chừng thì chạy gộp lại).
+- Bản đồ mặc định dùng OpenFreeMap miễn phí (không SLA) — đổi nhà cung cấp (vd Vietmap, cũng dựa trên MapLibre) hoặc tile tự host bằng `NEXT_PUBLIC_MAP_STYLE_URL` (build-arg), không sửa code; `patchVietnamStyle` vẫn áp dụng nên style mới cần cùng schema OpenMapTiles và phải kiểm tra lại các vùng chủ quyền; quy tắc lọc nhãn đã kiểm tra bằng trình duyệt tự động, chưa có test tự động trong repo (web chưa có test runner).
 - SMS mới là chỗ cắm (`SMS_PROVIDER=log` chỉ ghi log) — cần hợp đồng + brandname với nhà cung cấp (eSMS, SpeedSMS...) rồi thêm nhánh trong `SmsService`. Push / email cần điền cấu hình Firebase (VAPID) / SMTP mới chạy; chưa thử với dịch vụ thật.
-- Email gửi mọi thông báo khi người dùng có email và bật (kể cả "tin mới khớp tìm kiếm") — nhiều thì cần gom thành bản tin ngày. Chưa có link huỷ nhận 1 chạm trong email.
-- Xoá tài khoản dọn ảnh của tin / món đồ / avatar, nhưng ảnh tin nhắn giữ lại; ảnh upload rồi bỏ (không gắn vào đâu) chưa có job dọn. Tải dữ liệu gom trong 1 request (tài khoản rất nhiều tin nhắn → job nền + link tải).
-- Xoá đánh giá vi phạm chỉ qua trang báo cáo / hồ sơ; chưa có hàng đợi kiểm duyệt đánh giá trước khi hiện.
-- Video tin đăng tải lên được giữ nguyên file gốc (chưa nén / chuyển định dạng, chưa ảnh bìa video); nhận trong RAM ≤ 50 MB/request (nhiều người tải cùng lúc → chuyển sang upload thẳng S3 bằng presigned URL).
-- Lịch sử xem tin chỉ lưu trên trình duyệt (localStorage), không đồng bộ theo tài khoản.
-- Bản đồ quản trị tối đa 5000 điểm mới nhất mỗi nguồn (`MAP_LIMIT`). Món Chợ ơi đăng trước khi có ô ghim vị trí không có toạ độ → không lên bản đồ tới khi người bán sửa và ghim (seed mới đã có toạ độ).
-- Địa chỉ cũ không tự xác định được phường (vd quận cũ tách thành nhiều phường như "Quận 1") cần chủ tin sửa tay; API chưa kiểm tra `ward` thuộc đúng tỉnh.
+- Xoá tài khoản dọn ảnh của tin / món đồ / avatar, nhưng ảnh tin nhắn giữ lại; ảnh upload rồi bỏ (không gắn vào đâu) được `UploadCleanupService` dọn mỗi ngày (chạy lần đầu 10 phút sau khởi động): chỉ file tên do API sinh, quá 7 ngày, không nơi nào tham chiếu (tin: ảnh / video / ảnh bìa; món đồ; avatar, ảnh bìa hồ sơ; ảnh tin nhắn; quét văn bản thiết lập + trang). Tải dữ liệu stream trong 1 request (không gom tin nhắn vào RAM); không làm job nền + link tải vì file chứa dữ liệu cá nhân, không nên đặt ở nơi có link công khai.
+- Video tin đăng tải lên được giữ nguyên file gốc (không nén / chuyển định dạng; ảnh bìa do trình duyệt chụp — `lib/videoPoster.ts`, trình duyệt không giải mã được video thì không có ảnh bìa); nhận qua file tạm trên đĩa (không giữ trong RAM) nhưng vẫn đi qua API — cần giảm băng thông API thì upload thẳng S3 bằng presigned URL (thêm `@aws-sdk/s3-request-presigner`; R2 không hỗ trợ POST policy nên không giới hạn được dung lượng phía S3).
+- Lịch sử xem: đã đăng nhập lưu theo tài khoản (`/users/me/viewed-*`), khách lưu localStorage; lịch sử xem trước khi đăng nhập không gộp lên tài khoản.
+- Bản đồ quản trị tối đa 5000 điểm mới nhất mỗi lần tải (`MAP_LIMIT`); nhiều hơn thì tải theo khung nhìn khi người dùng kéo / phóng to. Món Chợ ơi đăng trước khi có ô ghim vị trí không có toạ độ → không lên bản đồ tới khi người bán sửa và ghim (seed mới đã có toạ độ).
+- Địa chỉ cũ không tự xác định được phường (vd quận cũ tách thành nhiều phường như "Quận 1") cần chủ tin sửa tay (API từ chối lưu phường không thuộc tỉnh, nên sửa tin cũ phải chọn lại phường).
 - Redis adapter và lưu S3 mới test bằng mock/unit test, chưa chạy với Redis/S3 thật.
-- Rate limit lưu trong bộ nhớ từng instance (chạy nhiều instance → cần storage Redis). Web chưa có test tự động, test e2e API chỉ kiểm tra `GET /settings`.
+- Chống đếm trùng lượt xem nhớ trong bộ nhớ từng instance (nhiều instance → 1 người có thể được tính thêm 1 lượt / instance). Web chưa có test tự động, test e2e API chỉ kiểm tra `GET /settings`.
 - Thư viện: CI chạy `scripts/audit-prod.mjs` (chỉ đỏ khi có critical trong api/web). Còn ~8 lỗ high trong api/web chưa có bản vá cùng major (nodemailer 7 → cần 9+, firebase/@grpc, …) và maplibre-gl critical đã xem xét (không dùng `setHTML`, nâng 6.x sau); `apps/mobile` (Expo mẫu) không audit. Ép bản vá thư viện con qua `resolutions` ở `package.json` gốc.
 - Trang chính sách: mẫu `policyTemplates.ts` đã điền đủ (mô tả đúng hệ thống + cam kết chung theo pháp luật VN, ngày hiệu lực = ngày chèn, liên hệ lấy từ thiết lập) và đã đăng ở DB dev. **Chưa có tên / địa chỉ đơn vị vận hành**; nên nhờ người có chuyên môn pháp lý rà soát trước khi vận hành chính thức. Website rao vặt / sàn kết nối có thể thuộc diện phải thông báo hoặc đăng ký với Bộ Công Thương (thương mại điện tử) — cần xác minh.

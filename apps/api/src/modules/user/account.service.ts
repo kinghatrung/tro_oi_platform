@@ -6,6 +6,7 @@ import {
 import { InjectModel } from '@nestjs/mongoose';
 import { isValidObjectId, type Model } from 'mongoose';
 
+import { DEFAULT_SUCCESS_MESSAGE } from '../../common/response.interceptor.js';
 import { AuditService } from '../audit/audit.service.js';
 import {
   User,
@@ -42,6 +43,34 @@ import { StorageService } from '../upload/storage.service.js';
 export const DELETED_USER_NAME = 'Người dùng đã xoá';
 
 /**
+ * Ẩn danh hoá + khoá 1 tài khoản (xoá / gộp vào tài khoản khác): SĐT thay bằng giá trị nội bộ,
+ * bỏ Firebase UID → SĐT / Google đó đăng ký hoặc gắn lại được; khoá để token cũ hết hiệu lực.
+ */
+export const anonymizedUserUpdate = (userId: string) => ({
+  $set: {
+    name: DELETED_USER_NAME,
+    phone: `deleted:${userId}`,
+    isBlocked: true,
+    deletedAt: new Date(),
+    favoriteListingIds: [],
+    favoriteProductIds: [],
+    viewedListingIds: [],
+    viewedProductIds: [],
+    savedSearches: [],
+    pushTokens: [],
+  },
+  $unset: {
+    email: 1,
+    bio: 1,
+    avatar: 1,
+    coverImage: 1,
+    notifyPrefs: 1,
+    firebaseUid: 1,
+    socialProvider: 1,
+  },
+});
+
+/**
  * Quyền của người dùng với dữ liệu cá nhân: tải về (xuất JSON) và tự xoá tài khoản (ẩn danh hoá).
  * Ẩn danh hoá thay vì xoá hẳn: tin nhắn / đánh giá đã viết còn giữ để cuộc trò chuyện và điểm
  * đánh giá của người khác không bị hỏng, nhưng không còn gắn với danh tính.
@@ -69,11 +98,16 @@ export class AccountService {
   ) {}
 
   /**
-   * Toàn bộ dữ liệu gắn với tài khoản, dạng JSON đọc được.
-   * shortcut: gom 1 lần trong request — tài khoản rất nhiều tin nhắn thì chuyển sang job nền + link tải.
+   * Toàn bộ dữ liệu gắn với tài khoản, dạng JSON đọc được. Kiểm tra tài khoản trước (lỗi → HTTP lỗi
+   * bình thường), rồi trả bộ sinh từng đoạn JSON `{ code, message, data }` để controller ghi dần ra
+   * response — tin nhắn đọc bằng cursor theo từng cuộc trò chuyện, không gom hết vào RAM.
    */
   async exportData(userId: string) {
     const user = await this.findActive(userId);
+    return this.exportChunks(user);
+  }
+
+  private async *exportChunks(user: UserDocument) {
     const [
       listings,
       products,
@@ -100,22 +134,19 @@ export class AccountService {
       this.notificationModel.find({ user: user._id }).lean().exec(),
       this.reportModel.find({ reporter: user._id }).lean().exec(),
     ]);
-    const messages = await this.messageModel
-      .find({ conversation: { $in: conversations.map((item) => item._id) } })
-      .sort({ createdAt: 1 })
-      .lean()
-      .exec();
 
     const review = (doc: (typeof written)[number]) => ({
       rating: doc.rating,
       comment: doc.comment,
       createdAt: doc.createdAt,
     });
-    return {
+    const data = {
       exportedAt: new Date().toISOString(),
       profile: toUser(user),
       favoriteListingIds: user.favoriteListingIds.map(String),
       favoriteProductIds: user.favoriteProductIds.map(String),
+      viewedListingIds: user.viewedListingIds.map(String),
+      viewedProductIds: user.viewedProductIds.map(String),
       savedSearches: user.savedSearches.map(({ query, title, createdAt }) => ({
         query,
         title,
@@ -129,19 +160,6 @@ export class AccountService {
         ...review(doc),
       })),
       reviewsReceived: received.map(review),
-      conversations: conversations.map((conversation) => ({
-        id: String(conversation._id),
-        targetType: conversation.targetModel,
-        targetId: String(conversation.target),
-        messages: messages
-          .filter((message) => message.conversation.equals(conversation._id))
-          .map((message) => ({
-            fromMe: message.sender.equals(user._id),
-            content: message.content,
-            images: message.images,
-            createdAt: message.createdAt,
-          })),
-      })),
       notifications: notifications.map((doc) => ({
         title: doc.title,
         message: doc.message,
@@ -158,6 +176,35 @@ export class AccountService {
         createdAt: doc.createdAt,
       })),
     };
+
+    // Phần nhỏ ghi 1 lần (bỏ "}" cuối để nối tiếp), cuộc trò chuyện + tin nhắn ghi dần
+    const head = JSON.stringify(data).slice(0, -1);
+    yield `{"code":200,"message":${JSON.stringify(DEFAULT_SUCCESS_MESSAGE)},"data":${head},"conversations":[`;
+    for (const [index, conversation] of conversations.entries()) {
+      const meta = JSON.stringify({
+        id: String(conversation._id),
+        targetType: conversation.targetModel,
+        targetId: String(conversation.target),
+      }).slice(0, -1);
+      yield `${index > 0 ? ',' : ''}${meta},"messages":[`;
+      const messages = this.messageModel
+        .find({ conversation: conversation._id })
+        .sort({ createdAt: 1 })
+        .lean()
+        .cursor();
+      let first = true;
+      for await (const message of messages) {
+        yield `${first ? '' : ','}${JSON.stringify({
+          fromMe: message.sender.equals(user._id),
+          content: message.content,
+          images: message.images,
+          createdAt: message.createdAt,
+        })}`;
+        first = false;
+      }
+      yield ']}';
+    }
+    yield ']}}';
   }
 
   /**
@@ -181,11 +228,13 @@ export class AccountService {
       );
     }
     // Lấy URL ảnh trước khi xoá document
-    const [listingImages, listingVideos, productImages] = await Promise.all([
-      this.listingModel.distinct('images', { author: user._id }).exec(),
-      this.listingModel.distinct('video', { author: user._id }).exec(),
-      this.productModel.distinct('images', { seller: user._id }).exec(),
-    ]);
+    const [listingImages, listingVideos, listingPosters, productImages] =
+      await Promise.all([
+        this.listingModel.distinct('images', { author: user._id }).exec(),
+        this.listingModel.distinct('video', { author: user._id }).exec(),
+        this.listingModel.distinct('videoPoster', { author: user._id }).exec(),
+        this.productModel.distinct('images', { seller: user._id }).exec(),
+      ]);
     await Promise.all([
       this.listingModel.deleteMany({ author: user._id }).exec(),
       this.productModel.deleteMany({ seller: user._id }).exec(),
@@ -193,33 +242,12 @@ export class AccountService {
       this.notificationModel.deleteMany({ user: user._id }).exec(),
     ]);
     await this.userModel
-      .updateOne(
-        { _id: user._id },
-        {
-          $set: {
-            name: DELETED_USER_NAME,
-            phone: `deleted:${user.id as string}`,
-            isBlocked: true,
-            deletedAt: new Date(),
-            favoriteListingIds: [],
-            favoriteProductIds: [],
-            savedSearches: [],
-            pushTokens: [],
-          },
-          $unset: {
-            email: 1,
-            bio: 1,
-            avatar: 1,
-            coverImage: 1,
-            notifyPrefs: 1,
-            firebaseUid: 1,
-          },
-        },
-      )
+      .updateOne({ _id: user._id }, anonymizedUserUpdate(user.id as string))
       .exec();
     await this.storage.remove([
       ...(listingImages as string[]),
       ...(listingVideos as string[]),
+      ...(listingPosters as string[]),
       ...(productImages as string[]),
       user.avatar,
       user.coverImage,

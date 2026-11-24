@@ -1,10 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { App, Avatar, Button, Card, Form, Input, Popconfirm, Rate } from 'antd';
+import { App, Avatar, Button, Card, Form, Input, Popconfirm, Rate, Tag } from 'antd';
 import { Flag, Trash2 } from 'lucide-react';
 import {
   ReportTargetType,
+  ReviewStatus,
   UserRole,
   type MyReviewStatus,
   type Review,
@@ -59,7 +60,13 @@ export function ProfileReviews({ userId, initial }: ProfileReviewsProps) {
     setIsSaving(true);
     try {
       const review = await upsertReview({ userId, ...values });
-      message.success(mine?.review ? 'Đã cập nhật đánh giá' : 'Cảm ơn bạn đã đánh giá');
+      message.success(
+        review.status === ReviewStatus.PENDING
+          ? 'Đã gửi, đánh giá sẽ hiện sau khi được duyệt'
+          : mine?.review
+            ? 'Đã cập nhật đánh giá'
+            : 'Cảm ơn bạn đã đánh giá',
+      );
       setMine({ canReview: true, review });
       await reload();
     } catch (error) {
@@ -122,6 +129,11 @@ export function ProfileReviews({ userId, initial }: ProfileReviewsProps) {
         >
           <p className="mb-2 font-semibold text-ink">
             {mine.review ? 'Đánh giá của bạn' : 'Viết đánh giá'}
+            {mine.review?.status === ReviewStatus.PENDING && (
+              <Tag color="warning" className="ml-2! font-normal">
+                Đang chờ duyệt
+              </Tag>
+            )}
           </p>
           <Form.Item
             name="rating"

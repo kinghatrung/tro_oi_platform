@@ -72,7 +72,7 @@ Bằng việc đăng nhập và sử dụng ${siteName}, bạn đồng ý cho ch
 - Nội dung bạn đăng: tin cho thuê/mua bán, món đồ rao bán (ảnh, địa chỉ, vị trí ghim trên bản đồ, giá, mô tả, tiện ích, link video), đánh giá, báo cáo vi phạm.
 - Tin nhắn (chữ và ảnh) trao đổi giữa bạn và người dùng khác.
 - Trò chuyện với trợ lý AI: câu hỏi, câu trả lời, các thao tác tìm kiếm trợ lý đã thực hiện và đánh giá 👍/👎 của bạn — lưu tối đa 90 ngày, không gắn với tài khoản, chỉ Ban quản trị xem để cải thiện trợ lý. Vui lòng không nhập số điện thoại, địa chỉ nhà hay thông tin cá nhân khác vào khung chat AI.
-- Dữ liệu sử dụng: tin và món đồ đã lưu, tìm kiếm đã lưu, thông báo, cài đặt nhận thông báo, số lượt xem tin (đếm chung, không gắn với danh tính người xem).
+- Dữ liệu sử dụng: tin và món đồ đã lưu, tin và món đồ đã xem gần đây (tối đa 15 mỗi loại, khi bạn đã đăng nhập), tìm kiếm đã lưu, thông báo, cài đặt nhận thông báo, số lượt xem tin (đếm chung, không gắn với danh tính người xem; để không đếm trùng, máy chủ giữ tạm trong bộ nhớ mã băm của địa chỉ IP + trình duyệt tối đa 30 phút, không lưu địa chỉ IP).
 - Chúng tôi không thu thập dữ liệu cá nhân nhạy cảm (sức khoẻ, tôn giáo, sinh trắc học, tài chính...). Vui lòng không đăng các thông tin này trong tin đăng hoặc tin nhắn.
 
 ## 3. Mục đích sử dụng
@@ -94,7 +94,7 @@ Tin nhắn chỉ hiển thị cho hai người trong cuộc trò chuyện trên 
 ## 6. Cookie và lưu trữ trên trình duyệt
 - Cookie đăng nhập (accessToken) để giữ phiên đăng nhập, hết hạn sau 7 ngày hoặc khi bạn đăng xuất.
 - Cookie ghi nhớ lựa chọn giao diện sáng/tối.
-- Lịch sử tin đã xem (tối đa 15 tin) và 3 từ khoá tìm kiếm gần nhất lưu ngay trên trình duyệt của bạn, không gửi về máy chủ; bạn có thể xoá bằng cách xoá dữ liệu trang web trong trình duyệt.
+- Khi chưa đăng nhập, lịch sử tin đã xem (tối đa 15 tin) và 3 từ khoá tìm kiếm gần nhất lưu ngay trên trình duyệt của bạn, không gửi về máy chủ; bạn có thể xoá bằng cách xoá dữ liệu trang web trong trình duyệt. Khi đã đăng nhập, lịch sử tin / món đồ đã xem được lưu theo tài khoản để dùng trên mọi thiết bị.
 - Khi bạn bật thông báo đẩy: trình duyệt cấp một mã thiết bị, mã này được lưu vào tài khoản để gửi thông báo và bị gỡ khi bạn tắt thông báo đẩy hoặc đăng xuất.
 - Chúng tôi không dùng cookie quảng cáo hoặc công cụ phân tích hành vi của bên thứ ba.
 
@@ -120,7 +120,7 @@ Các dịch vụ này có chính sách bảo mật riêng. Dữ liệu có thể
 ## 9. Quyền của bạn
 - Xem và sửa thông tin hồ sơ tại Trang cá nhân; sửa, ẩn hoặc xoá tin đăng tại Kênh người đăng; xoá đánh giá do mình viết.
 - Tải toàn bộ dữ liệu của bạn (tệp JSON) tại Trang cá nhân > Dữ liệu & tài khoản.
-- Tự xoá tài khoản tại Trang cá nhân > Dữ liệu & tài khoản: tin đăng, món đồ, tin đã lưu, tìm kiếm đã lưu, thông báo và đánh giá người khác viết về bạn bị xoá ngay; thông tin cá nhân (tên, ảnh, email, số điện thoại) bị gỡ khỏi tài khoản. Tin nhắn và đánh giá bạn đã viết được giữ lại để không làm hỏng cuộc trò chuyện của người khác, nhưng chỉ hiển thị là "Người dùng đã xoá". Ảnh bạn đã tải lên được xoá khỏi máy chủ lưu trữ khi bạn gửi yêu cầu qua email.
+- Tự xoá tài khoản tại Trang cá nhân > Dữ liệu & tài khoản: tin đăng, món đồ, tin đã lưu, lịch sử xem, tìm kiếm đã lưu, thông báo và đánh giá người khác viết về bạn bị xoá ngay; thông tin cá nhân (tên, ảnh, email, số điện thoại) bị gỡ khỏi tài khoản. Tin nhắn và đánh giá bạn đã viết được giữ lại để không làm hỏng cuộc trò chuyện của người khác, nhưng chỉ hiển thị là "Người dùng đã xoá". Ảnh bạn đã tải lên được xoá khỏi máy chủ lưu trữ khi bạn gửi yêu cầu qua email.
 - Bạn có quyền được biết, đồng ý hoặc rút lại sự đồng ý, truy cập, chỉnh sửa, yêu cầu xoá, hạn chế hoặc phản đối việc xử lý dữ liệu cá nhân của mình, khiếu nại, tố cáo, khởi kiện và yêu cầu bồi thường thiệt hại theo quy định của pháp luật.
 - Gửi yêu cầu về dữ liệu tới ${contactEmail}. Chúng tôi xử lý yêu cầu xoá hoặc cung cấp dữ liệu chậm nhất trong 72 giờ kể từ khi nhận đủ yêu cầu, các yêu cầu khác trong thời hạn pháp luật quy định.
 

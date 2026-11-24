@@ -16,6 +16,8 @@ import {
   recordModeration,
 } from '../../common/moderation.js';
 import { assertOwnerStatusChange } from '../../common/status-rules.js';
+import { sitemapChunk } from '../../common/sitemap.js';
+import { ViewCounter } from '../../common/view-counter.js';
 import { AuditService } from '../audit/audit.service.js';
 import { NotificationService } from '../notification/notification.service.js';
 import { SettingsService } from '../settings/settings.service.js';
@@ -28,7 +30,11 @@ import type {
 import { buildListingQuery } from './listing.filter.js';
 import { AUTHOR_FIELDS, toListing, withFullAddress } from './listing.mapper.js';
 import { User, type UserDocument } from '../auth/schemas/user.schema.js';
-import { matchesSavedSearch } from './saved-search-match.js';
+import {
+  matchesSavedSearch,
+  parseSavedSearch,
+  savedSearchCondition,
+} from './saved-search-match.js';
 import { Listing, type ListingDocument } from './schemas/listing.schema.js';
 
 /** Trạng thái chủ tin tự chuyển được: hiển thị ↔ ẩn, hết hạn → hiển thị (gia hạn). */
@@ -53,6 +59,7 @@ const formatDate = (date: Date) =>
 export class ListingService implements OnModuleInit, OnModuleDestroy {
   private expireTimer?: NodeJS.Timeout;
   private readonly logger = new Logger(ListingService.name);
+  private readonly views = new ViewCounter();
 
   constructor(
     @InjectModel(Listing.name)
@@ -73,6 +80,7 @@ export class ListingService implements OnModuleInit, OnModuleDestroy {
         { $set: { expiresAt: nextExpiry() } },
       )
       .exec();
+    await this.backfillSavedSearchFilters();
     await this.checkExpiry();
     this.expireTimer = setInterval(
       () => void this.checkExpiry(),
@@ -242,14 +250,9 @@ export class ListingService implements OnModuleInit, OnModuleDestroy {
     if (!isValidObjectId(id))
       throw new NotFoundException('Không tìm thấy tin đăng');
 
-    // shortcut: mỗi lần mở trang chi tiết +1 view (kể cả F5/bot), cần chống trùng khi có analytics thật
-    // timestamps: false — tăng view không được đổi updatedAt ("Cập nhật x ngày trước")
+    // Lượt xem đếm riêng ở recordView (trình duyệt gọi) — GET này còn do server web render / bot gọi
     const doc = await this.listingModel
-      .findOneAndUpdate(
-        { _id: id, status: 'active' },
-        { $inc: { viewCount: 1 } },
-        { returnDocument: 'after', timestamps: false },
-      )
+      .findOne({ _id: id, status: 'active' })
       .populate('author', AUTHOR_FIELDS)
       .exec();
     if (!doc) throw new NotFoundException('Không tìm thấy tin đăng');
@@ -260,9 +263,28 @@ export class ListingService implements OnModuleInit, OnModuleDestroy {
     return toListing(doc, { listingCount });
   }
 
+  /** 1 phần sitemap của tin đang hiển thị. */
+  sitemap(chunk: number) {
+    return sitemapChunk(this.listingModel, chunk);
+  }
+
+  /** +1 lượt xem (chống trùng theo người xem, bỏ bot). Không đổi updatedAt ("Cập nhật x ngày trước"). */
+  async recordView(id: string, ip?: string, userAgent?: string) {
+    if (isValidObjectId(id) && this.views.shouldCount(id, ip, userAgent)) {
+      await this.listingModel
+        .updateOne(
+          { _id: id, status: 'active' },
+          { $inc: { viewCount: 1 } },
+          { timestamps: false },
+        )
+        .exec();
+    }
+    return null;
+  }
+
   /** Tin mới: chờ duyệt nếu admin bật requireListingApproval, ngược lại hiển thị ngay. */
   async create(user: AuthUser, dto: CreateListingDto) {
-    this.assertStoredVideo(dto.video);
+    this.assertStoredMedia(dto);
     const { requireListingApproval } = await this.settingsService.get();
     const doc = await this.listingModel.create({
       ...dto,
@@ -277,10 +299,10 @@ export class ListingService implements OnModuleInit, OnModuleDestroy {
   }
 
   async update(user: AuthUser, id: string, dto: UpdateListingDto) {
-    this.assertStoredVideo(dto.video);
+    this.assertStoredMedia(dto);
     const doc = await this.findOwned(user, id);
     const from = doc.status;
-    const oldVideo = doc.video;
+    const { video: oldVideo, videoPoster: oldPoster } = doc;
     assertOwnerStatusChange(
       doc.status,
       dto.status,
@@ -310,9 +332,12 @@ export class ListingService implements OnModuleInit, OnModuleDestroy {
       ),
     );
     await doc.save();
-    // Đổi / gỡ video → xoá file cũ (video nặng, không để mồ côi)
-    if (oldVideo && oldVideo !== doc.video)
-      void this.storage.remove([oldVideo]);
+    // Đổi / gỡ video, ảnh bìa → xoá file cũ (video nặng, không để mồ côi)
+    void this.storage.remove(
+      [oldVideo, oldPoster].filter(
+        (url) => url && url !== doc.video && url !== doc.videoPoster,
+      ),
+    );
     await this.moderated(user, doc, from, doc.status, moderationNote?.trim());
     if (from === 'pending' && doc.status === 'active') {
       void this.alertSavedSearches(doc, doc.author); // tin vừa được duyệt = tin mới
@@ -324,23 +349,36 @@ export class ListingService implements OnModuleInit, OnModuleDestroy {
   async remove(user: AuthUser, id: string) {
     const doc = await this.findOwned(user, id);
     await doc.deleteOne();
-    void this.storage.remove([...doc.images, doc.video]);
+    void this.storage.remove([...doc.images, doc.video, doc.videoPoster]);
     await this.moderated(user, doc, doc.status, null);
     return null;
   }
 
-  /** Video phải là file đã tải lên qua /uploads/video — không nhúng link ngoài (lộ IP người xem). */
-  private assertStoredVideo(video?: string) {
+  /** Video + ảnh bìa phải là file đã tải lên qua /uploads — không nhúng link ngoài (lộ IP người xem). */
+  private assertStoredMedia({
+    video,
+    videoPoster,
+  }: {
+    video?: string;
+    videoPoster?: string;
+  }) {
     if (video && !this.storage.isStoredUrl(video)) {
       throw new BadRequestException('Video phải được tải lên từ Trọ ơi');
+    }
+    if (videoPoster && !this.storage.isStoredUrl(videoPoster)) {
+      throw new BadRequestException(
+        'Ảnh bìa video phải được tải lên từ Trọ ơi',
+      );
     }
   }
 
   /**
    * Tin mới hiển thị (đăng không cần duyệt / vừa được duyệt) → báo người có tìm kiếm đã lưu khớp tin
    * (1 thông báo / người). Chạy nền, lỗi chỉ ghi log.
+   * Mongo lọc ứng viên theo bộ lọc có cấu trúc (savedSearchCondition); JS chỉ kiểm tra lại keyword.
+   * shortcut: điều kiện $or "không đặt / khớp" không dùng được index → Mongo vẫn quét user có tìm kiếm
+   * đã lưu (trên server DB, không kéo về API); hàng triệu tìm kiếm → tách collection riêng + index.
    */
-  // shortcut: so khớp từng tìm kiếm đã lưu bằng JS (không dùng index) — rất nhiều user thì lưu bộ lọc có cấu trúc để query thẳng Mongo
   private async alertSavedSearches(
     doc: ListingDocument,
     authorId: Types.ObjectId,
@@ -350,7 +388,7 @@ export class ListingService implements OnModuleInit, OnModuleDestroy {
       const users = this.userModel
         .find(
           {
-            'savedSearches.0': { $exists: true },
+            savedSearches: { $elemMatch: savedSearchCondition(doc) },
             _id: { $ne: authorId },
             isBlocked: { $ne: true },
           },
@@ -370,6 +408,7 @@ export class ListingService implements OnModuleInit, OnModuleDestroy {
               title: 'Có tin mới khớp tìm kiếm của bạn',
               message: `"${doc.title}" · ${search.title}`,
               link: `/phong-tro/${doc.id as string}`,
+              digest: true, // email gom vào bản tin ngày
             },
           });
         }
@@ -382,6 +421,29 @@ export class ListingService implements OnModuleInit, OnModuleDestroy {
     } catch (error) {
       this.logger.warn(
         `Không gửi được thông báo tìm kiếm đã lưu: ${(error as Error).message}`,
+      );
+    }
+  }
+
+  /** Tìm kiếm đã lưu trước khi có `filter` → tách bộ lọc từ query (chạy lại an toàn, chỉ bản thiếu). */
+  private async backfillSavedSearchFilters() {
+    try {
+      const users = this.userModel
+        .find(
+          { savedSearches: { $elemMatch: { filter: { $exists: false } } } },
+          'savedSearches',
+        )
+        .cursor();
+      for await (const user of users) {
+        for (const search of user.savedSearches) {
+          search.filter ??= { ...parseSavedSearch(search.query) };
+        }
+        user.markModified('savedSearches');
+        await user.save();
+      }
+    } catch (error) {
+      this.logger.warn(
+        `Không bổ sung được bộ lọc tìm kiếm đã lưu: ${(error as Error).message}`,
       );
     }
   }

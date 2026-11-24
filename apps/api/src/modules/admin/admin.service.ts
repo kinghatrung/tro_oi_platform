@@ -33,6 +33,7 @@ import type {
   AdminProductQueryDto,
   AdminUpdateUserDto,
   AdminUserQueryDto,
+  MapBoundsDto,
 } from './admin.dto.js';
 import {
   buildDailySeries,
@@ -44,8 +45,22 @@ import {
 const DAY_MS = 24 * 60 * 60 * 1000;
 /** Số tỉnh trong "tỉnh có nhiều tin nhất". */
 const TOP_CITY_COUNT = 6;
-/** Số tin tối đa trả cho bản đồ quản trị. */
+/** Số điểm tối đa mỗi lần tải bản đồ quản trị (web phóng to → tải lại theo khung nhìn). */
 const MAP_LIMIT = 5000;
+
+/** Có toạ độ; đủ 4 cạnh khung nhìn → chỉ điểm trong khung. */
+export function geoFilter(bounds: MapBoundsDto) {
+  const { minLat, maxLat, minLng, maxLng } = bounds;
+  const hasBounds = [minLat, maxLat, minLng, maxLng].every(
+    (value) => value !== undefined,
+  );
+  return hasBounds
+    ? {
+        'address.geo.latitude': { $gte: minLat, $lte: maxLat },
+        'address.geo.longitude': { $gte: minLng, $lte: maxLng },
+      }
+    : { 'address.geo.latitude': { $exists: true } };
+}
 
 const REPORT_ACTIONS: Record<UpdateReportDto['status'], string> = {
   resolved: 'Xử lý báo cáo',
@@ -301,9 +316,9 @@ export class AdminService {
     const { filter } = buildListingQuery(query);
     if (query.status) filter.status = query.status;
     else delete filter.status;
-    filter['address.geo.latitude'] = { $exists: true };
+    Object.assign(filter, geoFilter(query));
 
-    // shortcut: tối đa MAP_LIMIT tin mới nhất; nhiều hơn thì chuyển sang tile vector / lọc theo khung nhìn
+    // Tối đa MAP_LIMIT tin mới nhất (trong khung nhìn nếu web gửi minLat..maxLng)
     const docs = await this.listingModel
       .find(filter)
       .sort({ createdAt: -1 })
@@ -331,9 +346,9 @@ export class AdminService {
     const { filter } = buildProductQuery(query);
     if (query.status) filter.status = query.status;
     else delete filter.status;
-    filter['address.geo.latitude'] = { $exists: true };
+    Object.assign(filter, geoFilter(query));
 
-    // shortcut: tối đa MAP_LIMIT món mới nhất (như listingMap)
+    // Tối đa MAP_LIMIT món mới nhất (như listingMap)
     const docs = await this.productModel
       .find(filter)
       .sort({ createdAt: -1 })

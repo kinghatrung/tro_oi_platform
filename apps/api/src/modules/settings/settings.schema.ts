@@ -34,6 +34,7 @@ export const DEFAULT_SETTINGS = {
   enableMarketplace: true,
   requireListingApproval: false,
   requireProductApproval: false,
+  requireReviewApproval: false,
 };
 
 export type SettingsValues = typeof DEFAULT_SETTINGS;

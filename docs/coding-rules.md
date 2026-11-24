@@ -122,7 +122,7 @@ export async function getListing(id: string) {
 - Trạng thái rỗng: dùng `EmptyState` (`components/common`), không dùng `<Empty>` mặc định của AntD. Cần ngữ cảnh mới → vẽ SVG cùng phong cách vào `public/images/empty/` và thêm vào `EmptyVariant`.
 - Ảnh: `next/image`. Ảnh upload (`/uploads/**` trên API hoặc S3) đã được whitelist trong `next.config.ts`.
 - Bản đồ: **chỉ dùng `VietnamMap`** (components/common). Không thêm bản đồ/tile khác (Leaflet + tile OSM, Google Maps nhúng...) vì không kiểm soát được chữ Hán / tên do nước ngoài đặt trên Hoàng Sa, Trường Sa. Đổi nguồn tile → giữ `patchVietnamStyle` và kiểm tra lại các vùng: Hoàng Sa, Trường Sa, biên giới Móng Cái, Lào Cai (không chữ Hán, không tên do Trung Quốc đặt).
-- Địa chỉ: tỉnh/thành lấy từ `PROVINCES`, phường/xã từ `useWards(tỉnh)` — không hard-code tên địa danh, không thêm ô nhập quận/huyện. `provinces.ts` / `wards.json` (web) và `common/provinces.ts` (api) là file TỰ SINH: sửa bằng `yarn geo:build`, không sửa tay.
+- Địa chỉ: tỉnh/thành lấy từ `PROVINCES`, phường/xã từ `useWards(tỉnh)` — không hard-code tên địa danh, không thêm ô nhập quận/huyện. `provinces.ts` / `wards.json` (web) và `common/provinces.ts` / `common/wards.ts` (api) là file TỰ SINH: sửa bằng `yarn geo:build`, không sửa tay.
 - Text từ người dùng render dạng text (`whitespace-pre-line`), **không** `dangerouslySetInnerHTML` (nếu bắt buộc → sanitize).
 
 ## 4. API (`apps/api`) — NestJS 12 + Mongoose 9, ESM
@@ -147,6 +147,7 @@ export async function getListing(id: string) {
 - Thông báo cho người dùng **luôn** qua `NotificationService.notify` (lưu + realtime + push / email / SMS theo cài đặt) — không tự emit socket hay gửi email ở module khác. Sự kiện realtime khác dùng `RealtimeService.emitToUser`.
 - URL ảnh do người dùng gửi để hiển thị cho **người khác** (chat) phải qua `StorageService.isStoredUrl` — chỉ nhận ảnh đã upload qua `/uploads`.
 - Xoá file upload qua `StorageService.remove(urls)` (tự bỏ qua URL ngoài hệ thống, lỗi chỉ ghi log) — không `unlink` / gọi S3 trực tiếp.
+- Thêm field mới lưu URL upload → **bắt buộc** thêm vào `UploadCleanupService.referencedNames` (`upload/upload-cleanup.service.ts`), nếu không job dọn hằng ngày sẽ xoá file đó sau 7 ngày. Thiết lập website và nội dung trang được quét cả văn bản nên không cần khai báo.
 - Logic không tầm thường (filter, quyền, parse) → có ít nhất 1 unit test `*.spec.ts`.
 
 ## 5. Shared (`packages/shared`)

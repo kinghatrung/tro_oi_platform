@@ -103,6 +103,10 @@ export class Listing {
   @Prop()
   video?: string;
 
+  /** Ảnh bìa video (khung hình trình duyệt chụp lúc chọn video, tải lên như ảnh). Rỗng = không có. */
+  @Prop()
+  videoPoster?: string;
+
   @Prop({ type: String, enum: LISTING_CATEGORIES, required: true })
   category: ListingCategory;
 

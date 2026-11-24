@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { App, Segmented, Select, Spin } from 'antd';
+import { App, Button, Segmented, Select, Spin } from 'antd';
 import { House, MapPinOff, ShoppingBag } from 'lucide-react';
 import {
   LISTING_STATUS_LABELS,
@@ -16,7 +16,7 @@ import {
 
 import { getAdminListingMap, getAdminProductMap } from '@/api/admin';
 import { PageCard } from '@/components/admin';
-import { VietnamMap, type MapMarker } from '@/components/common';
+import { VietnamMap, type MapBounds, type MapMarker } from '@/components/common';
 import { PROVINCES } from '@/constants';
 import { formatListingPrice, formatNumber, formatVietnameseCurrency } from '@/utils/helpers';
 
@@ -74,6 +74,8 @@ const SOURCE_OPTIONS = (Object.keys(SOURCES) as Source[]).map((value) => ({
   ),
 }));
 const CITY_OPTIONS = PROVINCES.map((city) => ({ value: city, label: city }));
+/** Số điểm tối đa mỗi lần tải (trùng MAP_LIMIT bên API). Chạm mức này → tải lại theo khung nhìn. */
+const MAP_LIMIT = 5000;
 
 const placeOf = (point: { ward?: string; city?: string }) =>
   [point.ward, point.city].filter(Boolean).join(', ');
@@ -117,23 +119,39 @@ export default function AdminMapPage() {
     source: Source;
     points: (ListingMapPoint | ProductMapPoint)[];
   }>();
+  /** Khung đang xem — chỉ dùng khi dữ liệu nhiều hơn MAP_LIMIT (tải theo vùng thay vì cả nước). */
+  const [viewport, setViewport] = useState<MapBounds>();
   const config = SOURCES[source];
   // Đổi nguồn → coi như đang tải tới khi API trả điểm của nguồn mới
   const points = result?.source === source ? result.points : undefined;
+  const isTruncated = (points?.length ?? 0) >= MAP_LIMIT;
 
   useEffect(() => {
     let isCurrent = true;
+    const params = { ...query, ...viewport };
     const request =
       source === 'listing'
-        ? getAdminListingMap(query as Parameters<typeof getAdminListingMap>[0])
-        : getAdminProductMap(query as Parameters<typeof getAdminProductMap>[0]);
+        ? getAdminListingMap(params as Parameters<typeof getAdminListingMap>[0])
+        : getAdminProductMap(params as Parameters<typeof getAdminProductMap>[0]);
     request
       .then((data) => isCurrent && setResult({ source, points: data }))
       .catch((error: Error) => message.error(error.message));
     return () => {
       isCurrent = false;
     };
-  }, [message, query, source]);
+  }, [message, query, source, viewport]);
+
+  const area = viewport ? ' trong khung nhìn' : '';
+  const countLabel = isTruncated
+    ? `${formatNumber(MAP_LIMIT)} ${config.unit} mới nhất có vị trí${area} — ${
+        viewport ? 'phóng to thêm để xem đủ' : 'kéo / phóng to bản đồ để tải theo khu vực'
+      }`
+    : `${formatNumber(points?.length ?? 0)} ${config.unit} có vị trí${area}`;
+
+  // Dữ liệu ít (đã tải đủ) → không cần tải lại khi kéo bản đồ
+  const handleViewportChange = (bounds: MapBounds) => {
+    if (viewport || isTruncated) setViewport(bounds);
+  };
 
   const markers = useMemo(
     () =>
@@ -154,6 +172,7 @@ export default function AdminMapPage() {
   const changeSource = (next: Source) => {
     setSource(next);
     setQuery({}); // trạng thái / loại của 2 nguồn khác nhau
+    setViewport(undefined);
   };
 
   return (
@@ -171,7 +190,7 @@ export default function AdminMapPage() {
           <p className="mt-1 text-sm text-subtle">
             {points ? (
               <>
-                {formatNumber(points.length)} {config.unit} có vị trí
+                {countLabel}
                 {statusCounts.length > 0 &&
                   ` — ${statusCounts
                     .map(
@@ -181,6 +200,11 @@ export default function AdminMapPage() {
               </>
             ) : (
               'Đang tải…'
+            )}
+            {viewport && (
+              <Button type="link" size="small" onClick={() => setViewport(undefined)}>
+                Xem toàn quốc
+              </Button>
             )}
           </p>
         </div>
@@ -220,7 +244,12 @@ export default function AdminMapPage() {
       </div>
 
       <div className="relative min-h-100 flex-1 overflow-hidden rounded-lg">
-        <VietnamMap markers={markers} className="h-full w-full" />
+        <VietnamMap
+          markers={markers}
+          fitMarkers={!viewport}
+          onViewportChange={handleViewportChange}
+          className="h-full w-full"
+        />
         {!points && (
           <div className="absolute inset-0 flex items-center justify-center bg-surface/60">
             <Spin size="large" />

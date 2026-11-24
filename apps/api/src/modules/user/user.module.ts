@@ -18,6 +18,7 @@ import { ProductModule } from '../product/product.module.js';
 import { Report, ReportSchema } from '../report/report.schema.js';
 import { Review, ReviewSchema } from '../review/review.schema.js';
 import { UploadModule } from '../upload/upload.module.js';
+import { AccountMergeService } from './account-merge.service.js';
 import { AccountService } from './account.service.js';
 import { UserController } from './user.controller.js';
 import { UserService } from './user.service.js';
@@ -40,7 +41,7 @@ import { UserService } from './user.service.js';
     UploadModule, // dọn ảnh khi xoá tài khoản
   ],
   controllers: [UserController],
-  providers: [UserService, AccountService],
+  providers: [UserService, AccountService, AccountMergeService],
   exports: [AccountService], // admin xoá tài khoản
 })
 export class UserModule {}

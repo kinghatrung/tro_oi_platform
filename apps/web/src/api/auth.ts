@@ -34,7 +34,13 @@ export async function unlinkSocial() {
   return res.data;
 }
 
-/** Gắn SĐT đã xác minh OTP (ID token Firebase Phone Auth). */
+/** Bỏ SĐT (API chỉ cho khi tài khoản đã liên kết Google / Facebook). */
+export async function unlinkPhone() {
+  const res = (await axiosClient.delete('/auth/link/phone')) as ApiResponse<User>;
+  return res.data;
+}
+
+/** Gắn / đổi SĐT đã xác minh OTP (ID token Firebase Phone Auth). */
 export async function linkPhone(firebaseToken: string) {
   const res = (await axiosClient.post('/auth/link/phone', { firebaseToken })) as ApiResponse<User>;
   return res.data;

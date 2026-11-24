@@ -41,12 +41,20 @@ export class Notification {
   @Prop({ default: false })
   read: boolean;
 
+  /** Chờ gửi trong email bản tin ngày (thay vì email ngay); job bản tin xoá cờ sau khi xử lý. */
+  @Prop()
+  emailDigest?: boolean;
+
   createdAt: Date;
 }
 
 export type NotificationDocument = HydratedDocument<Notification>;
 export const NotificationSchema = SchemaFactory.createForClass(Notification);
 NotificationSchema.index({ user: 1, createdAt: -1 });
+NotificationSchema.index(
+  { user: 1, createdAt: 1 },
+  { partialFilterExpression: { emailDigest: true } },
+);
 // Mongo tự xoá thông báo cũ, collection không phình mãi
 NotificationSchema.index(
   { createdAt: 1 },

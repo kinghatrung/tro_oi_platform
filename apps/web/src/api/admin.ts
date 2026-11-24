@@ -12,8 +12,10 @@ import type {
   AuditLog,
   AuditLogQuery,
   Listing,
+  BaseListRequest,
   PageSlug,
   PagedResponse,
+  PendingReview,
   ProductItem,
   Report,
   ReportStatus,
@@ -87,6 +89,18 @@ export async function searchAdminReports(params: AdminReportQuery) {
 
 export async function updateAdminReport(id: string, status: ReportStatus) {
   await axiosClient.patch(`/admin/reports/${id}`, { status });
+}
+
+/** Đánh giá chờ duyệt, cũ trước. Từ chối = deleteReview (api/reviews). */
+export async function searchPendingReviews(params: BaseListRequest) {
+  const res = (await axiosClient.get('/admin/reviews', { params })) as ApiResponse<
+    PagedResponse<PendingReview>
+  >;
+  return res.data;
+}
+
+export async function approveReview(id: string) {
+  await axiosClient.patch(`/admin/reviews/${id}/approve`);
 }
 
 export async function searchAuditLogs(params: AuditLogQuery) {

@@ -3,8 +3,10 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
   Param,
   Patch,
+  Post,
   Put,
   Query,
   UseGuards,
@@ -18,9 +20,26 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard.js';
 import {
   NotificationQueryDto,
   PushTokenDto,
+  UnsubscribeDto,
   UpdateNotifyPrefsDto,
 } from './notification.dto.js';
 import { NotificationService } from './notification.service.js';
+
+/**
+ * Huỷ nhận email bằng token trong email (không cần đăng nhập). Web gọi khi người dùng bấm xác nhận;
+ * Gmail / Outlook gọi thẳng qua header List-Unsubscribe-Post (body "List-Unsubscribe=One-Click").
+ * Khai báo trước NotificationController (có JwtAuthGuard ở cấp class) để route không bị chặn.
+ */
+@Controller('notifications/unsubscribe')
+export class UnsubscribeController {
+  constructor(private readonly notificationService: NotificationService) {}
+
+  @Post()
+  @HttpCode(200)
+  unsubscribe(@Query() query: UnsubscribeDto) {
+    return this.notificationService.unsubscribeEmail(query.token);
+  }
+}
 
 /** Thông báo của người đang đăng nhập. */
 @Controller('notifications')

@@ -15,7 +15,9 @@ import {
 } from 'firebase/auth';
 import type { User } from '@tro-oi/shared';
 
-import { linkPhone, linkSocial, unlinkSocial } from '@/api/auth';
+import { linkPhone, linkSocial, unlinkPhone, unlinkSocial } from '@/api/auth';
+import { ApiError } from '@/api/axiosClient';
+import { mergeAccount } from '@/api/users';
 import {
   firebaseErrorMessage,
   getFirebaseAuth,
@@ -41,14 +43,37 @@ const formatPhone = (phone: string) =>
 
 /**
  * Liên kết đăng nhập: 1 tài khoản đăng nhập được bằng SĐT và Google / Facebook.
- * Gắn thêm qua Firebase (OTP / popup) → ID token → POST /auth/link/*.
+ * Gắn thêm qua Firebase (OTP / popup) → ID token → POST /auth/link/*. Định danh đã thuộc tài khoản
+ * khác (409) → đề nghị gộp tài khoản đó vào đây bằng chính token vừa có (POST /users/me/merge).
  */
 export function LinkedAccounts({ user }: { user: User }) {
-  const { message } = App.useApp();
+  const { message, modal } = App.useApp();
   const setUser = useAuthStore((state) => state.setUser);
+  const reloadUser = useAuthStore((state) => state.reloadUser);
   const isFirebaseEnabled = Boolean(process.env.NEXT_PUBLIC_FIREBASE_API_KEY);
-  const [busy, setBusy] = useState<Provider | 'unlink'>();
-  const [isPhoneOpen, setIsPhoneOpen] = useState(false);
+  const [busy, setBusy] = useState<Provider | 'unlink' | 'unlink-phone'>();
+  const [phoneMode, setPhoneMode] = useState<'add' | 'change'>();
+
+  /** Liên kết; trùng tài khoản khác → hỏi gộp. Trả true khi đã liên kết / gộp xong. */
+  const linkOrMerge = async (token: string, link: (token: string) => Promise<User>) => {
+    try {
+      setUser(await link(token));
+      return true;
+    } catch (error) {
+      if (!(error instanceof ApiError && error.status === 409)) throw error;
+      const isConfirmed = await modal.confirm({
+        title: 'Gộp tài khoản?',
+        content: `${error.message}. Gộp tài khoản đó vào tài khoản này? Tin đăng, món đồ, tin nhắn, đánh giá và mục đã lưu sẽ chuyển sang đây, tài khoản kia bị xoá. Không hoàn tác được.`,
+        okText: 'Gộp tài khoản',
+        okButtonProps: { danger: true },
+        cancelText: 'Huỷ',
+      });
+      if (!isConfirmed) return false;
+      await reloadUser(await mergeAccount(token));
+      message.success('Đã gộp tài khoản');
+      return true;
+    }
+  };
 
   const handleLinkSocial = async (provider: Provider) => {
     const auth = getFirebaseAuth();
@@ -59,10 +84,23 @@ export function LinkedAccounts({ user }: { user: User }) {
         auth,
         provider === 'google' ? new GoogleAuthProvider() : new FacebookAuthProvider(),
       );
-      setUser(await linkSocial(await credential.user.getIdToken()));
-      message.success(`Đã liên kết ${provider === 'google' ? 'Google' : 'Facebook'}`);
+      if (await linkOrMerge(await credential.user.getIdToken(), linkSocial)) {
+        message.success(`Đã liên kết ${provider === 'google' ? 'Google' : 'Facebook'}`);
+      }
     } catch (error) {
       if (!isPopupCancelled(error)) message.error(firebaseErrorMessage(error, 'Liên kết thất bại'));
+    } finally {
+      setBusy(undefined);
+    }
+  };
+
+  const handleUnlinkPhone = async () => {
+    setBusy('unlink-phone');
+    try {
+      setUser(await unlinkPhone());
+      message.success('Đã bỏ số điện thoại');
+    } catch (error) {
+      message.error((error as Error).message);
     } finally {
       setBusy(undefined);
     }
@@ -102,10 +140,31 @@ export function LinkedAccounts({ user }: { user: User }) {
           <>
             <span className="text-ink">{formatPhone(user.phone)}</span>
             <Tag color="success">Đã liên kết</Tag>
+            <Tooltip title={isFirebaseEnabled ? undefined : NEEDS_FIREBASE}>
+              <Button disabled={!isFirebaseEnabled} onClick={() => setPhoneMode('change')}>
+                Đổi số
+              </Button>
+            </Tooltip>
+            <Tooltip
+              title={
+                user.socialProvider
+                  ? undefined
+                  : 'Liên kết Google / Facebook trước để vẫn đăng nhập được'
+              }
+            >
+              <Button
+                danger
+                disabled={!user.socialProvider}
+                loading={busy === 'unlink-phone'}
+                onClick={handleUnlinkPhone}
+              >
+                Bỏ số
+              </Button>
+            </Tooltip>
           </>
         ) : (
           <Tooltip title={isFirebaseEnabled ? undefined : NEEDS_FIREBASE}>
-            <Button disabled={!isFirebaseEnabled} onClick={() => setIsPhoneOpen(true)}>
+            <Button disabled={!isFirebaseEnabled} onClick={() => setPhoneMode('add')}>
               Thêm số điện thoại
             </Button>
           </Tooltip>
@@ -161,13 +220,19 @@ export function LinkedAccounts({ user }: { user: User }) {
             </>,
           )}
 
-      {isPhoneOpen && (
+      {phoneMode && (
         <LinkPhoneModal
-          onClose={() => setIsPhoneOpen(false)}
-          onLinked={(next) => {
-            setUser(next);
-            setIsPhoneOpen(false);
-            message.success('Đã thêm số điện thoại');
+          title={phoneMode === 'add' ? 'Thêm số điện thoại' : 'Đổi số điện thoại'}
+          onClose={() => setPhoneMode(undefined)}
+          onVerified={async (token) => {
+            const isLinked = await linkOrMerge(token, linkPhone);
+            // Mã OTP đã dùng → đóng dù huỷ gộp; muốn thử lại thì mở lại để nhận mã mới
+            setPhoneMode(undefined);
+            if (isLinked) {
+              message.success(
+                phoneMode === 'add' ? 'Đã thêm số điện thoại' : 'Đã đổi số điện thoại',
+              );
+            }
           }}
         />
       )}
@@ -175,13 +240,15 @@ export function LinkedAccounts({ user }: { user: User }) {
   );
 }
 
-/** Nhập SĐT → OTP (Firebase, reCAPTCHA ẩn) → POST /auth/link/phone. */
+/** Nhập SĐT → OTP (Firebase, reCAPTCHA ẩn) → token đã xác minh cho `onVerified`. */
 function LinkPhoneModal({
+  title,
   onClose,
-  onLinked,
+  onVerified,
 }: {
+  title: string;
   onClose: () => void;
-  onLinked: (user: User) => void;
+  onVerified: (firebaseToken: string) => Promise<void>;
 }) {
   const { message } = App.useApp();
   const [form] = Form.useForm<{ phone: string; otp?: string }>();
@@ -213,7 +280,8 @@ function LinkPhoneModal({
       } else if (confirmationRef.current && otp) {
         const credential = await confirmationRef.current.confirm(otp);
         verifierRef.current?.clear();
-        onLinked(await linkPhone(await credential.user.getIdToken()));
+        verifierRef.current = null;
+        await onVerified(await credential.user.getIdToken());
       }
     } catch (error) {
       message.error(firebaseErrorMessage(error, 'Không thêm được số điện thoại'));
@@ -225,7 +293,7 @@ function LinkPhoneModal({
   return (
     <Modal
       open
-      title="Thêm số điện thoại"
+      title={title}
       onCancel={close}
       onOk={() => form.submit()}
       okText={step === 'phone' ? 'Gửi mã OTP' : 'Xác nhận'}

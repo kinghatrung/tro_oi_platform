@@ -2,7 +2,15 @@ import { jest } from '@jest/globals';
 import { Types } from 'mongoose';
 
 import { maskPhone } from './channels/sms.service.js';
-import { NotificationService, prefsOf } from './notification.service.js';
+import {
+  buildDigest,
+  NotificationService,
+  prefsOf,
+} from './notification.service.js';
+import {
+  signUnsubscribeToken,
+  verifyUnsubscribeToken,
+} from './unsubscribe-token.js';
 
 const userId = new Types.ObjectId();
 
@@ -53,7 +61,10 @@ const setup = (
     push as never,
     mail as never,
     sms as never,
-    { get: () => 'https://troi.vn,http://localhost:3001' } as never,
+    {
+      get: () => 'https://troi.vn,http://localhost:3001',
+      getOrThrow: () => 'test-secret',
+    } as never,
   );
   /** notify chạy gửi ở nền → chờ microtask xong. */
   const notify = async () => {
@@ -132,6 +143,46 @@ describe('NotificationService — kênh gửi', () => {
       email: true,
       sms: false,
     });
+  });
+
+  it('email kèm link huỷ nhận + header List-Unsubscribe 1 chạm', async () => {
+    const { notify, mail } = setup({ ...base, email: 'a@b.vn' });
+    await notify();
+    const sent = (mail.send.mock.calls[0] as unknown[])[0] as {
+      text: string;
+      headers: Record<string, string>;
+    };
+    const token = signUnsubscribeToken(userId.toString(), 'test-secret');
+    expect(sent.text).toContain(`/huy-nhan-email?token=${token}`);
+    expect(sent.headers['List-Unsubscribe-Post']).toBe(
+      'List-Unsubscribe=One-Click',
+    );
+  });
+
+  it('token huỷ nhận: đúng tài khoản; sửa id / chữ ký / sai secret → null', () => {
+    const id = userId.toString();
+    const token = signUnsubscribeToken(id, 's1');
+    expect(verifyUnsubscribeToken(token, 's1')).toBe(id);
+    expect(verifyUnsubscribeToken(token, 's2')).toBeNull();
+    const other = new Types.ObjectId().toString();
+    expect(
+      verifyUnsubscribeToken(`${other}.${token.split('.')[1]}`, 's1'),
+    ).toBeNull();
+    expect(verifyUnsubscribeToken('abc', 's1')).toBeNull();
+  });
+
+  it('bản tin ngày: tối đa 20 mục + dòng "và N tin khác"', () => {
+    const docs = Array.from({ length: 23 }, (_, i) => ({
+      title: 'Có tin mới khớp tìm kiếm của bạn',
+      message: `Tin ${i}`,
+      link: `/phong-tro/${i}`,
+    }));
+    const { subject, body } = buildDigest(docs, 'https://troi.vn');
+    expect(subject).toBe('23 thông báo mới hôm nay');
+    expect(body).toHaveLength(21);
+    expect(body[0]).toContain('https://troi.vn/phong-tro/0');
+    expect(body[20]).toContain('và 3 tin khác');
+    expect(buildDigest(docs.slice(0, 1), 'x').subject).toBe(docs[0].title);
   });
 
   it('maskPhone che giữa số khi ghi log', () => {

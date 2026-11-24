@@ -12,6 +12,8 @@ import {
   recordModeration,
 } from '../../common/moderation.js';
 import { assertOwnerStatusChange } from '../../common/status-rules.js';
+import { sitemapChunk } from '../../common/sitemap.js';
+import { ViewCounter } from '../../common/view-counter.js';
 import { AuditService } from '../audit/audit.service.js';
 import { NotificationService } from '../notification/notification.service.js';
 import { SettingsService } from '../settings/settings.service.js';
@@ -29,6 +31,8 @@ const OWNER_STATUSES = ['active', 'sold', 'closed'] as const;
 
 @Injectable()
 export class ProductService {
+  private readonly views = new ViewCounter();
+
   constructor(
     @InjectModel(Product.name)
     private readonly productModel: Model<ProductDocument>,
@@ -66,21 +70,36 @@ export class ProductService {
     return docs.map(toProduct);
   }
 
-  /** Chi tiết món đang bán, +1 lượt xem (không đổi updatedAt). */
+  /** Chi tiết món đang bán. Lượt xem đếm riêng ở recordView (trình duyệt gọi). */
   async findActive(id: string) {
     if (!isValidObjectId(id)) {
       throw new NotFoundException('Không tìm thấy món đồ');
     }
     const doc = await this.productModel
-      .findOneAndUpdate(
-        { _id: id, status: 'active' },
-        { $inc: { viewCount: 1 } },
-        { returnDocument: 'after', timestamps: false },
-      )
+      .findOne({ _id: id, status: 'active' })
       .populate('seller', SELLER_FIELDS)
       .exec();
     if (!doc) throw new NotFoundException('Không tìm thấy món đồ');
     return toProduct(doc);
+  }
+
+  /** 1 phần sitemap của món đang bán. */
+  sitemap(chunk: number) {
+    return sitemapChunk(this.productModel, chunk);
+  }
+
+  /** +1 lượt xem (chống trùng theo người xem, bỏ bot), không đổi updatedAt. */
+  async recordView(id: string, ip?: string, userAgent?: string) {
+    if (isValidObjectId(id) && this.views.shouldCount(id, ip, userAgent)) {
+      await this.productModel
+        .updateOne(
+          { _id: id, status: 'active' },
+          { $inc: { viewCount: 1 } },
+          { timestamps: false },
+        )
+        .exec();
+    }
+    return null;
   }
 
   async create(user: AuthUser, dto: CreateProductDto) {

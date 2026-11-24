@@ -3,9 +3,11 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ThrottlerModule } from '@nestjs/throttler';
+import { Redis } from 'ioredis';
 
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
+import { RedisThrottlerStorage } from './common/redis-throttler.storage.js';
 import { WriteThrottlerGuard } from './common/write-throttler.guard.js';
 import { AdminModule } from './modules/admin/admin.module.js';
 import { AuthModule } from './modules/auth/auth.module.js';
@@ -34,10 +36,22 @@ import { UserModule } from './modules/user/user.module.js';
         uri: config.getOrThrow<string>('MONGODB_URI'),
       }),
     }),
-    // Mặc định 60 request ghi / phút / IP (WriteThrottlerGuard); /auth chặt hơn bằng @Throttle
-    ThrottlerModule.forRoot({
-      throttlers: [{ ttl: 60_000, limit: 60 }],
-      errorMessage: 'Bạn thao tác quá nhanh, vui lòng thử lại sau ít phút',
+    // Mặc định 60 request ghi / phút / IP (WriteThrottlerGuard); /auth chặt hơn bằng @Throttle.
+    // Có REDIS_URL → đếm chung qua Redis (nhiều instance); không có → bộ nhớ từng instance
+    ThrottlerModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => {
+        const redisUrl = config.get<string>('REDIS_URL');
+        return {
+          throttlers: [{ ttl: 60_000, limit: 60 }],
+          errorMessage: 'Bạn thao tác quá nhanh, vui lòng thử lại sau ít phút',
+          storage: redisUrl
+            ? new RedisThrottlerStorage(
+                new Redis(redisUrl, { maxRetriesPerRequest: 1 }),
+              )
+            : undefined,
+        };
+      },
     }),
     RealtimeModule,
     AuthModule,

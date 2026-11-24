@@ -47,7 +47,14 @@ export class AuthController {
     return this.authService.unlinkSocial(user.sub);
   }
 
-  /** POST /auth/link/phone — gắn SĐT (token sau khi xác minh OTP) vào tài khoản đang đăng nhập. */
+  /** DELETE /auth/link/phone — bỏ SĐT (cần đã liên kết Google / Facebook). */
+  @Delete('link/phone')
+  @UseGuards(JwtAuthGuard)
+  unlinkPhone(@CurrentUser() user: AuthUser) {
+    return this.authService.unlinkPhone(user.sub);
+  }
+
+  /** POST /auth/link/phone — gắn / đổi SĐT (token sau khi xác minh OTP) của tài khoản đang đăng nhập. */
   @Post('link/phone')
   @UseGuards(JwtAuthGuard)
   linkPhone(@CurrentUser() user: AuthUser, @Body() dto: VerifyOtpDto) {

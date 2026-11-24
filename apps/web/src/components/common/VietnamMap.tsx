@@ -33,7 +33,19 @@ export interface VietnamMapProps {
   zoom?: number;
   /** Nhiều ghim (chỉ xem): gom cụm khi gần nhau, bấm ghim → popup; tự thu phóng cho thấy hết. */
   markers?: MapMarker[];
+  /** false → không tự thu phóng theo ghim (đang tải ghim theo khung nhìn, tránh nhảy vòng). */
+  fitMarkers?: boolean;
+  /** Người dùng kéo / phóng bản đồ xong (không tính map tự thu phóng) → khung đang xem. */
+  onViewportChange?: (bounds: MapBounds) => void;
   className?: string;
+}
+
+/** Khung nhìn bản đồ (độ). */
+export interface MapBounds {
+  minLat: number;
+  maxLat: number;
+  minLng: number;
+  maxLng: number;
 }
 
 const MARKER_SOURCE = 'map-markers';
@@ -100,15 +112,21 @@ export function VietnamMap({
   popupText,
   zoom = 15,
   markers,
+  fitMarkers = true,
+  onViewportChange,
   className = 'h-180 w-full',
 }: VietnamMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const markerRef = useRef<maplibregl.Marker | null>(null);
-  // Map tạo 1 lần; handler đọc onChange mới nhất qua ref
+  // Map tạo 1 lần; handler đọc giá trị mới nhất qua ref
   const onChangeRef = useRef(onChange);
+  const onViewportRef = useRef(onViewportChange);
+  const fitMarkersRef = useRef(fitMarkers);
   useEffect(() => {
     onChangeRef.current = onChange;
+    onViewportRef.current = onViewportChange;
+    fitMarkersRef.current = fitMarkers;
   });
 
   useEffect(() => {
@@ -124,6 +142,17 @@ export function VietnamMap({
     map.setStyle(BASE_STYLE_URL, { transformStyle: (_previous, next) => patchVietnamStyle(next) });
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }));
     map.on('click', (event) => onChangeRef.current?.(toPoint(event.lngLat)));
+    // Chỉ thao tác của người dùng (có originalEvent), không phải fitBounds / easeTo của code
+    map.on('moveend', (event) => {
+      if (!event.originalEvent) return;
+      const bounds = map.getBounds();
+      onViewportRef.current?.({
+        minLat: round(bounds.getSouth()),
+        maxLat: round(bounds.getNorth()),
+        minLng: round(bounds.getWest()),
+        maxLng: round(bounds.getEast()),
+      });
+    });
     mapRef.current = map;
     return () => {
       // Bỏ ref trước khi remove: cleanup của effect ghim chạy sau sẽ không đụng map đã huỷ
@@ -166,9 +195,11 @@ export function VietnamMap({
       getComputedStyle(document.documentElement).getPropertyValue('--brand').trim() || '#16a6a3';
     let popup: maplibregl.Popup | undefined;
 
-    const bounds = new maplibregl.LngLatBounds();
-    markers.forEach(({ point }) => bounds.extend([point.longitude, point.latitude]));
-    map.fitBounds(bounds, { padding: 60, maxZoom: 14, duration: 0 });
+    if (fitMarkersRef.current) {
+      const bounds = new maplibregl.LngLatBounds();
+      markers.forEach(({ point }) => bounds.extend([point.longitude, point.latitude]));
+      map.fitBounds(bounds, { padding: 60, maxZoom: 14, duration: 0 });
+    }
 
     const onClusterClick = async (event: maplibregl.MapLayerMouseEvent) => {
       const feature = event.features?.[0];

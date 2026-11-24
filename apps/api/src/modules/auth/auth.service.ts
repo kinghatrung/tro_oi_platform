@@ -111,7 +111,7 @@ export class AuthService implements OnModuleInit {
   /**
    * Gắn Google / Facebook vào tài khoản đang đăng nhập (vd tài khoản SĐT) → lần sau đăng nhập cách
    * nào cũng vào cùng 1 tài khoản. Mỗi tài khoản gắn được 1 Google hoặc 1 Facebook.
-   * shortcut: tài khoản Google đã có tài khoản Trọ ơi riêng → 409, chưa hỗ trợ gộp 2 tài khoản.
+   * Google đã có tài khoản Trọ ơi riêng → 409; web đề nghị gộp (POST /users/me/merge cùng token).
    */
   async linkSocial(userId: string, firebaseToken: string) {
     const decoded = await this.verifySocialToken(firebaseToken);
@@ -134,7 +134,10 @@ export class AuthService implements OnModuleInit {
     return toUser(user);
   }
 
-  /** Gắn SĐT (đã xác minh OTP qua Firebase) vào tài khoản Google / Facebook đang đăng nhập. */
+  /**
+   * Gắn SĐT (đã xác minh OTP qua Firebase) vào tài khoản đang đăng nhập; đã có số → đổi sang số mới.
+   * Số đã thuộc tài khoản khác → 409 (web đề nghị gộp).
+   */
   async linkPhone(userId: string, firebaseToken: string) {
     const decoded = await this.firebaseService.verifyIdToken(firebaseToken);
     const phone = decoded.phone_number;
@@ -143,9 +146,6 @@ export class AuthService implements OnModuleInit {
     }
     const user = await this.findActiveUser(userId);
     if (user.phone === phone) return toUser(user);
-    if (user.phone) {
-      throw new BadRequestException('Tài khoản đã có số điện thoại');
-    }
     if (await this.userModel.exists({ phone })) {
       throw new ConflictException(LINKED_ELSEWHERE.phone);
     }
@@ -165,6 +165,20 @@ export class AuthService implements OnModuleInit {
     }
     user.firebaseUid = undefined;
     user.socialProvider = undefined;
+    await user.save();
+    return toUser(user);
+  }
+
+  /** Bỏ SĐT — chỉ khi còn Google / Facebook để đăng nhập lại. */
+  async unlinkPhone(userId: string) {
+    const user = await this.findActiveUser(userId);
+    if (!user.phone) return toUser(user);
+    if (!user.firebaseUid) {
+      throw new BadRequestException(
+        'Liên kết Google hoặc Facebook trước khi bỏ số điện thoại, nếu không bạn sẽ không đăng nhập lại được',
+      );
+    }
+    user.phone = undefined;
     await user.save();
     return toUser(user);
   }

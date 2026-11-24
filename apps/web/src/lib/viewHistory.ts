@@ -4,8 +4,8 @@ const LISTINGS_KEY = 'viewedListings';
 const PRODUCTS_KEY = 'viewedProducts';
 const MAX_ITEMS = 15;
 
-// shortcut: lưu bản chụp tin/món đồ trong localStorage của trình duyệt (không đồng bộ giữa thiết bị,
-// giá/trạng thái có thể cũ) — cần đồng bộ theo tài khoản thì chuyển sang API
+// Bản chụp tin/món đồ trong localStorage cho khách chưa đăng nhập (đã đăng nhập: lịch sử lấy từ tài
+// khoản, xem useViewHistory). shortcut: lịch sử xem trước khi đăng nhập không gộp lên tài khoản.
 /** Đã xem, mới xem trước. Storage lỗi/bị chặn → []. */
 function readHistory<T>(key: string): T[] {
   try {

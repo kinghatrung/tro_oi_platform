@@ -1,8 +1,10 @@
+import { IntersectionType } from '@nestjs/mapped-types';
 import { Transform, Type } from 'class-transformer';
 import {
   IsBoolean,
   IsIn,
   IsInt,
+  IsNumber,
   IsOptional,
   IsString,
   Max,
@@ -66,13 +68,50 @@ export class AdminUpdateUserDto {
 }
 
 /** Như tìm kiếm công khai nhưng xem được mọi trạng thái. */
-export class AdminListingQueryDto extends SearchListingDto {
+/** Khung nhìn bản đồ quản trị (đủ 4 cạnh mới lọc) — tải điểm theo vùng đang xem. */
+export class MapBoundsDto {
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(-90)
+  @Max(90)
+  minLat?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(-90)
+  @Max(90)
+  maxLat?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(-180)
+  @Max(180)
+  minLng?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(-180)
+  @Max(180)
+  maxLng?: number;
+}
+
+export class AdminListingQueryDto extends IntersectionType(
+  SearchListingDto,
+  MapBoundsDto,
+) {
   @IsOptional()
   @IsIn(LISTING_STATUSES)
   status?: ListingStatus;
 }
 
-export class AdminProductQueryDto extends SearchProductDto {
+export class AdminProductQueryDto extends IntersectionType(
+  SearchProductDto,
+  MapBoundsDto,
+) {
   @IsOptional()
   @IsIn(PRODUCT_STATUSES)
   status?: ProductStatus;

@@ -5,6 +5,7 @@ import type {
   ListingStat,
   PagedResponse,
   SearchListingRequest,
+  SitemapChunk,
   UpdateListingRequest,
 } from '@tro-oi/shared';
 
@@ -32,6 +33,19 @@ export async function getMyListings() {
 export async function getListing(id: string) {
   const res = (await axiosClient.get(`/listings/${id}`)) as ApiResponse<Listing>;
   return res.data;
+}
+
+/** 1 phần sitemap tin đang hiển thị (id, ngày sửa, ảnh đầu). */
+export async function getListingSitemap(chunk: number) {
+  const res = (await axiosClient.get('/listings/sitemap', {
+    params: { chunk },
+  })) as ApiResponse<SitemapChunk>;
+  return res.data;
+}
+
+/** Báo đã xem tin (gọi từ trình duyệt sau khi trang hiển thị; API chống đếm trùng / bot). */
+export async function countListingView(id: string) {
+  await axiosClient.post(`/listings/${id}/view`);
 }
 
 export async function createListing(body: CreateListingRequest) {

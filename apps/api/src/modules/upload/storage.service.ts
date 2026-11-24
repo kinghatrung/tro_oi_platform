@@ -1,10 +1,21 @@
-import { mkdir, unlink, writeFile } from 'node:fs/promises';
+import { createReadStream } from 'node:fs';
+import {
+  copyFile,
+  mkdir,
+  readdir,
+  rename,
+  rm,
+  stat,
+  unlink,
+  writeFile,
+} from 'node:fs/promises';
 import { join } from 'node:path';
 
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
   DeleteObjectCommand,
+  ListObjectsV2Command,
   PutObjectCommand,
   S3Client,
 } from '@aws-sdk/client-s3';
@@ -72,6 +83,69 @@ export class StorageService {
       await writeFile(join(UPLOAD_DIR, name), body);
     }
     return `${this.publicUrl.replace(/\/$/, '')}/${key}`;
+  }
+
+  /**
+   * Lưu file đã nằm trên đĩa (video nhận qua file tạm, không giữ cả file trong RAM) rồi xoá file tạm.
+   * Ổ đĩa → chuyển thẳng vào uploads; S3 → stream từ file lên bucket.
+   */
+  async saveFile(name: string, tempPath: string, contentType: string) {
+    const key = `uploads/${name}`;
+    try {
+      if (this.s3) {
+        const { size } = await stat(tempPath);
+        await this.s3.send(
+          new PutObjectCommand({
+            Bucket: this.bucket,
+            Key: key,
+            Body: createReadStream(tempPath),
+            ContentLength: size,
+            ContentType: contentType,
+            CacheControl: 'public, max-age=31536000, immutable',
+          }),
+        );
+      } else {
+        await mkdir(UPLOAD_DIR, { recursive: true });
+        const target = join(UPLOAD_DIR, name);
+        // Thư mục tạm khác ổ đĩa (EXDEV) → không rename được, chép rồi xoá ở finally
+        await rename(tempPath, target).catch(() => copyFile(tempPath, target));
+      }
+    } finally {
+      await rm(tempPath, { force: true });
+    }
+    return `${this.publicUrl.replace(/\/$/, '')}/${key}`;
+  }
+
+  /** Tên mọi file đã upload (ổ đĩa: thư mục uploads; S3: key prefix uploads/, đọc theo trang). */
+  async listNames() {
+    if (!this.s3) {
+      return readdir(UPLOAD_DIR).catch((error: NodeJS.ErrnoException) => {
+        if (error.code === 'ENOENT') return [];
+        throw error;
+      });
+    }
+    const names: string[] = [];
+    let token: string | undefined;
+    do {
+      const page = await this.s3.send(
+        new ListObjectsV2Command({
+          Bucket: this.bucket,
+          Prefix: 'uploads/',
+          ContinuationToken: token,
+        }),
+      );
+      for (const item of page.Contents ?? []) {
+        if (item.Key) names.push(item.Key.slice('uploads/'.length));
+      }
+      token = page.IsTruncated ? page.NextContinuationToken : undefined;
+    } while (token);
+    return names;
+  }
+
+  /** Xoá theo tên file trong uploads (tên lạ / có "../" bị isStoredUrl bỏ qua). */
+  removeNames(names: string[]) {
+    const base = `${this.publicUrl.replace(/\/$/, '')}/uploads/`;
+    return this.remove(names.map((name) => base + name));
   }
 
   /**

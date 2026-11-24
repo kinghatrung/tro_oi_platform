@@ -26,7 +26,9 @@ const wards = Object.fromEntries(
 const wardCount = Object.values(wards).reduce((sum, list) => sum + list.length, 0);
 // Số liệu chính thức sau sắp xếp: 34 tỉnh/thành, 3.321 đơn vị cấp xã
 if (provinces.length !== 34 || wardCount !== 3321) {
-  throw new Error(`Số liệu lạ: ${provinces.length} tỉnh, ${wardCount} xã — kiểm tra nguồn trước khi ghi`);
+  throw new Error(
+    `Số liệu lạ: ${provinces.length} tỉnh, ${wardCount} xã — kiểm tra nguồn trước khi ghi`,
+  );
 }
 if (new Set(provinces).size !== provinces.length) throw new Error('Trùng tên tỉnh sau khi rút gọn');
 
@@ -50,6 +52,19 @@ writeFileSync(
 
 /** 34 tỉnh/thành hợp lệ cho address.city (tên rút gọn). */
 export const PROVINCES = ${provinceList} as const;
+`,
+);
+writeFileSync(
+  new URL('apps/api/src/common/wards.ts', ROOT),
+  `${HEADER}
+// Trùng apps/web/src/constants/wards.json (cùng sinh 1 lần).
+
+/** Phường/xã/đặc khu hợp lệ của từng tỉnh/thành — API kiểm tra address.ward thuộc address.city. */
+export const WARDS: Record<string, readonly string[]> = {
+${Object.entries(wards)
+  .map(([province, list]) => `  ${JSON.stringify(province)}: ${JSON.stringify(list)},`)
+  .join('\n')}
+};
 `,
 );
 console.log(`Đã ghi ${provinces.length} tỉnh/thành, ${wardCount} phường/xã/đặc khu.`);

@@ -36,6 +36,7 @@ import {
   type TransactionType,
 } from '../schemas/listing.schema.js';
 import { PROVINCES } from '../../../common/provinces.js';
+import { IsWardOf } from '../../../common/ward.validator.js';
 
 /** URL tuyệt đối http(s) hoặc đường dẫn gốc "/..." (ảnh mẫu của web). */
 export const IMAGE_URL_PATTERN = /^(https?:\/\/|\/)\S+$/;
@@ -157,6 +158,7 @@ class AddressDto {
   @IsString()
   @IsNotEmpty({ message: 'Vui lòng chọn phường/xã' })
   @MaxLength(100)
+  @IsWardOf('city')
   ward: string;
 
   /** Quận/huyện — chỉ còn ở dữ liệu trước 1/7/2025 (mô hình 3 cấp), form mới không gửi. */
@@ -203,6 +205,12 @@ export class CreateListingDto {
   @IsString()
   @MaxLength(500)
   video?: string;
+
+  /** Ảnh bìa video từ POST /uploads (service kiểm tra là file của hệ thống); "" = gỡ. */
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  videoPoster?: string;
 
   @IsIn(LISTING_CATEGORIES)
   category: ListingCategory;

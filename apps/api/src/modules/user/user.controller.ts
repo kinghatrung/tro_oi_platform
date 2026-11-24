@@ -1,3 +1,5 @@
+import { once } from 'node:events';
+
 import {
   Body,
   Controller,
@@ -7,16 +9,20 @@ import {
   Patch,
   Post,
   Put,
+  Res,
   UseGuards,
 } from '@nestjs/common';
+import type { Response } from 'express';
 
 import {
   CurrentUser,
   type AuthUser,
 } from '../../common/current-user.decorator.js';
+import { VerifyOtpDto } from '../auth/dto/verify-otp.dto.js';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard.js';
 import { CreateSavedSearchDto } from './dto/saved-search.dto.js';
 import { UpdateProfileDto } from './dto/update-profile.dto.js';
+import { AccountMergeService } from './account-merge.service.js';
 import { AccountService } from './account.service.js';
 import { DeleteAccountDto } from './dto/delete-account.dto.js';
 import { UserService } from './user.service.js';
@@ -26,6 +32,7 @@ export class UserController {
   constructor(
     private readonly userService: UserService,
     private readonly accountService: AccountService,
+    private readonly accountMergeService: AccountMergeService,
   ) {}
 
   // Route "me" khai báo trước ":id" để không bị bắt nhầm
@@ -41,11 +48,24 @@ export class UserController {
     return this.userService.updateMe(user.sub, dto);
   }
 
-  /** Tải toàn bộ dữ liệu của tôi (JSON). */
+  /**
+   * Tải toàn bộ dữ liệu của tôi (JSON `{ code, message, data }` như mọi API). Ghi dần ra response
+   * (stream) nên tự viết response; lỗi trước khi ghi (404...) vẫn qua HttpExceptionFilter.
+   */
   @Get('me/export')
   @UseGuards(JwtAuthGuard)
-  exportMe(@CurrentUser() user: AuthUser) {
-    return this.accountService.exportData(user.sub);
+  async exportMe(@CurrentUser() user: AuthUser, @Res() res: Response) {
+    const chunks = await this.accountService.exportData(user.sub);
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    try {
+      for await (const chunk of chunks) {
+        if (!res.write(chunk)) await once(res, 'drain');
+      }
+      res.end();
+    } catch (error) {
+      // Đã gửi header — không trả lỗi JSON được nữa, cắt kết nối để client biết file hỏng
+      res.destroy(error as Error);
+    }
   }
 
   /** Tự xoá tài khoản (ẩn danh hoá) — body { confirm: "XOA TAI KHOAN" }. */
@@ -53,6 +73,13 @@ export class UserController {
   @UseGuards(JwtAuthGuard)
   deleteMe(@CurrentUser() user: AuthUser, @Body() _dto: DeleteAccountDto) {
     return this.accountService.deleteAccount(user.sub);
+  }
+
+  /** Gộp tài khoản khác (chứng minh sở hữu bằng token Firebase của nó) vào tài khoản đang đăng nhập. */
+  @Post('me/merge')
+  @UseGuards(JwtAuthGuard)
+  mergeAccount(@CurrentUser() user: AuthUser, @Body() dto: VerifyOtpDto) {
+    return this.accountMergeService.merge(user.sub, dto.firebaseToken);
   }
 
   @Get('me/favorites')
@@ -77,6 +104,37 @@ export class UserController {
     @Param('listingId') listingId: string,
   ) {
     return this.userService.removeFavorite(user.sub, listingId);
+  }
+
+  /** Tin đã xem gần đây (đồng bộ giữa thiết bị). */
+  @Get('me/viewed-listings')
+  @UseGuards(JwtAuthGuard)
+  getViewedListings(@CurrentUser() user: AuthUser) {
+    return this.userService.getViewedListings(user.sub);
+  }
+
+  @Put('me/viewed-listings/:listingId')
+  @UseGuards(JwtAuthGuard)
+  recordViewedListing(
+    @CurrentUser() user: AuthUser,
+    @Param('listingId') listingId: string,
+  ) {
+    return this.userService.recordViewedListing(user.sub, listingId);
+  }
+
+  @Get('me/viewed-products')
+  @UseGuards(JwtAuthGuard)
+  getViewedProducts(@CurrentUser() user: AuthUser) {
+    return this.userService.getViewedProducts(user.sub);
+  }
+
+  @Put('me/viewed-products/:productId')
+  @UseGuards(JwtAuthGuard)
+  recordViewedProduct(
+    @CurrentUser() user: AuthUser,
+    @Param('productId') productId: string,
+  ) {
+    return this.userService.recordViewedProduct(user.sub, productId);
   }
 
   @Get('me/favorite-products')

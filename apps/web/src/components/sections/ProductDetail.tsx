@@ -12,6 +12,8 @@ import {
   type ProductItem,
 } from '@tro-oi/shared';
 
+import { countProductView } from '@/api/products';
+import { recordViewedProduct } from '@/api/users';
 import { RelativeTime, ReportModal } from '@/components/common';
 import { NO_IMAGE } from '@/constants';
 import { useSaveToggle } from '@/hooks/useSaveToggle';
@@ -41,8 +43,15 @@ export function ProductDetail({ product }: { product: ProductItem }) {
     .join(', ');
 
   useEffect(() => {
+    // Lượt xem: lỗi không ảnh hưởng người xem nên không báo
+    countProductView(product.id).catch(() => undefined);
+  }, [product.id]);
+
+  useEffect(() => {
     recordProductView(product); // "Đồ bạn đã xem" ở trang Chợ ơi
-  }, [product]);
+    // Lịch sử theo tài khoản chỉ là tiện ích: lỗi không báo người dùng
+    if (isLoggedIn) recordViewedProduct(product.id).catch(() => undefined);
+  }, [product, isLoggedIn]);
 
   const handleCopyLink = useCallback(async () => {
     try {

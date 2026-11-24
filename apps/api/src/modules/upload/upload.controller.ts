@@ -1,4 +1,5 @@
 import { randomBytes } from 'node:crypto';
+import { tmpdir } from 'node:os';
 
 import {
   BadRequestException,
@@ -10,7 +11,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
-import { memoryStorage } from 'multer';
+import { diskStorage, memoryStorage } from 'multer';
 
 import { JwtAuthGuard } from '../auth/jwt-auth.guard.js';
 import { StorageService } from './storage.service.js';
@@ -73,9 +74,14 @@ export class UploadController {
   @UseGuards(JwtAuthGuard)
   @UseInterceptors(
     FileInterceptor('file', {
-      // shortcut: giữ cả file trong RAM (≤ 50MB/request) — video lớn hơn / nhiều người cùng tải
-      // thì chuyển sang upload thẳng lên S3 bằng presigned URL
-      storage: memoryStorage(),
+      // Ghi ra file tạm (không giữ cả video trong RAM); quá giới hạn → multer tự xoá file dở.
+      // shortcut: video vẫn đi qua API (tốn băng thông) — cần giảm tải thì upload thẳng S3 bằng
+      // presigned URL (thêm @aws-sdk/s3-request-presigner)
+      storage: diskStorage({
+        destination: tmpdir(),
+        filename: (_req, file, callback) =>
+          callback(null, fileName(VIDEO_EXTENSION_BY_MIME[file.mimetype])),
+      }),
       limits: { fileSize: VIDEO_MAX_MB * 1024 * 1024 },
       fileFilter: (_req, file, callback) =>
         file.mimetype in VIDEO_EXTENSION_BY_MIME
@@ -88,9 +94,9 @@ export class UploadController {
   )
   async uploadVideo(@UploadedFile() file: Express.Multer.File | undefined) {
     if (!file) throw new BadRequestException('Chưa chọn video');
-    const url = await this.storageService.save(
-      fileName(VIDEO_EXTENSION_BY_MIME[file.mimetype]),
-      file.buffer,
+    const url = await this.storageService.saveFile(
+      file.filename,
+      file.path,
       file.mimetype,
     );
     return { url };

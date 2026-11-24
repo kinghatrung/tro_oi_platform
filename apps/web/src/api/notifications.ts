@@ -8,6 +8,11 @@ import type {
 
 import axiosClient from './axiosClient';
 
+/** Huỷ nhận email bằng token trong email (không cần đăng nhập). */
+export async function unsubscribeEmail(token: string) {
+  await axiosClient.post('/notifications/unsubscribe', null, { params: { token } });
+}
+
 export async function getNotifications(params: BaseListRequest) {
   const res = (await axiosClient.get('/notifications', {
     params,

@@ -22,6 +22,8 @@ import { UpsertPageDto } from '../page/page.dto.js';
 import { PageService } from '../page/page.service.js';
 import { ReportQueryDto, UpdateReportDto } from '../report/report.dto.js';
 import { ReportService } from '../report/report.service.js';
+import { PendingReviewQueryDto } from '../review/review.dto.js';
+import { ReviewService } from '../review/review.service.js';
 import { UpdateSettingsDto } from '../settings/update-settings.dto.js';
 import { AccountService } from '../user/account.service.js';
 import {
@@ -45,6 +47,7 @@ export class AdminController {
     private readonly auditService: AuditService,
     private readonly pageService: PageService,
     private readonly accountService: AccountService,
+    private readonly reviewService: ReviewService,
   ) {}
 
   @Get('stats')
@@ -106,6 +109,17 @@ export class AdminController {
     @Body() dto: UpdateReportDto,
   ) {
     return this.adminService.updateReport(admin.sub, id, dto);
+  }
+
+  /** Đánh giá chờ duyệt (khi bật requireReviewApproval). Từ chối = DELETE /reviews/:id. */
+  @Get('reviews')
+  listPendingReviews(@Query() query: PendingReviewQueryDto) {
+    return this.reviewService.listPending(query);
+  }
+
+  @Patch('reviews/:id/approve')
+  approveReview(@CurrentUser() admin: AuthUser, @Param('id') id: string) {
+    return this.reviewService.approve(admin.sub, id);
   }
 
   @Put('settings')

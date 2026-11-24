@@ -1,3 +1,7 @@
+import { existsSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
 import { jest } from '@jest/globals';
 import {
   DeleteObjectCommand,
@@ -26,6 +30,29 @@ const S3_ENV = {
 
 describe('StorageService', () => {
   afterEach(() => jest.restoreAllMocks());
+
+  it('saveFile (video qua file tạm): stream lên S3 kèm ContentLength, xoá file tạm', async () => {
+    const send = jest
+      .spyOn(S3Client.prototype, 'send')
+      .mockResolvedValue({} as never);
+    const temp = join(tmpdir(), `storage-spec-${Date.now()}.mp4`);
+    writeFileSync(temp, 'video-bytes');
+
+    const url = await new StorageService(configOf(S3_ENV)).saveFile(
+      'v.mp4',
+      temp,
+      'video/mp4',
+    );
+
+    expect(url).toBe('https://cdn.example.com/uploads/v.mp4');
+    const command = send.mock.calls[0][0] as PutObjectCommand;
+    expect(command.input).toMatchObject({
+      Key: 'uploads/v.mp4',
+      ContentLength: 11,
+      ContentType: 'video/mp4',
+    });
+    expect(existsSync(temp)).toBe(false);
+  });
 
   it('có S3_BUCKET → PutObject vào uploads/<tên>, trả URL theo S3_PUBLIC_URL', async () => {
     const send = jest

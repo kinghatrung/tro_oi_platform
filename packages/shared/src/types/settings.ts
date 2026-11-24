@@ -43,6 +43,8 @@ export interface SiteSettings {
   requireListingApproval: boolean;
   /** Tin Chợ ơi mới phải chờ admin duyệt. */
   requireProductApproval: boolean;
+  /** Đánh giá mới / vừa sửa phải chờ admin duyệt mới hiện công khai. */
+  requireReviewApproval: boolean;
   /** ISO 8601. */
   updatedAt?: string;
 }

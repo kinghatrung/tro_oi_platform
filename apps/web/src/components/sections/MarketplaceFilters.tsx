@@ -1,11 +1,12 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Flex, Skeleton, Tabs } from 'antd';
 import type { ProductItem } from '@tro-oi/shared';
 
 import { searchProducts } from '@/api/products';
+import { getViewedProducts } from '@/api/users';
 import {
   CarouselItem,
   EmptyState,
@@ -13,12 +14,13 @@ import {
   HeaderToolbar,
   PaginationControl,
   ProductCard,
-  useIsClient,
   usePersistedViewMode,
 } from '@/components/common';
 import { PRODUCT_SORT_OPTIONS } from '@/lib/constants/constantsProduct';
 import { readProductHistory } from '@/lib/viewHistory';
 import { formatNumber } from '@/utils/helpers';
+
+import { useViewHistory } from './RecentlyViewed';
 
 const FOR_YOU_SIZE = 12;
 const SORT_OPTIONS = PRODUCT_SORT_OPTIONS.map(({ value, label }) => ({ key: value, label }));
@@ -161,10 +163,9 @@ export function MarketplaceFeed({ latest }: { latest: ReactNode }) {
   );
 }
 
-/** "Đồ bạn đã xem" — đọc localStorage sau khi mount, chưa xem món nào thì ẩn. */
+/** "Đồ bạn đã xem" (tài khoản / trình duyệt — xem useViewHistory), chưa xem món nào thì ẩn. */
 export function RecentlyViewedProducts() {
-  const isClient = useIsClient();
-  const items = useMemo(() => (isClient ? readProductHistory() : []), [isClient]);
+  const items = useViewHistory<ProductItem>(readProductHistory, getViewedProducts);
 
   if (items.length === 0) return null;
   return (

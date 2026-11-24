@@ -38,6 +38,25 @@ export async function removeFavorite(listingId: string) {
   await axiosClient.delete(`/users/me/favorites/${listingId}`);
 }
 
+/** Tin đã xem gần đây của tài khoản (đồng bộ giữa thiết bị), mới xem trước. */
+export async function getViewedListings() {
+  const res = (await axiosClient.get('/users/me/viewed-listings')) as ApiResponse<Listing[]>;
+  return res.data;
+}
+
+export async function recordViewedListing(listingId: string) {
+  await axiosClient.put(`/users/me/viewed-listings/${listingId}`);
+}
+
+export async function getViewedProducts() {
+  const res = (await axiosClient.get('/users/me/viewed-products')) as ApiResponse<ProductItem[]>;
+  return res.data;
+}
+
+export async function recordViewedProduct(productId: string) {
+  await axiosClient.put(`/users/me/viewed-products/${productId}`);
+}
+
 export async function getFavoriteProducts() {
   const res = (await axiosClient.get('/users/me/favorite-products')) as ApiResponse<ProductItem[]>;
   return res.data;
@@ -66,6 +85,12 @@ export async function createSavedSearch(body: CreateSavedSearchRequest) {
 
 export async function deleteSavedSearch(id: string) {
   await axiosClient.delete(`/users/me/saved-searches/${id}`);
+}
+
+/** Gộp tài khoản khác (token Firebase của nó chứng minh sở hữu) vào tài khoản đang đăng nhập. */
+export async function mergeAccount(firebaseToken: string) {
+  const res = (await axiosClient.post('/users/me/merge', { firebaseToken })) as ApiResponse<User>;
+  return res.data;
 }
 
 /** Toàn bộ dữ liệu của tôi (JSON) — trang cá nhân lưu thành file. */

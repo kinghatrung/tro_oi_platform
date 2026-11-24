@@ -141,6 +141,8 @@ export interface Listing {
   videoUrl?: string;
   /** Video tự tải lên (POST /uploads/video, MP4 / WEBM / MOV ≤ 50MB). */
   video?: string;
+  /** Ảnh bìa video (trình duyệt chụp 1 khung hình lúc chọn video). */
+  videoPoster?: string;
   category: PropertyCategory;
   transaction: TransactionType;
   status: ListingStatus;
@@ -216,6 +218,8 @@ export interface CreateListingRequest {
   videoUrl?: string;
   /** URL từ POST /uploads/video; "" = gỡ video. */
   video?: string;
+  /** URL ảnh bìa video (POST /uploads); "" = gỡ. */
+  videoPoster?: string;
   category: PropertyCategory;
   transaction: TransactionType;
   price: number;

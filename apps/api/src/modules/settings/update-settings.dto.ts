@@ -107,4 +107,8 @@ export class UpdateSettingsDto {
   @IsOptional()
   @IsBoolean()
   requireProductApproval?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  requireReviewApproval?: boolean;
 }

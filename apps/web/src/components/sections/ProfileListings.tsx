@@ -4,7 +4,7 @@ import { useState, type ReactNode } from 'react';
 import { Button, Flex, Space } from 'antd';
 import { ListingStatus, type Listing } from '@tro-oi/shared';
 
-import { CardItem, EmptyState, EmptyVariant } from '@/components/common';
+import { CardItem, EmptyState, EmptyVariant, PaginationControl } from '@/components/common';
 
 interface ProfileListingsProps {
   listings: Listing[];
@@ -13,6 +13,8 @@ interface ProfileListingsProps {
   onPostListing?: () => void;
   /** Nội dung cạnh tiêu đề, vd nút "Quản lý tin". */
   extra?: ReactNode;
+  /** Hồ sơ công khai phân trang phía server (`?page=` trên URL). */
+  pagination?: { total: number; page: number; pageSize: number };
 }
 
 type ListingTab = 'active' | 'hidden';
@@ -23,6 +25,7 @@ export function ProfileListings({
   readOnly = false,
   onPostListing,
   extra,
+  pagination,
 }: ProfileListingsProps) {
   const [tab, setTab] = useState<ListingTab>('active');
   const activeListings = listings.filter((item) => item.status === ListingStatus.ACTIVE);
@@ -33,7 +36,9 @@ export function ProfileListings({
     <div className="rounded-lg bg-surface py-4 px-5">
       <Flex vertical gap={16}>
         <Flex justify="space-between" align="center">
-          <p className="text-primary text-xl">Tất cả tin đăng ({listings.length})</p>
+          <p className="text-primary text-xl">
+            Tất cả tin đăng ({pagination?.total ?? listings.length})
+          </p>
           {extra}
         </Flex>
 
@@ -64,6 +69,13 @@ export function ProfileListings({
                 <CardItem column listing={listing} />
               </div>
             ))}
+            {pagination && pagination.total > pagination.pageSize && (
+              <PaginationControl
+                total={pagination.total}
+                pageSize={pagination.pageSize}
+                currentPage={pagination.page}
+              />
+            )}
           </Flex>
         ) : (
           <EmptyState

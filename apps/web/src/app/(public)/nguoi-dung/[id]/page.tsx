@@ -11,7 +11,10 @@ import { ProfileHeader, ProfileListings, ProfileReviews } from '@/components/sec
 
 interface PageProps {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ page?: string }>;
 }
+
+const LISTINGS_PAGE_SIZE = 10;
 
 const getUserOrNotFound = cache(async (id: string) => {
   try {
@@ -28,12 +31,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 /** Hồ sơ công khai của người đăng tin + các tin đang hiển thị + đánh giá. */
-export default async function PublicProfilePage({ params }: PageProps) {
-  const { id } = await params;
+export default async function PublicProfilePage({ params, searchParams }: PageProps) {
+  const [{ id }, query] = await Promise.all([params, searchParams]);
+  const page = Math.max(1, Math.floor(Number(query.page)) || 1);
   const [user, listings, reviews] = await Promise.all([
     getUserOrNotFound(id),
-    // shortcut: chỉ lấy 50 tin mới nhất, thêm phân trang khi có người đăng nhiều hơn
-    searchListings({ authorId: id, pageSize: 50 }),
+    searchListings({ authorId: id, page, pageSize: LISTINGS_PAGE_SIZE }),
     getReviews(id),
   ]);
 
@@ -44,7 +47,11 @@ export default async function PublicProfilePage({ params }: PageProps) {
       </Col>
 
       <Col span={24}>
-        <ProfileListings readOnly listings={listings.items} />
+        <ProfileListings
+          readOnly
+          listings={listings.items}
+          pagination={{ total: listings.total, page, pageSize: LISTINGS_PAGE_SIZE }}
+        />
       </Col>
 
       <Col span={24}>

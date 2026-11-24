@@ -37,6 +37,8 @@ import {
   type Listing,
 } from '@tro-oi/shared';
 
+import { countListingView } from '@/api/listings';
+import { recordViewedListing } from '@/api/users';
 import { useSiteSettings } from '@/app/providers';
 import {
   VietnamMap,
@@ -189,8 +191,15 @@ export function PropertyOverview({ listing, similarListings = [] }: PropertyOver
   );
 
   useEffect(() => {
+    // Lượt xem: lỗi không ảnh hưởng người xem nên không báo
+    countListingView(listing.id).catch(() => undefined);
+  }, [listing.id]);
+
+  useEffect(() => {
     recordView(listing); // "Tin bạn đã xem" ở trang chủ
-  }, [listing]);
+    // Lịch sử theo tài khoản chỉ là tiện ích: lỗi không báo người dùng
+    if (isLoggedIn) recordViewedListing(listing.id).catch(() => undefined);
+  }, [listing, isLoggedIn]);
 
   useEffect(() => {
     checkScrollPosition(); // check ngay khi mount (phòng trường hợp ảnh ít, không cần cuộn)
@@ -428,6 +437,7 @@ export function PropertyOverview({ listing, similarListings = [] }: PropertyOver
           <p className="text-primary mb-3">Video</p>
           <video
             src={listing.video}
+            poster={listing.videoPoster}
             controls
             preload="metadata"
             playsInline

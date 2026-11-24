@@ -3,6 +3,9 @@ import {
   Controller,
   Delete,
   Get,
+  Headers,
+  HttpCode,
+  Ip,
   Param,
   Patch,
   Post,
@@ -14,6 +17,7 @@ import {
   CurrentUser,
   type AuthUser,
 } from '../../common/current-user.decorator.js';
+import { SitemapQueryDto } from '../../common/sitemap.js';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard.js';
 import {
   CreateProductDto,
@@ -31,6 +35,12 @@ export class ProductController {
     return this.productService.search(query);
   }
 
+  /** Dữ liệu sitemap theo phần (web /cho-oi/sitemap/<chunk>.xml). */
+  @Get('sitemap')
+  sitemap(@Query() query: SitemapQueryDto) {
+    return this.productService.sitemap(query.chunk);
+  }
+
   @Get('mine')
   @UseGuards(JwtAuthGuard)
   findMine(@CurrentUser() user: AuthUser) {
@@ -40,6 +50,17 @@ export class ProductController {
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.productService.findActive(id);
+  }
+
+  /** Trình duyệt báo đã xem (sau khi trang hiển thị) → +1 lượt xem, chống trùng. */
+  @Post(':id/view')
+  @HttpCode(200)
+  recordView(
+    @Param('id') id: string,
+    @Ip() ip: string,
+    @Headers('user-agent') userAgent?: string,
+  ) {
+    return this.productService.recordView(id, ip, userAgent);
   }
 
   @Post()

@@ -21,6 +21,10 @@ export class SavedSearch {
   @Prop({ required: true })
   title: string;
 
+  /** Bộ lọc có cấu trúc tách từ `query` (parseSavedSearch) — Mongo lọc người cần báo tin mới. */
+  @Prop({ type: Object })
+  filter?: Record<string, unknown>;
+
   createdAt: Date;
 }
 
@@ -90,6 +94,20 @@ export class User {
     default: [],
   })
   favoriteProductIds: Types.ObjectId[];
+
+  /** Tin đã xem gần đây (mới xem trước, tối đa MAX_VIEWED) — đồng bộ giữa thiết bị. */
+  @Prop({
+    type: [{ type: MongooseSchema.Types.ObjectId, ref: 'Listing' }],
+    default: [],
+  })
+  viewedListingIds: Types.ObjectId[];
+
+  /** Món đồ Chợ ơi đã xem gần đây (mới xem trước). */
+  @Prop({
+    type: [{ type: MongooseSchema.Types.ObjectId, ref: 'Product' }],
+    default: [],
+  })
+  viewedProductIds: Types.ObjectId[];
 
   /** Tìm kiếm đã lưu, thứ tự thêm vào (cũ → mới). */
   @Prop({ type: [SchemaFactory.createForClass(SavedSearch)], default: [] })

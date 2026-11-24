@@ -6,6 +6,8 @@ export interface MailMessage {
   to: string;
   subject: string;
   text: string;
+  /** Vd List-Unsubscribe để Gmail / Outlook hiện nút huỷ đăng ký. */
+  headers?: Record<string, string>;
 }
 
 /**

@@ -40,6 +40,14 @@ export class UpdateNotifyPrefsDto {
   sms?: boolean;
 }
 
+/** Token trong link huỷ nhận email (`<userId>.<chữ ký>`). */
+export class UnsubscribeDto {
+  @IsString()
+  @IsNotEmpty({ message: 'Thiếu mã huỷ nhận email' })
+  @MaxLength(200)
+  token: string;
+}
+
 /** Token FCM của 1 trình duyệt. */
 export class PushTokenDto {
   @IsString()

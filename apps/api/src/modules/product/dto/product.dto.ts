@@ -20,6 +20,7 @@ import {
 } from 'class-validator';
 
 import { PROVINCES } from '../../../common/provinces.js';
+import { IsWardOf } from '../../../common/ward.validator.js';
 import {
   GeoPointDto,
   IMAGE_URL_PATTERN,
@@ -101,6 +102,7 @@ class ProductAddressDto {
   @IsOptional()
   @IsString()
   @MaxLength(100)
+  @IsWardOf('city')
   ward?: string;
 
   /** Quận/huyện — chỉ còn ở dữ liệu trước 1/7/2025 (mô hình 3 cấp), form mới không gửi. */

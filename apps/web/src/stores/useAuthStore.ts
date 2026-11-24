@@ -34,6 +34,8 @@ interface AuthState {
   login: (auth: AuthResponse) => Promise<void>;
   logout: () => void;
   setUser: (user: User) => void;
+  /** Đổi user + tải lại mục đã lưu (sau khi gộp tài khoản, dữ liệu đã lưu thay đổi ở server). */
+  reloadUser: (user: User) => Promise<void>;
   /** Lưu/bỏ lưu tin (optimistic). Ném lỗi để caller hiển thị toast. */
   toggleFavorite: (listing: Listing) => Promise<void>;
   toggleFavoriteProduct: (product: ProductItem) => Promise<void>;
@@ -91,6 +93,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   setUser: (user) => set({ user }),
+
+  reloadUser: async (user) => set({ user, ...(await loadUserData()) }),
 
   toggleFavorite: async (listing) => {
     const previous = get().favorites;

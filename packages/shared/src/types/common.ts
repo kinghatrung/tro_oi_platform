@@ -27,7 +27,14 @@ export interface SelectOption<TValue = string> {
 
 export enum SortDirection {
   ASC = 'asc',
-  DESC = 'desc'
+  DESC = 'desc',
+}
+
+/** GET /listings/sitemap, /products/sitemap — 1 phần sitemap (`chunkSize` mục, sắp theo id). */
+export interface SitemapChunk {
+  total: number;
+  chunkSize: number;
+  items: { id: string; updatedAt: string; image?: string }[];
 }
 
 /** Tham số phân trang/sắp xếp dùng chung cho mọi endpoint danh sách. */

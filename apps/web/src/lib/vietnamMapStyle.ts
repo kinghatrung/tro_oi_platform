@@ -8,10 +8,13 @@ import type {
 import territory from '@/constants/vietnam-territory.json';
 
 /**
- * Style nền OpenFreeMap (vector OSM, miễn phí, không cần key) — được chỉnh bởi patchVietnamStyle()
- * để bản đồ thể hiện đúng chủ quyền Việt Nam.
+ * Style nền: mặc định OpenFreeMap (vector OSM, miễn phí, không cần key, không cam kết SLA); đặt
+ * NEXT_PUBLIC_MAP_STYLE_URL để đổi sang nhà cung cấp khác (Vietmap, tile tự host — style MapLibre
+ * cùng schema OpenMapTiles). Luôn được chỉnh bởi patchVietnamStyle() để thể hiện đúng chủ quyền —
+ * đổi nguồn phải kiểm tra lại Hoàng Sa, Trường Sa, biên giới (docs/coding-rules.md).
  */
-export const BASE_STYLE_URL = 'https://tiles.openfreemap.org/styles/liberty';
+export const BASE_STYLE_URL =
+  process.env.NEXT_PUBLIC_MAP_STYLE_URL || 'https://tiles.openfreemap.org/styles/liberty';
 
 /** Khung kéo/zoom: lãnh thổ Việt Nam gồm quần đảo Hoàng Sa, Trường Sa (+ lề). [lng, lat] */
 export const VIETNAM_BOUNDS: [[number, number], [number, number]] = [

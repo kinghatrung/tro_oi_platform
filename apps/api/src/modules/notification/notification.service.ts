@@ -1,4 +1,11 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  NotFoundException,
+  type OnModuleDestroy,
+  type OnModuleInit,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
 import { isValidObjectId, type Model, type Types } from 'mongoose';
@@ -14,16 +21,51 @@ import {
   type NotificationDocument,
   type NotificationKind,
 } from './notification.schema.js';
+import {
+  signUnsubscribeToken,
+  verifyUnsubscribeToken,
+} from './unsubscribe-token.js';
 
 export interface NotificationInput {
   kind: NotificationKind;
   title: string;
   message?: string;
   link?: string;
+  /** Loại gửi nhiều (tin mới khớp tìm kiếm): email gom vào bản tin ngày thay vì gửi ngay. */
+  digest?: boolean;
 }
 
 /** Số trình duyệt / thiết bị nhận push tối đa mỗi tài khoản (cũ nhất bị bỏ). */
 export const PUSH_TOKEN_LIMIT = 10;
+/** Giờ gửi email bản tin ngày (giờ Việt Nam). */
+export const DIGEST_HOUR_VN = 8;
+const DIGEST_CHECK_MS = 60 * 60 * 1000;
+const DIGEST_MAX_ITEMS = 20;
+
+/** Nội dung email bản tin ngày từ các thông báo chờ gom (mới trước). */
+export function buildDigest(
+  docs: Pick<NotificationDocument, 'title' | 'message' | 'link'>[],
+  webUrl: string,
+) {
+  const lines = docs
+    .slice(0, DIGEST_MAX_ITEMS)
+    .map(
+      (doc) =>
+        `• ${doc.message ?? doc.title}\n  ${webUrl}${doc.link ?? '/thong-bao'}`,
+    );
+  if (docs.length > DIGEST_MAX_ITEMS) {
+    lines.push(
+      `…và ${docs.length - DIGEST_MAX_ITEMS} tin khác: ${webUrl}/thong-bao`,
+    );
+  }
+  return {
+    subject:
+      docs.length === 1
+        ? docs[0].title
+        : `${docs.length} thông báo mới hôm nay`,
+    body: lines,
+  };
+}
 
 const toNotification = (doc: NotificationDocument) => ({
   id: doc.id as string,
@@ -49,10 +91,16 @@ type Recipient = Pick<
 const RECIPIENT_FIELDS = 'phone email pushTokens notifyPrefs';
 
 @Injectable()
-export class NotificationService {
+export class NotificationService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(NotificationService.name);
   /** Gốc link trong email (origin đầu tiên của WEB_ORIGIN). */
   private readonly webUrl: string;
+  /** Gốc URL API cho header List-Unsubscribe (mail client POST thẳng, không qua web). */
+  private readonly apiUrl: string;
+  private readonly secret: string;
+  private digestTimer?: NodeJS.Timeout;
+  /** Ngày (giờ VN) đã chạy bản tin — mỗi instance chạy tối đa 1 lần / ngày. */
+  private lastDigestDay?: string;
 
   constructor(
     @InjectModel(Notification.name)
@@ -69,6 +117,102 @@ export class NotificationService {
       .split(',')[0]
       .trim()
       .replace(/\/$/, '');
+    this.apiUrl = (
+      config.get<string>('API_PUBLIC_URL') ?? 'http://localhost:5000'
+    ).replace(/\/$/, '');
+    this.secret = config.getOrThrow<string>('JWT_SECRET');
+  }
+
+  onModuleInit() {
+    this.digestTimer = setInterval(
+      () => void this.runDigestIfDue(),
+      DIGEST_CHECK_MS,
+    );
+  }
+
+  onModuleDestroy() {
+    clearInterval(this.digestTimer);
+  }
+
+  /** Mỗi giờ kiểm tra; từ DIGEST_HOUR_VN trở đi, chưa chạy hôm nay → gửi bản tin. */
+  async runDigestIfDue(now = new Date()) {
+    const vietnam = new Date(now.getTime() + 7 * 60 * 60 * 1000);
+    const day = vietnam.toISOString().slice(0, 10);
+    if (vietnam.getUTCHours() < DIGEST_HOUR_VN || this.lastDigestDay === day) {
+      return;
+    }
+    this.lastDigestDay = day;
+    try {
+      await this.sendDigests();
+    } catch (error) {
+      this.logger.warn(
+        `Không gửi được email bản tin: ${(error as Error).message}`,
+      );
+    }
+  }
+
+  /** Mỗi người 1 email gom các thông báo chờ gom; xoá cờ trước khi gửi để không gửi lặp. */
+  private async sendDigests() {
+    const pending = { emailDigest: true };
+    if (!this.mailService.isEnabled) {
+      await this.notificationModel
+        .updateMany(pending, { $unset: { emailDigest: 1 } })
+        .exec();
+      return;
+    }
+    const userIds = await this.notificationModel
+      .distinct('user', pending)
+      .exec();
+    for (const userId of userIds) {
+      const docs = await this.notificationModel
+        .find({ user: userId, ...pending })
+        .sort({ createdAt: -1 })
+        .exec();
+      // Nhiều instance cùng chạy: chỉ bên xoá được cờ mới gửi
+      const { modifiedCount } = await this.notificationModel
+        .updateMany(
+          { _id: { $in: docs.map((doc) => doc._id) }, ...pending },
+          { $unset: { emailDigest: 1 } },
+        )
+        .exec();
+      if (modifiedCount === 0) continue;
+      const user = await this.userModel
+        .findById(userId)
+        .select(RECIPIENT_FIELDS)
+        .exec();
+      if (!user?.email || !prefsOf(user).email) continue;
+      const { subject, body } = buildDigest(docs, this.webUrl);
+      await this.sendMail(user, subject, body);
+    }
+  }
+
+  /** Email kèm link huỷ nhận (web, bấm xác nhận) + header List-Unsubscribe (1 chạm trong Gmail). */
+  private async sendMail(user: Recipient, subject: string, body: string[]) {
+    const token = signUnsubscribeToken(user.id as string, this.secret);
+    await this.mailService.send({
+      to: user.email!,
+      subject: `[Trọ ơi] ${subject}`,
+      text: [
+        ...body,
+        `Không muốn nhận email thông báo nữa? Huỷ tại: ${this.webUrl}/huy-nhan-email?token=${token}`,
+      ].join('\n\n'),
+      headers: {
+        'List-Unsubscribe': `<${this.apiUrl}/notifications/unsubscribe?token=${token}>`,
+        'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+      },
+    });
+  }
+
+  /** Link huỷ nhận email (không cần đăng nhập): tắt kênh email của tài khoản trong token. */
+  async unsubscribeEmail(token: string) {
+    const userId = verifyUnsubscribeToken(token, this.secret);
+    if (!userId) {
+      throw new BadRequestException('Link huỷ nhận email không hợp lệ');
+    }
+    await this.userModel
+      .updateOne({ _id: userId }, { $set: { 'notifyPrefs.email': false } })
+      .exec();
+    return null;
   }
 
   /**
@@ -81,7 +225,11 @@ export class NotificationService {
     if (items.length === 0) return;
     try {
       const docs = await this.notificationModel.insertMany(
-        items.map(({ user, input }) => ({ user, ...input })),
+        items.map(({ user, input: { digest, ...input } }) => ({
+          user,
+          ...input,
+          ...(digest && { emailDigest: true }),
+        })),
       );
       // insertMany giữ kiểu đầu vào của `user` (string | ObjectId); Mongoose đã ép về ObjectId khi lưu
       void this.deliver(docs as unknown as NotificationDocument[]).catch(
@@ -122,18 +270,20 @@ export class NotificationService {
           tag: `notification-${notification.id}`,
         });
       }
-      if (prefs.email && user.email && this.mailService.isEnabled) {
-        await this.mailService.send({
-          to: user.email,
-          subject: `[Trọ ơi] ${doc.title}`,
-          text: [
-            doc.message,
-            `Xem chi tiết: ${this.webUrl}${link}`,
-            'Tắt email thông báo tại trang Thông báo trên Trọ ơi.',
-          ]
-            .filter(Boolean)
-            .join('\n\n'),
-        });
+      // Thông báo gom (emailDigest) gửi trong bản tin ngày, không gửi email riêng
+      if (
+        prefs.email &&
+        user.email &&
+        this.mailService.isEnabled &&
+        !doc.emailDigest
+      ) {
+        await this.sendMail(
+          user,
+          doc.title,
+          [doc.message, `Xem chi tiết: ${this.webUrl}${link}`].filter(
+            (line): line is string => Boolean(line),
+          ),
+        );
       }
       if (prefs.sms && this.smsService.isEnabled && user.phone) {
         await this.smsService.send(

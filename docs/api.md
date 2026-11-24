@@ -88,9 +88,10 @@ Response giống `verify-phone`.
 
 | Method | Path                 | Body                | Ghi chú |
 | ------ | -------------------- | ------------------- | ------- |
-| POST   | `/auth/link/social`  | `{ firebaseToken }` | Token Google / Facebook (khác → 400). Gán `firebaseUid` + `socialProvider`, thêm email đã xác minh nếu hồ sơ chưa có. Đã gắn cái khác → 400; UID đã thuộc tài khoản khác → **409** (không tự gộp 2 tài khoản) |
+| POST   | `/auth/link/social`  | `{ firebaseToken }` | Token Google / Facebook (khác → 400). Gán `firebaseUid` + `socialProvider`, thêm email đã xác minh nếu hồ sơ chưa có. Đã gắn cái khác → 400; UID đã thuộc tài khoản khác → **409** (web đề nghị gộp: gửi cùng token tới `POST /users/me/merge`) |
 | DELETE | `/auth/link/social`  | —                   | Huỷ liên kết. Tài khoản chưa có SĐT → 400 (sẽ không đăng nhập lại được) |
-| POST   | `/auth/link/phone`   | `{ firebaseToken }` | Token sau khi xác minh OTP (`phone_number`). Đã có SĐT → 400; SĐT thuộc tài khoản khác → **409** |
+| POST   | `/auth/link/phone`   | `{ firebaseToken }` | Token sau khi xác minh OTP (`phone_number`). Thêm số, hoặc **đổi** sang số mới nếu đã có; SĐT thuộc tài khoản khác → **409** (đề nghị gộp như trên) |
+| DELETE | `/auth/link/phone`   | —                   | Bỏ SĐT. Chưa liên kết Google / Facebook → 400 (sẽ không đăng nhập lại được) |
 
 `User.socialProvider`: `google.com` / `facebook.com` / `social` (đã liên kết nhưng tài khoản cũ chưa ghi nhà cung cấp) / không có. Chỉ trả ở `/users/me`, `/auth/*`, admin.
 
@@ -121,13 +122,18 @@ Type `SavedSearch`: `{ id, query, title, createdAt }` — web mở lại bằng 
 | GET    | `/users/me/favorites` 🔒           | Tin đã lưu (chỉ tin còn tồn tại), mới lưu trước | `Listing[]`     |
 | PUT    | `/users/me/favorites/:listingId` 🔒 | Lưu tin (idempotent)                   | `null`                  |
 | DELETE | `/users/me/favorites/:listingId` 🔒 | Bỏ lưu tin (idempotent)                | `null`                  |
+| GET    | `/users/me/viewed-listings` 🔒    | Tin đã xem gần đây (tối đa 15, chỉ tin còn hiển thị), mới xem trước — đồng bộ giữa thiết bị | `Listing[]` |
+| PUT    | `/users/me/viewed-listings/:listingId` 🔒 | Ghi đã xem: đưa lên đầu, giữ 15. Tin không tồn tại → 404 | `null` |
+| GET    | `/users/me/viewed-products` 🔒    | Món đồ đã xem gần đây (tối đa 15, chỉ món đang bán) | `ProductItem[]` |
+| PUT    | `/users/me/viewed-products/:productId` 🔒 | Như trên cho món đồ | `null` |
 | GET    | `/users/me/favorite-products` 🔒    | Món đồ Chợ ơi đã lưu (chỉ món đang bán), mới lưu trước | `ProductItem[]` |
 | PUT    | `/users/me/favorite-products/:productId` 🔒 | Lưu món đồ (idempotent, 404 nếu món không còn bán) | `null` |
 | DELETE | `/users/me/favorite-products/:productId` 🔒 | Bỏ lưu món đồ (idempotent)       | `null`                  |
 | GET    | `/users/me/saved-searches` 🔒      | Tìm kiếm đã lưu, mới lưu trước          | `SavedSearch[]`         |
 | POST   | `/users/me/saved-searches` 🔒      | `{ query (≤1000, query string /tim-kiem không có page), title (≤200) }`. Trùng `query` → trả bản đã có; tối đa 20 (400) | `SavedSearch` |
 | DELETE | `/users/me/saved-searches/:id` 🔒  | Xoá tìm kiếm đã lưu (idempotent)        | `null`                  |
-| GET    | `/users/me/export` 🔒              | Tải toàn bộ dữ liệu của tôi: `profile`, tin / món đồ, đánh giá đã viết & nhận, cuộc trò chuyện kèm tin nhắn (`fromMe`), thông báo, báo cáo đã gửi, tin đã lưu, tìm kiếm đã lưu | JSON |
+| POST   | `/users/me/merge` 🔒              | `{ firebaseToken }` của tài khoản kia (SĐT đã OTP / Google / Facebook) — chứng minh sở hữu. Chuyển tin, món đồ, đánh giá, chat, thông báo, báo cáo, mục đã lưu sang tài khoản đang đăng nhập (bỏ bản trùng / tự đánh giá / chat giữa 2 tài khoản), gắn định danh vừa chứng minh vào, vai trò giữ mức cao hơn; tài khoản kia ẩn danh hoá + khoá. Không gộp chính mình / tài khoản admin (400), tài khoản bị khoá (403); không tìm thấy → 404 | `User` |
+| GET    | `/users/me/export` 🔒              | Tải toàn bộ dữ liệu của tôi: `profile`, tin / món đồ, đánh giá đã viết & nhận, cuộc trò chuyện kèm tin nhắn (`fromMe`), thông báo, báo cáo đã gửi, tin đã lưu, tin / món đã xem, tìm kiếm đã lưu. Trả **dạng stream** (vẫn `{ code, message, data }`): tin nhắn đọc bằng cursor theo từng cuộc trò chuyện, không gom vào RAM; lỗi giữa chừng → cắt kết nối | JSON |
 | DELETE | `/users/me` 🔒                     | Tự xoá tài khoản (**ẩn danh hoá**), body `{ confirm: "XOA TAI KHOAN" }` (sai → 400). Xoá tin, món đồ, đánh giá về mình, thông báo, tin / tìm kiếm đã lưu, token push; tên → "Người dùng đã xoá", bỏ email/ảnh/bio, SĐT → `deleted:<id>` (số đó đăng ký lại được), `isBlocked` + `deletedAt` (token cũ → 403, `GET /users/:id` → 404). Xoá luôn file ảnh đã upload của tin, món đồ, avatar, ảnh bìa (`StorageService.remove`, lỗi từng file chỉ ghi log). Tin nhắn (kèm ảnh) / đánh giá đã viết giữ lại. Admin → 400. Ghi nhật ký "Tự xoá tài khoản" | `null` |
 | GET    | `/users/:id`                       | Hồ sơ công khai (ẩn `phone`, `email`)   | `User`                  |
 
@@ -167,13 +173,14 @@ Type `Listing` (rút gọn):
 ```
 
 - `pricePerSquareMeter` do server tính (`price / area`, làm tròn) khi có `area`.
-- `address`: đơn vị hành chính 2 cấp (từ 1/7/2025) — `city` là 1 trong 34 tỉnh/thành (tên rút gọn, danh mục `apps/api/src/common/provinces.ts`), `ward` là phường/xã/đặc khu tên đầy đủ. `district` (quận/huyện) chỉ còn ở dữ liệu cũ.
+- `address`: đơn vị hành chính 2 cấp (từ 1/7/2025) — `city` là 1 trong 34 tỉnh/thành (tên rút gọn, danh mục `apps/api/src/common/provinces.ts`), `ward` là phường/xã/đặc khu tên đầy đủ và phải thuộc `city` (danh mục `common/wards.ts`, sai → 400 "Phường/xã không thuộc tỉnh/thành đã chọn"). `district` (quận/huyện) chỉ còn ở dữ liệu cũ.
 - `address.fullAddress` do server ghép từ `street, ward, district, city` nếu client không gửi.
 - `author.listingCount` chỉ có ở `GET /listings/:id`.
-- `viewCount`: mỗi lần gọi `GET /listings/:id` +1 (không đổi `updatedAt`).
+- `viewCount`: trình duyệt gọi `POST /listings/:id/view` sau khi mở trang chi tiết (`GET /listings/:id` không đếm — còn do server web render / bot gọi). Cùng người xem (hash IP + User-Agent, không lưu IP) 1 tin trong 30 phút chỉ tính 1 lượt; User-Agent bot / curl / headless không tính; không đổi `updatedAt`. Chống trùng nhớ trong bộ nhớ từng instance API.
 - `favoriteCount` (số người đã lưu) chỉ có ở `GET /listings/mine` — dùng cho Kênh người đăng.
 - `videoUrl`: link YouTube (không có video → không có field).
 - `video`: video tự tải lên (URL `/uploads/...mp4`); web ưu tiên hiện video này, không có mới dùng `videoUrl`.
+- `videoPoster`: ảnh bìa của `video` (chỉ có khi có `video`).
 - `amenities` ∈ `wifi | air-conditioner | water-heater | washing-machine | fridge | kitchen | private-wc | balcony | elevator | parking | security | free-hours | pets` (luôn là mảng, có thể rỗng).
 - `expiresAt`: tin hiển thị 30 ngày (`LISTING_TTL_DAYS`) kể từ lần gần nhất chuyển sang `active` (đăng không cần duyệt / admin duyệt / hiện lại / gia hạn). Quá hạn → API tự chuyển `expired` (kiểm tra lúc khởi động + mỗi giờ). Chủ tin gia hạn bằng `PATCH /listings/:id { status: 'active' }`. Tin `active` cũ chưa có hạn được cấp 1 kỳ khi API khởi động. Còn ≤ 3 ngày → gửi thông báo "Tin sắp hết hạn" (1 lần mỗi kỳ); hết hạn → thông báo "Tin đã hết hạn" (xem [Notifications](#notifications--notifications)).
 
@@ -182,7 +189,9 @@ Type `Listing` (rút gọn):
 | GET    | `/listings`          | Tìm kiếm tin **active**, phân trang                 | `PagedResponse<Listing>`    |
 | GET    | `/listings/stats`    | Đếm tin active theo `transaction × category × city` | `ListingStat[]`             |
 | GET    | `/listings/mine` 🔒  | Mọi tin của tôi (mọi status), mới nhất trước, kèm `favoriteCount` | `Listing[]`   |
-| GET    | `/listings/:id`      | Chi tiết tin **active**, tăng `viewCount`           | `Listing`                   |
+| GET    | `/listings/:id`      | Chi tiết tin **active** (không đếm lượt xem)          | `Listing`                   |
+| GET    | `/listings/sitemap`  | Dữ liệu sitemap: `chunk` (≥0, mặc định 0) → `{ total, chunkSize: 5000, items: [{ id, updatedAt, image? }] }` của tin **active**, sắp theo id. Khai báo trước `/:id` | `SitemapChunk` |
+| POST   | `/listings/:id/view` | Ghi 1 lượt xem (xem `viewCount` ở trên). Luôn 200, tin không tồn tại / trùng / bot thì bỏ qua | `null` |
 | POST   | `/listings` 🔒       | Đăng tin mới: `active`, hoặc `pending` nếu bật `requireListingApproval` | `Listing`   |
 | PATCH  | `/listings/:id` 🔒   | Sửa tin (chủ tin hoặc admin)                        | `Listing`                   |
 | DELETE | `/listings/:id` 🔒   | Xoá tin (chủ tin hoặc admin)                        | `null`                      |
@@ -225,6 +234,7 @@ Response: `{ "items": Listing[], "total": 120, "page": 1, "pageSize": 10 }`.
 | `description` | string        |          | ≤ 5000 ký tự                 |
 | `videoUrl`    | string        |          | Link YouTube **https**: `youtube.com/watch?v=`, `youtu.be/`, `/shorts/`, `/embed/` (id 11 ký tự). `""` = gỡ video khi sửa |
 | `video`       | string        |          | URL từ `POST /uploads/video` — phải là file của hệ thống (`StorageService.isStoredUrl`, khác → 400). `""` = gỡ. Đổi / gỡ / xoá tin → file video cũ bị xoá (xoá tin xoá cả ảnh) |
+| `videoPoster` | string        |          | Ảnh bìa video: web chụp 1 khung hình trên trình duyệt (canvas) rồi tải qua `POST /uploads`; phải là file của hệ thống (khác → 400). `""` = gỡ; đổi / gỡ / xoá tin → file cũ bị xoá |
 | `category`    | enum          | ✔        |                              |
 | `transaction` | enum          | ✔        |                              |
 | `price`       | number        | ✔        | ≥ 0 (VND)                    |
@@ -234,7 +244,7 @@ Response: `{ "items": Listing[], "total": 120, "page": 1, "pageSize": 10 }`.
 | `furnishing`  | enum          |          |                              |
 | `amenities`   | enum[]        |          | Giá trị như trên (sai → 400 "Tiện ích không hợp lệ") |
 | `images`      | string[]      | ✔        | 1–20 URL (lấy từ `/uploads`) |
-| `address`     | object        | ✔        | `city` (1 trong 34 tỉnh/thành, sai → 400) và `ward` bắt buộc; `street`, `fullAddress`, `geo { latitude, longitude }` tuỳ chọn; `district` (dữ liệu cũ) tuỳ chọn |
+| `address`     | object        | ✔        | `city` (1 trong 34 tỉnh/thành, sai → 400) và `ward` (thuộc `city`, sai → 400) bắt buộc; `street`, `fullAddress`, `geo { latitude, longitude }` tuỳ chọn; `district` (dữ liệu cũ) tuỳ chọn |
 
 `PATCH /listings/:id`: mọi field của create đều tuỳ chọn, thêm `status`. Chủ tin chỉ chuyển `active ↔ closed` và **không** đổi được tin `pending` (403); admin đổi mọi trạng thái (duyệt = `pending → active`). Admin gửi kèm `moderationNote?` (≤ 500) khi ẩn / từ chối tin người khác → nối "Lý do: …" vào thông báo cho chủ tin + nhật ký, lưu ở `moderationNote` của tin (xoá khi tin hiển thị lại; người khác gửi → bỏ qua).
 
@@ -254,7 +264,7 @@ Lưu ở S3 khi có env `S3_BUCKET` (URL `S3_PUBLIC_URL/uploads/<tên>`), ngư�
 
 ### `POST /uploads/video` 🔒
 
-Video tin đăng Trọ ơi: `multipart/form-data`, field **`file`** (1 file) ≤ 50 MB, MIME `video/mp4|webm|quicktime` (`.mp4/.webm/.mov`). Response `data`: `{ "url": "http://localhost:5000/uploads/1730450000000-ab12cd.mp4" }`. Lưu giống ảnh (ổ đĩa / S3). File giữ trong RAM khi nhận (≤ 50 MB) — production nginx `client_max_body_size` ≥ 50m.
+Video tin đăng Trọ ơi: `multipart/form-data`, field **`file`** (1 file) ≤ 50 MB, MIME `video/mp4|webm|quicktime` (`.mp4/.webm/.mov`). Response `data`: `{ "url": "http://localhost:5000/uploads/1730450000000-ab12cd.mp4" }`. Lưu giống ảnh (ổ đĩa / S3). Nhận qua **file tạm** trên đĩa (không giữ cả video trong RAM): ổ đĩa → chuyển vào `uploads`, S3 → stream từ file lên bucket, rồi xoá file tạm — production nginx `client_max_body_size` ≥ 50m.
 
 ### `GET /uploads/<file>`
 
@@ -272,8 +282,10 @@ Type `ProductItem`: `{ id, title, description, category, condition, status, pric
 | --- | --- | --- | --- |
 | GET | `/products` | Tìm món **active**: `keyword, category, condition, city, ward, minPrice, maxPrice, sellerId, excludeId, page, pageSize (≤50, mặc định 12), sortBy (createdAt/price), sortDirection` | `PagedResponse<ProductItem>` |
 | GET | `/products/mine` 🔒 | Mọi món của tôi | `ProductItem[]` |
-| GET | `/products/:id` | Chi tiết món active, +1 `viewCount` | `ProductItem` |
-| POST | `/products` 🔒 | Đăng bán: `title (5–120), description?, category, condition, price ≥0, isNegotiable?, images (1–10), address.city`; `address.ward?`, `address.geo? { latitude −90..90, longitude −180..180 }` tuỳ chọn (sai → 400). `pending` nếu bật `requireProductApproval`; 403 nếu Chợ ơi đang tắt | `ProductItem` |
+| GET | `/products/:id` | Chi tiết món active (không đếm lượt xem) | `ProductItem` |
+| GET | `/products/sitemap` | Như `GET /listings/sitemap` cho món đang bán | `SitemapChunk` |
+| POST | `/products/:id/view` | Ghi 1 lượt xem — chống trùng như `POST /listings/:id/view` | `null` |
+| POST | `/products` 🔒 | Đăng bán: `title (5–120), description?, category, condition, price ≥0, isNegotiable?, images (1–10), address.city`; `address.ward?` (có thì phải thuộc `city`), `address.geo? { latitude −90..90, longitude −180..180 }` tuỳ chọn (sai → 400). `pending` nếu bật `requireProductApproval`; 403 nếu Chợ ơi đang tắt | `ProductItem` |
 | PATCH | `/products/:id` 🔒 | Sửa (người bán/admin). Người bán chuyển được `active / sold / closed`, không đổi tin `pending`. `moderationNote?` như `PATCH /listings/:id` | `ProductItem` |
 | DELETE | `/products/:id` 🔒 | Xoá (người bán/admin) | `null` |
 
@@ -308,8 +320,11 @@ Type `AppNotification`: `{ id, kind: info | success | warning | error, title, me
 | DELETE | `/notifications/push-tokens` 🔒 | `{ token }` — tắt push / đăng xuất trên trình duyệt này | `null` |
 | PATCH | `/notifications/read-all` 🔒 | Đánh dấu tất cả đã đọc | `null` |
 | PATCH | `/notifications/:id/read` 🔒 | Đánh dấu 1 thông báo (chỉ của mình; id lạ → bỏ qua) | `null` |
+| POST | `/notifications/unsubscribe?token=` | **Không cần đăng nhập.** Tắt email thông báo (`notifyPrefs.email = false`) của tài khoản trong token (`<userId>.<HMAC-SHA256 bằng JWT_SECRET>`, không hết hạn). Web trang `/huy-nhan-email` gọi khi người dùng bấm xác nhận; Gmail / Outlook gọi thẳng qua header `List-Unsubscribe-Post`. Token sai → 400 | `null` |
 
 Nguồn thông báo hiện có: admin duyệt/từ chối/ẩn/hiện lại/xoá tin hoặc món đồ; tin Trọ ơi sắp hết hạn / đã hết hạn; có đánh giá mới về mình; **tin mới khớp tìm kiếm đã lưu** (khi tin Trọ ơi lần đầu hiển thị — đăng không cần duyệt hoặc vừa được duyệt; mỗi người tối đa 1 thông báo / tin, không gửi cho chính tác giả; logic so khớp `listing/saved-search-match.ts` cùng ngữ nghĩa bộ lọc `/tim-kiem`, có test).
+
+Email: mỗi email có link huỷ nhận (`/huy-nhan-email?token=`) + header `List-Unsubscribe` / `List-Unsubscribe-Post: List-Unsubscribe=One-Click` trỏ về API. Thông báo "tin mới khớp tìm kiếm" không gửi email ngay mà gom vào **email bản tin ngày** (cờ `emailDigest`; mỗi giờ kiểm tra, từ 8h giờ VN gửi 1 email / người, tối đa 20 mục + "và N tin khác"); thông báo khác gửi email ngay.
 
 ---
 
@@ -347,13 +362,13 @@ Kết nối: `` io(`${API_URL}/chat`, { auth: { token: accessToken } }) ``. Toke
 
 ## Reviews — `/reviews`
 
-Type `Review`: `{ id, rating (1–5), comment?, reviewer: { id, name, avatar, role } | null, createdAt, updatedAt }`. Mỗi người viết 1 đánh giá cho 1 người khác (gửi lại = sửa).
+Type `Review`: `{ id, rating (1–5), comment?, status (pending / approved), reviewer: { id, name, avatar, role } | null, createdAt, updatedAt }`. Mỗi người viết 1 đánh giá cho 1 người khác (gửi lại = sửa). Bật `requireReviewApproval` → đánh giá mới / vừa sửa `pending`: không có trong `GET /reviews` (cả điểm trung bình), người viết vẫn thấy ở `/reviews/mine`; bản ghi cũ không có `status` = đã duyệt.
 
 | Method | Path | Mô tả | `data` |
 | --- | --- | --- | --- |
 | GET | `/reviews` | `userId` (bắt buộc), `page`, `pageSize` (≤50, mặc định 10). Công khai | `ReviewPage` = `PagedResponse<Review>` + `average` (1 chữ số thập phân, `null` khi chưa có) + `count` |
 | GET | `/reviews/mine` 🔒 | `userId` | `{ canReview, review: Review \| null }` |
-| PUT | `/reviews` 🔒 | `{ userId, rating (int 1–5), comment? (≤1000) }` — viết mới / sửa. Lần đầu → thông báo cho người được đánh giá | `Review` |
+| PUT | `/reviews` 🔒 | `{ userId, rating (int 1–5), comment? (≤1000) }` — viết mới / sửa. Lần đầu hiện công khai → thông báo cho người được đánh giá (chờ duyệt thì báo khi admin duyệt) | `Review` |
 | DELETE | `/reviews/:id` 🔒 | Người viết hoặc admin (admin xoá → ghi nhật ký `targetType: review`, `targetId` = người được đánh giá) | `null` |
 
 **Điều kiện đánh giá** (`canReview`): không phải chính mình **và** 2 người từng nhắn tin qua lại (có cuộc trò chuyện đã có tin nhắn, ai hỏi ai cũng được). Không đủ → 403.
@@ -379,7 +394,7 @@ Trang nội dung do admin soạn: `slug` ∈ `dieu-khoan-su-dung | chinh-sach-ba
 
 ### `GET /settings` (công khai)
 
-Type `SiteSettings`: `siteName, tagline, description, logoUrl, faviconUrl, heroTitle, primaryColor (#RRGGBB), marketplaceColor (#RRGGBB), defaultTheme (light/dark), allowThemeToggle, banners[], announcementEnabled, announcementText, announcementType (info/warning/success), contactEmail, contactPhone, footerText, enableMarketplace, requireListingApproval, requireProductApproval, updatedAt`.
+Type `SiteSettings`: `siteName, tagline, description, logoUrl, faviconUrl, heroTitle, primaryColor (#RRGGBB), marketplaceColor (#RRGGBB), defaultTheme (light/dark), allowThemeToggle, banners[], announcementEnabled, announcementText, announcementType (info/warning/success), contactEmail, contactPhone, footerText, enableMarketplace, requireListingApproval, requireProductApproval, requireReviewApproval, updatedAt`.
 
 Field admin chưa từng sửa lấy theo `DEFAULT_SETTINGS` (`apps/api/src/modules/settings/settings.schema.ts`).
 
@@ -396,15 +411,17 @@ Mọi route: `JwtAuthGuard` + `AdminGuard` (không phải admin → 403). Sửa/
 | PATCH | `/admin/users/:id` | `{ role?, isBlocked? }` — không tự sửa chính mình (400) | `User` |
 | DELETE | `/admin/users/:id` | Xoá tài khoản người khác — y như `DELETE /users/me` (ẩn danh hoá + dọn ảnh). Chính mình / tài khoản quản trị (phải hạ quyền trước) → 400. Nhật ký "Xoá tài khoản" kèm tên | `null` |
 | GET | `/admin/listings` | Như `GET /listings` + `status` (bỏ trống = mọi trạng thái) | `PagedResponse<Listing>` |
-| GET | `/admin/listings/map` | Tin **có toạ độ** (`address.geo`) cho bản đồ quản trị: lọc như `/admin/listings` (`status`, `category`, `city`, `keyword`...), **không phân trang**, tối đa 5000 tin mới nhất. Mỗi phần tử `{ id, title, price, transaction, status, category, city, ward, geo }` | `ListingMapPoint[]` |
-| GET | `/admin/products/map` | Món **có toạ độ** (`address.geo`) cho bản đồ quản trị: lọc như `/admin/products` (`status`, `category`, `city`, `keyword`...), **không phân trang**, tối đa 5000 món mới nhất. Mỗi phần tử `{ id, title, price, status, category, city, ward, geo }` | `ProductMapPoint[]` |
+| GET | `/admin/listings/map` | Tin **có toạ độ** (`address.geo`) cho bản đồ quản trị: lọc như `/admin/listings` (`status`, `category`, `city`, `keyword`...), **không phân trang**, tối đa 5000 tin mới nhất; gửi đủ `minLat, maxLat, minLng, maxLng` → chỉ tin trong khung nhìn. Mỗi phần tử `{ id, title, price, transaction, status, category, city, ward, geo }` | `ListingMapPoint[]` |
+| GET | `/admin/products/map` | Món **có toạ độ** (`address.geo`) cho bản đồ quản trị: lọc như `/admin/products` (`status`, `category`, `city`, `keyword`...), **không phân trang**, tối đa 5000 món mới nhất; lọc khung nhìn như trên. Mỗi phần tử `{ id, title, price, status, category, city, ward, geo }` | `ProductMapPoint[]` |
 | GET | `/admin/products` | Như `GET /products` + `status` | `PagedResponse<ProductItem>` |
 | GET | `/admin/reports` | `status`, `targetType`, `page`, `pageSize` | `PagedResponse<Report>` (kèm `targetTitle`, `reporter`; đánh giá: `targetTitle` = `4★ — "lời bình"`, `targetUserId` = người được đánh giá) |
 | PATCH | `/admin/reports/:id` | `{ status: open / resolved / dismissed }` | `null` |
+| GET | `/admin/reviews` | Đánh giá chờ duyệt, cũ trước: `page`, `pageSize` (≤100) | `PagedResponse<PendingReview>` (= `Review` + `target` người được đánh giá) |
+| PATCH | `/admin/reviews/:id/approve` | Duyệt → hiện công khai, báo người được đánh giá, ghi nhật ký. Từ chối = `DELETE /reviews/:id` | `Review` |
 | PUT | `/admin/settings` | Mọi field `SiteSettings` (trừ `updatedAt`) đều tuỳ chọn, chỉ field gửi lên bị ghi | `SiteSettings` |
 | GET | `/admin/audit-logs` | Nhật ký thao tác admin, mới trước: `targetType` (`listing / product / user / report / settings / review / page`), `page`, `pageSize` | `PagedResponse<AuditLog>` |
 
-Type `AuditLog`: `{ id, action (nhãn tiếng Việt), targetType, targetId?, targetTitle?, note? (lý do từ chối / ẩn), actor: { id, name, avatar, role } | null, createdAt }`. Được ghi khi: kiểm duyệt tin người khác (xem Listings), `PATCH /admin/users/:id` (chỉ ghi phần thực sự đổi: cấp/gỡ quyền quản trị, khoá/mở khoá), `PATCH /admin/reports/:id`, `PUT /admin/settings`, admin xoá đánh giá (`DELETE /reviews/:id`). Ghi nhật ký lỗi không làm hỏng thao tác chính (chỉ log cảnh báo).
+Type `AuditLog`: `{ id, action (nhãn tiếng Việt), targetType, targetId?, targetTitle?, note? (lý do từ chối / ẩn), actor: { id, name, avatar, role } | null, createdAt }`. Được ghi khi: kiểm duyệt tin người khác (xem Listings), `PATCH /admin/users/:id` (chỉ ghi phần thực sự đổi: cấp/gỡ quyền quản trị, khoá/mở khoá), `PATCH /admin/reports/:id`, `PUT /admin/settings`, admin xoá / duyệt đánh giá (`DELETE /reviews/:id`, `PATCH /admin/reviews/:id/approve`). Ghi nhật ký lỗi không làm hỏng thao tác chính (chỉ log cảnh báo).
 
 ---
 

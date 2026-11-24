@@ -5,6 +5,7 @@ import { AuditModule } from '../audit/audit.module.js';
 import { AuthModule } from '../auth/auth.module.js';
 import { ChatModule } from '../chat/chat.module.js';
 import { NotificationModule } from '../notification/notification.module.js';
+import { SettingsModule } from '../settings/settings.module.js';
 import { ReviewController } from './review.controller.js';
 import { Review, ReviewSchema } from './review.schema.js';
 import { ReviewService } from './review.service.js';
@@ -17,8 +18,10 @@ import { ReviewService } from './review.service.js';
     ChatModule, // Conversation model
     NotificationModule,
     AuditModule,
+    SettingsModule, // requireReviewApproval
   ],
   controllers: [ReviewController],
   providers: [ReviewService],
+  exports: [ReviewService], // admin duyệt đánh giá
 })
 export class ReviewModule {}

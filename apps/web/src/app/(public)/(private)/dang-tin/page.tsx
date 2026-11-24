@@ -124,6 +124,7 @@ export default function PostListingPage() {
           images,
           videoUrl: formValues.videoUrl?.trim() ?? '',
           video: formValues.video ?? '',
+          videoPoster: (formValues.video && formValues.videoPoster) || '',
         };
         const saved = editing ? await updateListing(editing.id, body) : await createListing(body);
         if (saved.status === ListingStatus.PENDING) {
@@ -252,7 +253,13 @@ export default function PostListingPage() {
                 />
               </Form.Item>
               <Form.Item name="video" label="Hoặc tải video lên" className="mt-4! mb-0!">
-                <VideoUploadField />
+                <VideoUploadField
+                  poster={values?.videoPoster}
+                  onPosterChange={(url) => form.setFieldValue('videoPoster', url)}
+                />
+              </Form.Item>
+              <Form.Item name="videoPoster" hidden>
+                <Input />
               </Form.Item>
             </FormSection>
 

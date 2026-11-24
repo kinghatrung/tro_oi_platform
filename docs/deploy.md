@@ -64,6 +64,7 @@ Web build ra `output: 'standalone'` (`next.config.ts`, trace từ gốc monorepo
      | `NEXT_PUBLIC_API_URL`                      | `https://room-api.kun.io.vn`              |
      | `NEXT_PUBLIC_FIREBASE_*` (6 biến)          | như `apps/web/.env.local`                 |
      | `NEXT_PUBLIC_UPLOAD_URL`                   | chỉ khi dùng S3/R2 (= `S3_PUBLIC_URL`)    |
+     | `NEXT_PUBLIC_MAP_STYLE_URL`                | tuỳ chọn — style bản đồ khác OpenFreeMap  |
 
      `NEXT_PUBLIC_*` gắn vào bundle lúc build → đặt ở đây, **không** đặt trong `.env` trên VPS. Đổi giá trị → chạy lại workflow để build lại web.
 6. **Actions → CI/CD → Run workflow** (nhánh `main`, tick `deploy_all`). Khi xanh:
@@ -77,7 +78,7 @@ Web build ra `output: 'standalone'` (`next.config.ts`, trace từ gốc monorepo
 - Firebase → Authentication → Settings → **Authorized domains**: thêm `room.kun.io.vn`.
 - Facebook app: App domains `kun.io.vn`, Privacy URL `https://room.kun.io.vn/chinh-sach-bao-mat`, Terms URL `/dieu-khoan-su-dung`, chuyển **Live**.
 - Không chạy `seed` trên production. Tạo admin: đăng nhập bằng tài khoản thật rồi `mongosh "<MONGODB_URI>"` → `db.users.updateOne({ email: "..." }, { $set: { role: "admin" } })`; sau đó đăng 2 trang chính sách ở `/quan-tri/trang-chinh-sach`.
-- Search Console (domain `kun.io.vn` đã xác minh): gửi `https://room.kun.io.vn/sitemap.xml`.
+- Search Console (domain `kun.io.vn` đã xác minh): gửi `https://room.kun.io.vn/sitemap.xml` và các phần `/phong-tro/sitemap/<n>.xml`, `/cho-oi/sitemap/<n>.xml` (danh sách đầy đủ trong `/robots.txt`; Google cũng tự đọc từ robots.txt).
 
 ## Hằng ngày
 

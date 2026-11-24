@@ -32,6 +32,7 @@ export function toListing(
     description: doc.description,
     videoUrl: doc.videoUrl || undefined,
     video: doc.video || undefined,
+    videoPoster: (doc.video && doc.videoPoster) || undefined,
     category: doc.category,
     transaction: doc.transaction,
     status: doc.status,

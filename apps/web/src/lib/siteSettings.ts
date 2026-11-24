@@ -24,6 +24,7 @@ export const FALLBACK_SETTINGS: SiteSettings = {
   enableMarketplace: true,
   requireListingApproval: false,
   requireProductApproval: false,
+  requireReviewApproval: false,
 };
 
 /** Thiết lập website cho Server Component — cache theo request (layout + page dùng chung 1 lần gọi). */

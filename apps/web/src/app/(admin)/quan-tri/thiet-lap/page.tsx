@@ -248,6 +248,11 @@ export default function AdminSettingsPage() {
               label="Duyệt tin Chợ ơi trước khi hiển thị"
               description="Món đồ mới chờ quản trị viên duyệt"
             />
+            <SwitchField
+              name="requireReviewApproval"
+              label="Duyệt đánh giá trước khi hiển thị"
+              description="Đánh giá mới hoặc vừa sửa chờ duyệt ở mục Đánh giá chờ duyệt"
+            />
           </>
         ),
       },

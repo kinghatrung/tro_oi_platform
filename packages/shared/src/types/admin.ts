@@ -59,7 +59,15 @@ export interface AdminUpdateUserRequest {
   isBlocked?: boolean;
 }
 
-export interface AdminListingQuery extends BaseListRequest {
+/** Khung nhìn bản đồ quản trị (gửi đủ 4 cạnh → chỉ trả điểm trong khung). */
+export interface MapBoundsQuery {
+  minLat?: number;
+  maxLat?: number;
+  minLng?: number;
+  maxLng?: number;
+}
+
+export interface AdminListingQuery extends BaseListRequest, MapBoundsQuery {
   keyword?: string;
   status?: ListingStatus;
   category?: PropertyCategory;
@@ -93,7 +101,7 @@ export interface ProductMapPoint {
   geo: GeoPoint;
 }
 
-export interface AdminProductQuery extends BaseListRequest {
+export interface AdminProductQuery extends BaseListRequest, MapBoundsQuery {
   keyword?: string;
   status?: ProductStatus;
   category?: ProductCategory;

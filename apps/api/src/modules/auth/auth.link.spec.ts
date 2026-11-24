@@ -85,6 +85,20 @@ describe('AuthService — liên kết tài khoản', () => {
     ).rejects.toThrow('Số điện thoại này');
   });
 
+  it('đổi SĐT sang số mới đã xác minh; bỏ SĐT chỉ khi còn Google / Facebook', async () => {
+    const phoneToken = { uid: 'p', phone_number: '+84907654321' };
+    const { service, doc } = setup(phoneToken, { phone: '+84901111111' });
+    await service.linkPhone(userId, 't');
+    expect(doc.phone).toBe('+84907654321');
+
+    await expect(
+      setup({}, { phone: '+84901111111' }).service.unlinkPhone(userId),
+    ).rejects.toThrow('Liên kết Google hoặc Facebook');
+    const linked = setup({}, { phone: '+84901111111', firebaseUid: 'g-1' });
+    await linked.service.unlinkPhone(userId);
+    expect(linked.doc.phone).toBeUndefined();
+  });
+
   it('huỷ liên kết chỉ khi còn SĐT để đăng nhập lại', async () => {
     await expect(
       setup({}, { firebaseUid: 'g-1' }).service.unlinkSocial(userId),
