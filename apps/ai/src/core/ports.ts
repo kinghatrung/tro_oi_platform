@@ -50,7 +50,7 @@ export interface TroiApiPort {
   get<T>(
     path: string,
     params?: Record<string, string | number | string[] | undefined>,
-    /** JWT của người dùng — chỉ dùng để hỏi API "người này là ai" (quyền admin). */
+    /** JWT của người dùng — chỉ để hỏi API về chính họ (quyền admin, được đánh giá ai). */
     token?: string,
   ): Promise<T>;
 }
@@ -143,7 +143,12 @@ export interface Tool<S extends z.ZodType = z.ZodType> {
   schema: S;
   /** Dòng trạng thái hiện cho người dùng khi đang chạy, vd "Đang tìm phòng…". */
   status: (args: z.infer<S>) => string;
-  run: (args: z.infer<S>, api: TroiApiPort) => Promise<ToolResult>;
+  /** `token`: JWT người đang chat (chưa đăng nhập → undefined), chỉ dùng cho GET về chính họ. */
+  run: (
+    args: z.infer<S>,
+    api: TroiApiPort,
+    token?: string,
+  ) => Promise<ToolResult>;
 }
 
 /** Giữ kiểu tham số của từng công cụ khi khai báo. */

@@ -5,6 +5,7 @@ import {
   Body,
   Controller,
   Get,
+  Headers,
   HttpCode,
   Logger,
   NotFoundException,
@@ -117,7 +118,13 @@ export class ChatController {
    */
   @Post('chat')
   @UseGuards(ThrottlerGuard)
-  async chat(@Body() body: unknown, @Res() res: Response) {
+  async chat(
+    @Body() body: unknown,
+    @Res() res: Response,
+    @Headers('authorization') authorization = '',
+  ) {
+    // Token người dùng (nếu đăng nhập) — công cụ hỏi API về chính họ, không ghi vào nhật ký
+    const token = /^Bearer (.+)$/.exec(authorization)?.[1];
     const {
       messages,
       context = {},
@@ -153,6 +160,7 @@ export class ChatController {
         context,
         send,
         abort.signal,
+        token,
       );
       // messageId để widget gửi 👍 / 👎 cho đúng lượt này
       send({ event: 'done', data: { messageId } });

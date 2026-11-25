@@ -215,7 +215,7 @@ export const vietDanhGia = defineTool({
     })
     .strict(),
   status: () => 'Đang điền đánh giá…',
-  run: async ({ kind, id, nguoiDungId, soSao, nhanXet }, api) => {
+  run: async ({ kind, id, nguoiDungId, soSao, nhanXet }, api, token) => {
     let userId = nguoiDungId;
     let name: string | undefined;
     if (!userId) {
@@ -226,6 +226,21 @@ export const vietDanhGia = defineTool({
       name = author.name;
     } else {
       name = (await api.get<{ name: string }>(`/users/${userId}`)).name;
+    }
+    // Đã đăng nhập: hỏi API có được đánh giá không (phải từng nhắn tin qua lại) — chưa được thì
+    // form không hiện trên web → báo model nói rõ thay vì báo đã điền.
+    // Chưa đăng nhập: vẫn trả thao tác, web tự chuyển tới trang đăng nhập.
+    if (token) {
+      const { canReview } = await api.get<{ canReview: boolean }>(
+        '/reviews/mine',
+        { userId },
+        token,
+      );
+      if (!canReview) {
+        throw new Error(
+          `Chưa đánh giá được ${name ?? 'người này'}: chỉ đánh giá được người đã nhắn tin qua lại với bạn (và không tự đánh giá mình). Hãy nhắn tin với họ trước.`,
+        );
+      }
     }
     return {
       forModel: { ok: true, name, note: 'Đã điền sẵn — người dùng bấm Gửi' },

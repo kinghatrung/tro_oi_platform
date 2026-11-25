@@ -67,7 +67,7 @@ src/
 | `dang_xuat` | "đăng xuất" | `logout` | như nút Đăng xuất ở menu (tải lại về trang chủ) |
 | `soan_tin_dang`, `soan_do_ban` | "đăng tin cho thuê phòng 3 triệu ở Cầu Giấy…" | `fill-form` `listing` / `product` | mở `/dang-tin` / `/cho-oi/dang-ban`, điền từng ô — người dùng tải ảnh, bấm Đăng |
 | `sua_ho_so` | "đổi tên hiển thị thành…" | `fill-form` `profile` (`open: edit-profile`) | ở `/ca-nhan`: mở hộp sửa hồ sơ, điền — người dùng bấm Lưu |
-| `viet_danh_gia` | "đánh giá chủ nhà 5 sao" | `fill-form` `review` | ở hồ sơ người đăng: điền số sao + nhận xét (chỉ khi đã nhắn tin qua lại) — người dùng bấm Gửi |
+| `viet_danh_gia` | "đánh giá chủ nhà 5 sao" | `fill-form` `review` | ở hồ sơ người đăng: điền số sao + nhận xét — người dùng bấm Gửi. Đã đăng nhập: công cụ hỏi `GET /reviews/mine` trước, chưa nhắn tin qua lại → trả lỗi, model nói rõ, không có thao tác |
 | `bao_cao_tin` | "báo cáo tin này lừa đảo" | `fill-form` `report` (`open: report`) | ở trang tin: mở hộp báo cáo, điền lý do — người dùng bấm Gửi |
 
 **Không tự làm** (prompt dặn model hướng dẫn người dùng tự bấm): gửi tin nhắn / đánh giá / báo cáo / đăng tin, xoá tài khoản, ẩn / gia hạn / xoá tin của mình, liên kết Google / Facebook, đổi số điện thoại, bật thông báo đẩy (trình duyệt cần người bấm).
@@ -83,6 +83,8 @@ Tin / món đồ luôn được kiểm qua API trước (id bịa → 404 trả 
 Widget (`lib/assistantActions.ts`) làm như người thật: trang chủ / Chợ ơi dùng ô trên banner, trang tìm kiếm dùng ô từ khoá (`input[aria-label="Từ khoá tìm kiếm"]`; sai khu hoặc không có ô → mở trang tìm kiếm trước). (1) Bộ lọc không gõ được (loại hình, giá…) đặt sẵn lên URL trang hiện tại bằng `history.replaceState(null, …)` — Next cập nhật `useSearchParams` (state phải là `null`, truyền `history.state` cũ thì router bỏ qua), trang tìm kiếm hiện ngay các nút lọc đã chọn; (2) luôn cuộn tới ô tìm kiếm, ô tô màu brand (`.assistant-typing`); (3) xoá chữ cũ, **gõ từng chữ thật** (setter gốc + sự kiện input, ~0,16 giây/chữ); (4) **nhấn Enter** (keydown) → chính ô tìm kiếm mang theo bộ lọc, tới thẳng trang đích (nếu thiếu tham số mới tự mở đúng `path`). Máy bật giảm chuyển động vẫn gõ, chỉ bỏ cuộn mượt. Không có gì để gõ → mở thẳng trang kết quả. Trong lúc thao tác, khung chat thu lại, các bước hiện ở nhãn cạnh nút trợ lý; xong thì mở lại (điện thoại để đóng). Câu trả lời giữ nút mở lại cho từng thao tác có trang (Trang kết quả, Đã mở, Tin nhắn soạn sẵn, form đã điền…); chỉ nhận đường dẫn nội bộ (`isInternalPath`).
 
 ## `POST /chat` — Server-Sent Events
+
+Header `Authorization: Bearer <JWT>` (tuỳ chọn, web gửi khi đã đăng nhập): công cụ dùng để GET về chính người dùng (vd `viet_danh_gia` hỏi `/reviews/mine`), không ghi vào nhật ký. Không có → khách.
 
 Body:
 

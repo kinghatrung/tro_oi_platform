@@ -79,6 +79,25 @@ describe('Điền sẵn form (người dùng tự bấm gửi)', () => {
     });
   });
 
+  it('đã đăng nhập: chưa nhắn tin qua lại → lỗi (không báo đã điền); được đánh giá → điền', async () => {
+    const asked: unknown[] = [];
+    const reviewApi = (canReview: boolean): TroiApiPort => ({
+      get: <T>(path: string, params?: object, token?: string) => {
+        if (path === '/reviews/mine') asked.push({ params, token });
+        return path === '/reviews/mine'
+          ? Promise.resolve({ canReview } as T)
+          : api.get<T>(path);
+      },
+    });
+    const args = { nguoiDungId: USER, soSao: 4 };
+    await expect(
+      vietDanhGia.run(args, reviewApi(false), 'jwt'),
+    ).rejects.toThrow('chỉ đánh giá được người đã nhắn tin qua lại');
+    expect(asked).toEqual([{ params: { userId: USER }, token: 'jwt' }]);
+    const ok = await vietDanhGia.run(args, reviewApi(true), 'jwt');
+    expect(ok.action).toMatchObject({ form: 'review', values: { rating: 4 } });
+  });
+
   it('báo cáo: mở hộp báo cáo ở trang tin, điền lý do', async () => {
     const result = await baoCaoTin.run(
       { kind: 'listing', id: ID, lyDo: 'scam' },

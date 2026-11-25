@@ -62,6 +62,7 @@ export class Orchestrator {
     context: ChatContext,
     emit: (event: ChatEvent) => void,
     signal?: AbortSignal,
+    token?: string,
   ): Promise<RunSummary> {
     const system = buildSystemPrompt(context);
     const messages = [...history];
@@ -98,6 +99,7 @@ export class Orchestrator {
             call.args,
             emit,
             cards,
+            token,
           );
           traces.push(traceOf(call.name, call.args, output));
           return {
@@ -122,6 +124,7 @@ export class Orchestrator {
     args: unknown,
     emit: (event: ChatEvent) => void,
     cards: Map<string, ChatCard>,
+    token?: string,
   ): Promise<{ output: unknown; action?: ChatAction }> {
     const tool = this.tools.get(name);
     if (!tool) return { output: { error: `Không có công cụ "${name}"` } };
@@ -136,7 +139,7 @@ export class Orchestrator {
     }
     emit({ event: 'status', data: { text: tool.status(parsed.data) } });
     try {
-      const result = await tool.run(parsed.data, this.api);
+      const result = await tool.run(parsed.data, this.api, token);
       for (const card of result.cards ?? [])
         cards.set(`${card.kind}:${card.id}`, card);
       return { output: result.forModel, action: result.action };

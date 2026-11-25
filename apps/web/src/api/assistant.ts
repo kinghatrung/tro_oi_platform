@@ -154,9 +154,14 @@ export async function streamAssistant(
   onEvent: (event: AssistantEvent) => void,
   signal?: AbortSignal,
 ) {
+  const token = getAccessToken();
   const res = await fetch(`${AI_URL}/chat`, {
     method: 'POST',
-    headers: { 'content-type': 'application/json' },
+    // Token để trợ lý kiểm việc theo người dùng (vd được đánh giá ai) — chưa đăng nhập thì không gửi
+    headers: {
+      'content-type': 'application/json',
+      ...(token && { authorization: `Bearer ${token}` }),
+    },
     body: JSON.stringify(body),
     signal,
   });
