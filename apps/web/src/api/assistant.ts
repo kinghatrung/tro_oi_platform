@@ -1,5 +1,7 @@
 import type { PagedResponse } from '@tro-oi/shared';
 
+import type { AssistantCommand, AssistantFormKey } from '@/lib/assistantRegistry';
+
 import { getAccessToken } from './axiosClient';
 
 /** Dịch vụ trợ lý AI (apps/ai) — tách khỏi API chính nên gọi fetch thẳng, không qua axiosClient. */
@@ -20,14 +22,50 @@ export interface AssistantCard {
 }
 
 /**
- * Agent tìm hộ: widget gõ `query` vào ô tìm kiếm, nhấn Enter, rồi áp nốt bộ lọc của `path` (nội bộ).
- * `label` mô tả bộ lọc hiện trong khung chat.
+ * Thao tác agent làm hộ trên giao diện (widget diễn lại — lib/assistantActions.ts). Đường dẫn do
+ * dịch vụ AI dựng (nội bộ); `label` hiện trong khung chat.
  */
-export interface AssistantAction {
-  type: 'open-search';
-  path: string;
-  query: string;
-  label: string;
+export type AssistantAction =
+  /** Gõ `query` vào ô tìm kiếm, nhấn Enter → `path` (đủ bộ lọc). */
+  | { type: 'open-search'; path: string; query: string; label: string }
+  /** Bấm thẻ tin / món đồ → trang chi tiết. */
+  | { type: 'open-item'; path: string; label: string }
+  /** Mở chi tiết, tới khối liên hệ, mở chat có tin nhắn soạn sẵn (người dùng tự gửi). */
+  | { type: 'message'; path: string; chatPath: string; label: string }
+  /** Bấm nút sáng / tối nếu đang khác. */
+  | { type: 'set-theme'; mode: 'light' | 'dark'; label: string }
+  /** Mở 1 trang của web. */
+  | { type: 'open-page'; path: string; label: string }
+  /**
+   * Bấm nút có `data-assistant="<target>"` (mở `path` trước nếu có). `ensure`: trạng thái bật / tắt
+   * mong muốn (aria-pressed / aria-checked) — đã đúng thì không bấm.
+   */
+  | { type: 'click'; target: AssistantClickTarget; path?: string; ensure?: boolean; label: string }
+  /** Mở `path`, mở hộp thoại `open` nếu có, điền sẵn form — người dùng tự bấm gửi. */
+  | {
+      type: 'fill-form';
+      path: string;
+      form: AssistantFormKey;
+      open?: AssistantCommand;
+      values: Record<string, unknown>;
+      label: string;
+    }
+  | { type: 'logout'; label: string };
+
+export type AssistantClickTarget =
+  | 'save'
+  | 'save-search'
+  | 'show-phone'
+  | 'mark-all-read'
+  | 'notify-email'
+  | 'notify-sms'
+  | 'export-data';
+
+/** Thẻ vừa hiện ở lượt trước — gửi kèm để trợ lý hiểu "phòng thứ 2". */
+export interface AssistantRecentItem {
+  kind: AssistantCard['kind'];
+  id: string;
+  title: string;
 }
 
 export type AssistantEvent =
@@ -43,7 +81,12 @@ export interface AssistantRequest {
   /** Id phiên (sessionStorage) — gom các lượt của 1 cuộc trò chuyện trong nhật ký. */
   sessionId: string;
   messages: { role: 'user' | 'assistant'; content: string }[];
-  context: { page: string; section: 'housing' | 'market' };
+  context: {
+    page: string;
+    section: 'housing' | 'market';
+    isLoggedIn: boolean;
+    recentItems: AssistantRecentItem[];
+  };
 }
 
 /** Body lỗi của dịch vụ AI (Nest): { message } → Error tiếng Việt. */

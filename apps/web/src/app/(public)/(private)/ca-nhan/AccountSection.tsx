@@ -68,7 +68,12 @@ export function AccountSection() {
         Tải về toàn bộ dữ liệu Trọ ơi đang lưu về bạn, hoặc xoá tài khoản vĩnh viễn.
       </p>
       <div className="flex flex-wrap gap-3">
-        <Button icon={<Download size={16} />} loading={isExporting} onClick={handleExport}>
+        <Button
+          icon={<Download size={16} />}
+          loading={isExporting}
+          onClick={handleExport}
+          data-assistant="export-data"
+        >
           Tải dữ liệu của tôi
         </Button>
         <Button danger icon={<Trash2 size={16} />} onClick={() => setIsDeleteOpen(true)}>

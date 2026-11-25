@@ -17,6 +17,7 @@ export function ThemeToggle() {
     <Tooltip title={label}>
       <Button
         aria-label={label}
+        data-assistant="theme-toggle"
         icon={isDark ? <Sun size={18} /> : <Moon size={18} />}
         onClick={toggle}
       />

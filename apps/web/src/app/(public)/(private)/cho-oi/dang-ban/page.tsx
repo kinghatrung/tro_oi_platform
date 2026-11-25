@@ -31,6 +31,7 @@ import {
   PRODUCT_CATEGORY_OPTIONS,
   PRODUCT_CONDITION_OPTIONS,
 } from '@/lib/constants/constantsProduct';
+import { useAssistantForm } from '@/lib/assistantRegistry';
 import { useRequireUser } from '@/stores/useAuthStore';
 import { formatNumber, formatVietnameseCurrency } from '@/utils/helpers';
 
@@ -52,6 +53,18 @@ const fileUrl = (file: UploadFile) => (file.response as string | undefined) ?? f
 const toFileList = (images: string[]): UploadFile[] =>
   images.map((url, index) => ({ uid: `${index}-${url}`, name: url, status: 'done', url }));
 const formatPrice = (value?: number | string) => (value ? formatNumber(Number(value)) : '');
+/** Ô trợ lý AI được điền, theo thứ tự trên form. */
+const ASSISTANT_FIELDS = [
+  'title',
+  'category',
+  'condition',
+  'price',
+  'isNegotiable',
+  'description',
+  ['address', 'city'],
+  ['address', 'ward'],
+] as const;
+
 const parsePrice = (value?: string) => Number(value?.replace(/\D/g, '') || 0);
 
 /** Đăng bán món đồ mới, hoặc sửa món của tôi khi có ?id=. */
@@ -61,6 +74,8 @@ export default function PostProductPage() {
   const { message } = App.useApp();
   const user = useRequireUser();
   const [form] = Form.useForm<ProductFormValues>();
+  // Trợ lý AI điền sẵn món mới (không đụng món đang sửa)
+  useAssistantForm('product', form, ASSISTANT_FIELDS, Boolean(user) && !editId);
   const price = Form.useWatch('price', form);
   const city = Form.useWatch(['address', 'city'], form);
   const wardOptions = useWards(city).map((ward) => ({ value: ward, label: ward }));

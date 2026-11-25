@@ -13,8 +13,11 @@ import {
 } from '@tro-oi/shared';
 
 import { deleteReview, getMyReview, getReviews, upsertReview } from '@/api/reviews';
+import { useAssistantForm } from '@/lib/assistantRegistry';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { RelativeTime, ReportModal } from '@/components/common';
+
+const ASSISTANT_FIELDS = ['rating', 'comment'] as const;
 
 interface ReviewForm {
   rating: number;
@@ -37,6 +40,8 @@ export function ProfileReviews({ userId, initial }: ProfileReviewsProps) {
   const [form] = Form.useForm<ReviewForm>();
   const [data, setData] = useState(initial);
   const [mine, setMine] = useState<MyReviewStatus | null>(null);
+  // Trợ lý AI điền sẵn khi được đánh giá (đã nhắn tin qua lại với chủ hồ sơ)
+  useAssistantForm('review', form, ASSISTANT_FIELDS, Boolean(mine?.canReview));
   const [isSaving, setIsSaving] = useState(false);
   const [reportingId, setReportingId] = useState<string>();
   const isSelf = viewer?.id === userId;

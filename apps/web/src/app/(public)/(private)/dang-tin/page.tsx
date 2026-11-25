@@ -35,6 +35,7 @@ import { AMENITY_ITEMS } from '@/lib/constants/constantsRoom';
 import { YOUTUBE_URL_PATTERN } from '@/lib/youtube';
 import { useWards } from '@/hooks/useWards';
 import { useRequireUser } from '@/stores/useAuthStore';
+import { useAssistantForm } from '@/lib/assistantRegistry';
 import { formatListingPrice, formatNumber } from '@/utils/helpers';
 
 import { CategoryPicker } from './CategoryPicker';
@@ -65,6 +66,25 @@ const AMENITY_OPTIONS = AMENITY_ITEMS.map(({ value, label, icon }) => ({
   ),
 }));
 
+/** Ô trợ lý AI được điền, theo thứ tự trên form (ảnh / video / vị trí bản đồ người dùng tự làm). */
+const ASSISTANT_FIELDS = [
+  'transaction',
+  'category',
+  ['address', 'city'],
+  ['address', 'ward'],
+  ['address', 'street'],
+  'price',
+  'area',
+  'bedrooms',
+  'bathrooms',
+  'floorCount',
+  'furnishing',
+  'direction',
+  'amenities',
+  'title',
+  'description',
+] as const;
+
 const formatPrice = (value?: number | string) => (value ? formatNumber(Number(value)) : '');
 const parsePrice = (value?: string) => Number(value?.replace(/\D/g, '') || 0);
 
@@ -81,6 +101,8 @@ export default function PostListingPage() {
   const { message } = App.useApp();
   const user = useRequireUser();
   const [form] = Form.useForm<ListingFormValues>();
+  // Trợ lý AI điền sẵn tin mới (không đụng tin đang sửa)
+  useAssistantForm('listing', form, ASSISTANT_FIELDS, Boolean(user) && !editId);
   const values = Form.useWatch([], form);
   const wardOptions = useWards(values?.address?.city).map((ward) => ({ value: ward, label: ward }));
   const [fileList, setFileList] = useState<UploadFile[]>([]);

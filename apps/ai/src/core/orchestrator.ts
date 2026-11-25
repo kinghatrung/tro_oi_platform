@@ -67,7 +67,7 @@ export class Orchestrator {
     const messages = [...history];
     const cards = new Map<string, ChatCard>();
     const traces: ToolTrace[] = [];
-    // Lần tìm sau cùng quyết định trang mở cho người dùng (model thường tìm lại với điều kiện nới ra)
+    // Thao tác giao diện theo thứ tự model gọi công cụ
     const actions: ChatAction[] = [];
 
     for (let round = 0; ; round++) {
@@ -78,11 +78,11 @@ export class Orchestrator {
       if (turn.toolCalls.length === 0 || tools.length === 0) {
         const text = turn.text.trim();
         const shown = [...cards.values()].slice(0, MAX_CARDS);
-        const action = actions.at(-1);
+        const planned = planActions(actions);
         emit({ event: 'text', data: { text } });
         if (shown.length > 0) emit({ event: 'cards', data: { items: shown } });
-        if (action) emit({ event: 'action', data: action });
-        return { text, cards: shown.length, tools: traces, action };
+        for (const action of planned) emit({ event: 'action', data: action });
+        return { text, cards: shown.length, tools: traces, actions: planned };
       }
 
       messages.push({
@@ -90,26 +90,29 @@ export class Orchestrator {
         content: turn.text,
         toolCalls: turn.toolCalls,
       });
-      // Các công cụ trong 1 lượt chạy song song; kết quả trả lại đúng thứ tự gọi
+      // Các công cụ trong 1 lượt chạy song song; kết quả + thao tác lấy lại đúng thứ tự gọi
       const results = await Promise.all(
         turn.toolCalls.map(async (call) => {
-          const output = await this.runTool(
+          const { output, action } = await this.runTool(
             call.name,
             call.args,
             emit,
             cards,
-            actions,
           );
           traces.push(traceOf(call.name, call.args, output));
           return {
-            role: 'tool' as const,
-            toolCallId: call.id,
-            name: call.name,
-            content: JSON.stringify(output),
+            action,
+            message: {
+              role: 'tool' as const,
+              toolCallId: call.id,
+              name: call.name,
+              content: JSON.stringify(output),
+            },
           };
         }),
       );
-      messages.push(...results);
+      for (const { action } of results) if (action) actions.push(action);
+      messages.push(...results.map(({ message }) => message));
     }
   }
 
@@ -119,15 +122,16 @@ export class Orchestrator {
     args: unknown,
     emit: (event: ChatEvent) => void,
     cards: Map<string, ChatCard>,
-    actions: ChatAction[],
-  ): Promise<unknown> {
+  ): Promise<{ output: unknown; action?: ChatAction }> {
     const tool = this.tools.get(name);
-    if (!tool) return { error: `Không có công cụ "${name}"` };
+    if (!tool) return { output: { error: `Không có công cụ "${name}"` } };
 
     const parsed = tool.schema.safeParse(args);
     if (!parsed.success) {
       return {
-        error: `Tham số không hợp lệ: ${z.prettifyError(parsed.error)}`,
+        output: {
+          error: `Tham số không hợp lệ: ${z.prettifyError(parsed.error)}`,
+        },
       };
     }
     emit({ event: 'status', data: { text: tool.status(parsed.data) } });
@@ -135,10 +139,29 @@ export class Orchestrator {
       const result = await tool.run(parsed.data, this.api);
       for (const card of result.cards ?? [])
         cards.set(`${card.kind}:${card.id}`, card);
-      if (result.action) actions.push(result.action);
-      return result.forModel;
+      return { output: result.forModel, action: result.action };
     } catch (error) {
-      return { error: (error as Error).message || 'Không lấy được dữ liệu' };
+      return {
+        output: { error: (error as Error).message || 'Không lấy được dữ liệu' },
+      };
     }
   }
+}
+
+/**
+ * Thứ tự widget làm: chỉ giữ lần tìm kiếm cuối (model hay tìm lại với điều kiện nới ra) và làm nó
+ * trước — "tìm … rồi lưu tìm kiếm" cần trang kết quả mở xong; các thao tác khác giữ thứ tự gọi,
+ * bỏ thao tác trùng hệt nhau.
+ */
+export function planActions(actions: ChatAction[]): ChatAction[] {
+  const search = actions.findLast((action) => action.type === 'open-search');
+  const seen = new Set<string>();
+  return [search, ...actions.filter((action) => action.type !== 'open-search')]
+    .filter((action): action is ChatAction => Boolean(action))
+    .filter((action) => {
+      const key = JSON.stringify(action);
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
 }

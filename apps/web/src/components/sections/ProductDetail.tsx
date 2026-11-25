@@ -17,6 +17,7 @@ import { recordViewedProduct } from '@/api/users';
 import { RelativeTime, ReportModal } from '@/components/common';
 import { NO_IMAGE } from '@/constants';
 import { useSaveToggle } from '@/hooks/useSaveToggle';
+import { useAssistantCommand } from '@/lib/assistantRegistry';
 import { CONDITION_TAG_COLORS } from '@/lib/constants/constantsProduct';
 import { recordProductView } from '@/lib/viewHistory';
 import { useAuthStore } from '@/stores/useAuthStore';
@@ -69,6 +70,7 @@ export function ProductDetail({ product }: { product: ProductItem }) {
     }
     setIsReportOpen(true);
   }, [isLoggedIn, pathname, router]);
+  useAssistantCommand('report', handleReport);
 
   return (
     <Flex vertical gap={12}>
@@ -127,6 +129,7 @@ export function ProductDetail({ product }: { product: ProductItem }) {
         <Flex gap={8} wrap className="mt-4!">
           <Button
             aria-pressed={isSaved}
+            data-assistant="save"
             icon={<Heart size={16} className={isSaved ? 'fill-price stroke-price' : ''} />}
             onClick={() => handleToggleSave()}
           >

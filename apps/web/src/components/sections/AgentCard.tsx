@@ -40,7 +40,8 @@ export function AgentCard({ author, chatHref }: AgentCardProps) {
   }, [author.id]);
 
   return (
-    <section className="sticky top-4 rounded-lg bg-surface p-5">
+    // data-assistant: trợ lý AI cuộn tới đây trước khi mở khung chat soạn sẵn (lib/assistantActions.ts)
+    <section data-assistant="contact" className="sticky top-4 rounded-lg bg-surface p-5">
       <Flex vertical gap={12}>
         <Link href={`/nguoi-dung/${author.id}`}>
           <Space>
@@ -119,6 +120,7 @@ export function AgentCard({ author, chatHref }: AgentCardProps) {
                 type="primary"
                 className="w-full font-bold! text-[16px]!"
                 onClick={() => setIsPhoneVisible(true)}
+                data-assistant="show-phone"
               >
                 Hiện số {phone.slice(0, -3)}***
               </Button>

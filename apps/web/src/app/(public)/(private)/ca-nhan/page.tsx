@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { App, Button, Card, Col, Row, Skeleton } from 'antd';
 import { LayoutDashboard } from 'lucide-react';
@@ -9,6 +9,7 @@ import type { Listing } from '@tro-oi/shared';
 
 import { getMyListings } from '@/api/listings';
 import { ProfileHeader, ProfileListings } from '@/components/sections';
+import { useAssistantCommand } from '@/lib/assistantRegistry';
 import { useAuthStore, useRequireUser } from '@/stores/useAuthStore';
 
 import { AccountSection } from './AccountSection';
@@ -23,6 +24,8 @@ export default function ProfilePage() {
   const setUser = useAuthStore((state) => state.setUser);
   const [listings, setListings] = useState<Listing[]>();
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const openEdit = useCallback(() => setIsEditOpen(true), []);
+  useAssistantCommand('edit-profile', openEdit);
 
   useEffect(() => {
     if (!user) return;
@@ -42,7 +45,7 @@ export default function ProfilePage() {
   return (
     <Row gutter={[16, 16]}>
       <Col span={24}>
-        <ProfileHeader user={user} onEditProfile={() => setIsEditOpen(true)} />
+        <ProfileHeader user={user} onEditProfile={openEdit} />
       </Col>
 
       <Col span={24}>

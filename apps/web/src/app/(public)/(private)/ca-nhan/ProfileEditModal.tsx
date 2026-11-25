@@ -8,6 +8,7 @@ import type { UpdateProfileRequest, User } from '@tro-oi/shared';
 
 import { antdUploadRequest } from '@/api/uploads';
 import { updateMe } from '@/api/users';
+import { useAssistantForm } from '@/lib/assistantRegistry';
 
 interface ProfileEditModalProps {
   user: User;
@@ -17,11 +18,13 @@ interface ProfileEditModalProps {
 }
 
 const IMAGE_ACCEPT = 'image/jpeg,image/png,image/webp';
+const ASSISTANT_FIELDS = ['name', 'email', 'bio'] as const;
 
 /** Sửa tên, email, giới thiệu, ảnh đại diện, ảnh bìa. */
 export function ProfileEditModal({ user, open, onClose, onSaved }: ProfileEditModalProps) {
   const { message } = App.useApp();
   const [form] = Form.useForm<UpdateProfileRequest>();
+  useAssistantForm('profile', form, ASSISTANT_FIELDS, open);
   const [avatar, setAvatar] = useState(user.avatar);
   /** "" = không có ảnh bìa (gửi "" để gỡ ảnh cũ). */
   const [cover, setCover] = useState(user.coverImage ?? '');

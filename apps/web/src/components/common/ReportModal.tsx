@@ -10,6 +10,7 @@ import {
 } from '@tro-oi/shared';
 
 import { createReport } from '@/api/reports';
+import { useAssistantForm } from '@/lib/assistantRegistry';
 
 interface ReportModalProps {
   open: boolean;
@@ -27,6 +28,7 @@ const toOptions = (labels: Partial<Record<ReportReason, string>>) =>
   (Object.entries(labels) as [ReportReason, string][]).map(([value, label]) => ({ value, label }));
 const REASON_OPTIONS = toOptions(REPORT_REASON_LABELS);
 const REVIEW_REASON_OPTIONS = toOptions(REVIEW_REPORT_REASON_LABELS);
+const ASSISTANT_FIELDS = ['reason', 'note'] as const;
 
 /**
  * Báo cáo tin / đánh giá vi phạm → admin xử lý ở /quan-tri/bao-cao.
@@ -37,6 +39,8 @@ export function ReportModal({ open, onClose, targetType, targetId }: ReportModal
   const isReview = targetType === ReportTargetType.REVIEW;
   const { message } = App.useApp();
   const [form] = Form.useForm<ReportFormValues>();
+  // Trợ lý AI chỉ báo cáo tin / món đồ, không báo cáo đánh giá
+  useAssistantForm('report', form, ASSISTANT_FIELDS, open && !isReview);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = useCallback(

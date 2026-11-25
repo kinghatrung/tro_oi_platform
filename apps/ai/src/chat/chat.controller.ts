@@ -79,6 +79,18 @@ const ChatRequest = z.object({
     .object({
       page: z.string().max(200).optional(),
       section: z.enum(['housing', 'market']).optional(),
+      isLoggedIn: z.boolean().optional(),
+      /** Thẻ vừa hiện ở lượt trước — để hiểu "phòng thứ 2". Công cụ vẫn kiểm id qua API. */
+      recentItems: z
+        .array(
+          z.object({
+            kind: z.enum(['listing', 'product']),
+            id: z.string().regex(/^[a-f0-9]{24}$/),
+            title: z.string().max(150),
+          }),
+        )
+        .max(6)
+        .optional(),
     })
     .optional(),
 });
@@ -133,7 +145,7 @@ export class ChatController {
 
     const messageId = randomUUID();
     const started = Date.now();
-    let summary: RunSummary = { text: '', cards: 0, tools: [] };
+    let summary: RunSummary = { text: '', cards: 0, tools: [], actions: [] };
     let failure: string | undefined;
     try {
       summary = await this.orchestrator.run(

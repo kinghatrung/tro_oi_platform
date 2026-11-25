@@ -42,6 +42,7 @@ src/
     ├── tim-tin.ts              #   GET /listings — giá model gửi theo TRIỆU, đổi sang đồng
     ├── tim-do-cu.ts            #   GET /products — giá theo ĐỒNG
     ├── xem-tin.ts              #   GET /listings/:id | /products/:id — mô tả cắt 800 ký tự, đánh dấu là dữ liệu
+    ├── thao-tac.ts             #   thao tác giao diện: mo_tin, luu_tin, nhan_tin, luu_tim_kiem, doi_giao_dien, mo_trang
     └── index.ts                #   TOOLS — thêm khả năng = thêm 1 file + 1 dòng
 ```
 
@@ -51,11 +52,35 @@ src/
 
 ## Agent thao tác giao diện
 
+| Công cụ | Người dùng nói | `ChatAction` | Widget làm |
+| --- | --- | --- | --- |
+| `tim_tin`, `tim_do_cu` | "tìm phòng 3–5 triệu ở Cầu Giấy" | `open-search` | gõ vào ô tìm kiếm + Enter (dưới đây) |
+| `mo_tin` | "xem phòng thứ 2" | `open-item` | cuộn tới thẻ của tin trên trang, tô sáng, bấm; không có thẻ → mở thẳng |
+| `mo_ho_so` | "xem trang của chủ nhà này" | `open-page` | mở `/nguoi-dung/<id người đăng>` |
+| `luu_tin` | "lưu / bỏ lưu phòng này" | `click` `save` | mở tin, bấm **Lưu** (`[data-assistant=save]`) tới đúng trạng thái `ensure` (aria-pressed) |
+| `nhan_tin` | "hỏi chủ nhà còn phòng không" | `message` | mở tin, cuộn tới khối liên hệ (`[data-assistant=contact]`), mở `/tin-nhan?listingId|productId=&text=` — tin nhắn **soạn sẵn, người dùng tự gửi** |
+| `luu_tim_kiem` | "báo tôi khi có phòng mới" | `click` `save-search` | ở `/tim-kiem`: bấm **Lưu tìm kiếm** |
+| `bam_nut` | "hiện số chủ nhà", "đánh dấu đã đọc hết", "tải dữ liệu của tôi" | `click` `show-phone` / `mark-all-read` / `export-data` | mở trang (tin / `/thong-bao` / `/ca-nhan`), bấm nút |
+| `cai_dat_thong_bao` | "tắt email thông báo" | `click` `notify-email` / `notify-sms` | ở `/thong-bao`: bật / tắt công tắc tới `ensure` (aria-checked) |
+| `doi_giao_dien` | "bật chế độ tối" | `set-theme` | bấm nút sáng / tối (`[data-assistant=theme-toggle]`) nếu đang khác |
+| `mo_trang` | "xem tin đã lưu / thông báo / quản lý tin" | `open-page` | mở trang trong danh sách cố định (`PAGES`) |
+| `dang_xuat` | "đăng xuất" | `logout` | như nút Đăng xuất ở menu (tải lại về trang chủ) |
+| `soan_tin_dang`, `soan_do_ban` | "đăng tin cho thuê phòng 3 triệu ở Cầu Giấy…" | `fill-form` `listing` / `product` | mở `/dang-tin` / `/cho-oi/dang-ban`, điền từng ô — người dùng tải ảnh, bấm Đăng |
+| `sua_ho_so` | "đổi tên hiển thị thành…" | `fill-form` `profile` (`open: edit-profile`) | ở `/ca-nhan`: mở hộp sửa hồ sơ, điền — người dùng bấm Lưu |
+| `viet_danh_gia` | "đánh giá chủ nhà 5 sao" | `fill-form` `review` | ở hồ sơ người đăng: điền số sao + nhận xét (chỉ khi đã nhắn tin qua lại) — người dùng bấm Gửi |
+| `bao_cao_tin` | "báo cáo tin này lừa đảo" | `fill-form` `report` (`open: report`) | ở trang tin: mở hộp báo cáo, điền lý do — người dùng bấm Gửi |
+
+**Không tự làm** (prompt dặn model hướng dẫn người dùng tự bấm): gửi tin nhắn / đánh giá / báo cáo / đăng tin, xoá tài khoản, ẩn / gia hạn / xoá tin của mình, liên kết Google / Facebook, đổi số điện thoại, bật thông báo đẩy (trình duyệt cần người bấm).
+
+**Điền form** (`fill-form`): trang đăng ký form với `useAssistantForm(key, form, fields, enabled)` và lệnh mở hộp thoại với `useAssistantCommand(name, run)` (`lib/assistantRegistry.ts`) — trợ lý chỉ điền được form đang hiện, chỉ các field trong `fields` (giá trị lạ bị bỏ). Điền lần lượt theo thứ tự trên form, cuộn tới từng ô, rồi kiểm lỗi các ô vừa điền (ô còn trống như ảnh không báo đỏ). Form đang sửa tin cũ (`?id=`) không đăng ký. Chưa đăng nhập → trang tự sang `/dang-nhap`, trợ lý dừng.
+
+Tin / món đồ luôn được kiểm qua API trước (id bịa → 404 trả lại model); đường dẫn do công cụ dựng. Một câu có thể sinh nhiều thao tác (`planActions`: chỉ giữ lần tìm kiếm cuối và làm trước, bỏ trùng, còn lại theo thứ tự gọi — vd tìm rồi lưu tìm kiếm). Việc cần đăng nhập để chính trang xử lý: chưa đăng nhập thì trang tự chuyển tới `/dang-nhap?redirect=` như khi người dùng tự bấm; prompt biết `isLoggedIn` để nhắc. Khi thêm nút / khối mới cho trợ lý bấm, gắn `data-assistant="…"` thay vì tìm theo chữ.
+
 `tim_tin` / `tim_do_cu` ngoài thẻ còn trả `action` = trang tìm kiếm của web với **cùng bộ lọc** (`listingSearchAction` → `/tim-kiem?…` giá theo triệu; `productSearchAction` → `/cho-oi/tim-kiem?…`, giá chỉ đưa vào khi khớp đúng 1 khoảng `price=` của web). Đường dẫn do công cụ dựng từ tham số đã kiểm, model không tự viết URL. Không mở trang khi model đặt `moTrang: false` (hỏi nhanh / đếm) hoặc 0 kết quả; nhiều lần tìm trong 1 câu → mở theo lần cuối.
 
 `query` = chữ sẽ gõ: tin → từ khoá, không có thì tên phường (bỏ chữ "Phường") / tỉnh (từ khoá tin so khớp cả địa chỉ); đồ cũ → chỉ từ khoá thật (so khớp tên món). `path` mang `keyword=query` để ô giữ đúng chữ đã gõ.
 
-Widget (`lib/assistantActions.ts`) làm như người thật: trang chủ / Chợ ơi dùng ô trên banner, trang tìm kiếm dùng ô từ khoá (`input[aria-label="Từ khoá tìm kiếm"]`; sai khu hoặc không có ô → mở trang tìm kiếm trước). (1) Bộ lọc không gõ được (loại hình, giá…) đặt sẵn lên URL trang hiện tại bằng `history.replaceState(null, …)` — Next cập nhật `useSearchParams` (state phải là `null`, truyền `history.state` cũ thì router bỏ qua), trang tìm kiếm hiện ngay các nút lọc đã chọn; (2) luôn cuộn tới ô tìm kiếm, ô tô màu brand (`.assistant-typing`); (3) xoá chữ cũ, **gõ từng chữ thật** (setter gốc + sự kiện input, ~0,16 giây/chữ); (4) **nhấn Enter** (keydown) → chính ô tìm kiếm mang theo bộ lọc, tới thẳng trang đích (nếu thiếu tham số mới tự mở đúng `path`). Máy bật giảm chuyển động vẫn gõ, chỉ bỏ cuộn mượt. Không có gì để gõ → mở thẳng trang kết quả. Trong lúc thao tác, khung chat thu lại, các bước hiện ở nhãn cạnh nút trợ lý; xong thì mở lại (điện thoại để đóng). Câu trả lời giữ nút "Trang kết quả"; chỉ nhận đường dẫn nội bộ (`isInternalPath`).
+Widget (`lib/assistantActions.ts`) làm như người thật: trang chủ / Chợ ơi dùng ô trên banner, trang tìm kiếm dùng ô từ khoá (`input[aria-label="Từ khoá tìm kiếm"]`; sai khu hoặc không có ô → mở trang tìm kiếm trước). (1) Bộ lọc không gõ được (loại hình, giá…) đặt sẵn lên URL trang hiện tại bằng `history.replaceState(null, …)` — Next cập nhật `useSearchParams` (state phải là `null`, truyền `history.state` cũ thì router bỏ qua), trang tìm kiếm hiện ngay các nút lọc đã chọn; (2) luôn cuộn tới ô tìm kiếm, ô tô màu brand (`.assistant-typing`); (3) xoá chữ cũ, **gõ từng chữ thật** (setter gốc + sự kiện input, ~0,16 giây/chữ); (4) **nhấn Enter** (keydown) → chính ô tìm kiếm mang theo bộ lọc, tới thẳng trang đích (nếu thiếu tham số mới tự mở đúng `path`). Máy bật giảm chuyển động vẫn gõ, chỉ bỏ cuộn mượt. Không có gì để gõ → mở thẳng trang kết quả. Trong lúc thao tác, khung chat thu lại, các bước hiện ở nhãn cạnh nút trợ lý; xong thì mở lại (điện thoại để đóng). Câu trả lời giữ nút mở lại cho từng thao tác có trang (Trang kết quả, Đã mở, Tin nhắn soạn sẵn, form đã điền…); chỉ nhận đường dẫn nội bộ (`isInternalPath`).
 
 ## `POST /chat` — Server-Sent Events
 
@@ -65,11 +90,16 @@ Body:
 {
   "sessionId": "<uuid — widget tạo, lưu sessionStorage; tuỳ chọn>",
   "messages": [{ "role": "user", "content": "tìm phòng dưới 4 củ ở cầu giấy" }],
-  "context": { "page": "/", "section": "housing" }
+  "context": {
+    "page": "/",
+    "section": "housing",
+    "isLoggedIn": false,
+    "recentItems": [{ "kind": "listing", "id": "<24 hex>", "title": "..." }]
+  }
 }
 ```
 
-`messages`: 1–40 lượt (`user` / `assistant`), lượt cuối là `user` ≤ 1000 ký tự; dịch vụ dùng 10 lượt cuối. `section`: `housing` | `market`. Sai → 400 `{ message }`; quá giới hạn → 429 `{ message }`.
+`messages`: 1–40 lượt (`user` / `assistant`), lượt cuối là `user` ≤ 1000 ký tự; dịch vụ dùng 10 lượt cuối. `section`: `housing` | `market`. `recentItems` (≤ 6): thẻ của câu trả lời gần nhất có thẻ — để hiểu "phòng thứ 2" (đưa vào prompt dạng JSON đánh số, coi là dữ liệu); công cụ vẫn kiểm id qua API. Sai → 400 `{ message }`; quá giới hạn → 429 `{ message }`.
 
 Response `text/event-stream`, theo thứ tự:
 
@@ -78,7 +108,7 @@ Response `text/event-stream`, theo thứ tự:
 | `status` (0..n)  | `{ text }` — vd "Đang tìm phòng ở Phường Cầu Giấy…"                                                                              |
 | `text`           | `{ text }` — câu trả lời (chưa stream từng chữ từ model)                                                                         |
 | `cards` (tuỳ)    | `{ items: ChatCard[] }` — `{ kind: listing\|product, id, title, image?, price (đồng), transaction?, area?, address? }`, tối đa 6 |
-| `action` (tuỳ)   | `{ type: "open-search", path, query, label }` — agent mở trang kết quả (xem "Agent thao tác giao diện") |
+| `action` (0..n)  | `ChatAction` — thao tác agent làm trên giao diện, theo thứ tự widget thực hiện (xem "Agent thao tác giao diện") |
 | `done` / `error` | `{ messageId }` (uuid, dùng cho 👍/👎) / `{ message }`                                                                           |
 
 Người dùng đóng khung chat giữa chừng → huỷ gọi model, không lưu log. Các lượt còn lại (kể cả lỗi) được lưu kèm dấu tự gắn: `error`, `no_answer`, `no_results` (công cụ ra 0 kết quả), `tool_error`.
@@ -103,4 +133,4 @@ Log → admin lọc "Cần xem lại" (👎, 0 kết quả, lỗi) → sửa `co
 
 ## Chưa làm
 
-- Stream từng chữ từ model; RAG (kho kiến thức chính sách, hướng dẫn); công cụ thống kê giá (cần `GET /listings/price-stats` bên API). Agent mới mở trang tìm kiếm — chưa tự điền form đăng tin, chưa thao tác trên trang chi tiết.
+- Stream từng chữ từ model; RAG (kho kiến thức chính sách, hướng dẫn); công cụ thống kê giá (cần `GET /listings/price-stats` bên API). Agent chưa tự điền form đăng tin / đăng bán, chưa bấm từng dropdown bộ lọc; thao tác cần đăng nhập khi chưa đăng nhập chỉ dừng ở trang đăng nhập (đăng nhập xong không tự làm tiếp).

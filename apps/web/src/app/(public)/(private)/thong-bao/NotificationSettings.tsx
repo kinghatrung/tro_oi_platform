@@ -144,6 +144,7 @@ export function NotificationSettings() {
             control={
               <Switch
                 aria-label="Nhận thông báo qua email"
+                data-assistant="notify-email"
                 checked={prefs.hasEmail && prefs.email}
                 disabled={!prefs.hasEmail}
                 loading={busy === 'email'}
@@ -160,6 +161,7 @@ export function NotificationSettings() {
             control={
               <Switch
                 aria-label="Nhận thông báo qua SMS"
+                data-assistant="notify-sms"
                 checked={prefs.sms}
                 loading={busy === 'sms'}
                 onChange={(on) => togglePref('sms', on)}

@@ -89,7 +89,7 @@ export default function NotificationsPage() {
     <Card variant="borderless">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-primary">Thông báo</h1>
-        <Button disabled={unread === 0} onClick={handleMarkAll}>
+        <Button disabled={unread === 0} onClick={handleMarkAll} data-assistant="mark-all-read">
           Đánh dấu tất cả đã đọc
         </Button>
       </div>

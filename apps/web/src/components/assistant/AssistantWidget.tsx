@@ -25,14 +25,15 @@ import {
 } from '@/api/assistant';
 import { NO_IMAGE } from '@/constants';
 import { isInternalPath, playAssistantAction } from '@/lib/assistantActions';
+import { useAuthStore } from '@/stores/useAuthStore';
 import { formatListingPrice, formatVietnameseCurrency } from '@/utils/helpers';
 
 interface ChatMessage {
   role: 'user' | 'assistant';
   text: string;
   cards?: AssistantCard[];
-  /** Trang kết quả agent đã mở (bấm để mở lại). */
-  action?: AssistantAction;
+  /** Thao tác agent đã làm trên trang (hiện thành nút để mở lại). */
+  actions?: AssistantAction[];
   /** Id lượt trả lời (sự kiện done) — có thì hiện 👍 / 👎. */
   messageId?: string;
   rating?: 1 | -1;
@@ -103,10 +104,28 @@ function ResultCard({ card, onOpen }: { card: AssistantCard; onOpen: () => void 
   );
 }
 
+/** Nút "mở lại" cho thao tác agent đã làm; thao tác không có trang riêng (lưu tìm kiếm, đổi giao diện) → null. */
+function actionLink(action: AssistantAction): { href: string; text: string } | null {
+  const link =
+    action.type === 'open-search'
+      ? { href: action.path, text: `Trang kết quả: ${action.label}` }
+      : action.type === 'open-item'
+        ? { href: action.path, text: `Đã mở: ${action.label}` }
+        : action.type === 'message'
+          ? { href: action.chatPath, text: `Tin nhắn soạn sẵn: ${action.label}` }
+          : action.type === 'open-page' || action.type === 'fill-form'
+            ? { href: action.path, text: action.label }
+            : action.type === 'click' && action.path
+              ? { href: action.path, text: action.label }
+              : null;
+  return link && isInternalPath(link.href) ? link : null;
+}
+
 /** Nút tròn góc phải dưới → khung chat với trợ lý AI (giữ hội thoại khi chuyển trang). */
 export function AssistantWidget() {
   const pathname = usePathname();
   const router = useRouter();
+  const isLoggedIn = useAuthStore((state) => Boolean(state.user));
   const isMarket = pathname.startsWith('/cho-oi');
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -153,22 +172,35 @@ export function AssistantWidget() {
             .slice(-HISTORY_SIZE)
             .filter((message) => message.text)
             .map(({ role, text: body }) => ({ role, content: body })),
-          context: { page: pathname, section: isMarket ? 'market' : 'housing' },
+          context: {
+            page: pathname,
+            section: isMarket ? 'market' : 'housing',
+            isLoggedIn,
+            // Thẻ của câu trả lời gần nhất có thẻ — trợ lý hiểu "phòng thứ 2", "món đầu tiên"
+            recentItems: (messages.findLast((message) => message.cards?.length)?.cards ?? []).map(
+              ({ kind, id, title }) => ({ kind, id, title: title.slice(0, 150) }),
+            ),
+          },
         },
         ({ event, data }) => {
           if (event === 'status') setStatus(data.text);
           else if (event === 'text') showReply({ text: data.text });
           else if (event === 'cards') showReply({ cards: data.items });
-          else if (event === 'action') showReply({ action: data });
+          else if (event === 'action') showReply({ actions: [...(reply.actions ?? []), data] });
           else if (event === 'error') showReply({ text: data.message });
           else if (event === 'done') showReply({ messageId: data.messageId });
         },
       );
-      // Agent thao tác hộ: thu khung chat (không che ô tìm kiếm), gõ + Enter, áp bộ lọc, rồi mở lại
-      // khung chat (hội thoại vẫn giữ). Điện thoại: khung chat che cả màn hình → để đóng.
-      if (reply.action) {
+      // Agent thao tác hộ, lần lượt từng việc: thu khung chat (không che trang), cuộn / gõ / bấm,
+      // rồi mở lại khung chat (hội thoại vẫn giữ). Điện thoại: khung chat che cả màn hình → để đóng.
+      if (reply.actions?.length) {
         setIsOpen(false);
-        await playAssistantAction(reply.action, (path) => router.push(path), setStatus);
+        for (const action of reply.actions) {
+          await playAssistantAction(action, {
+            navigate: (path) => router.push(path),
+            onStep: setStatus,
+          });
+        }
         if (window.innerWidth >= 640) setIsOpen(true);
       }
     } catch (error) {
@@ -271,16 +303,22 @@ export function AssistantWidget() {
                         onOpen={() => window.innerWidth < 640 && setIsOpen(false)}
                       />
                     ))}
-                    {message.action && isInternalPath(message.action.path) && (
-                      <Link
-                        href={message.action.path}
-                        onClick={() => window.innerWidth < 640 && setIsOpen(false)}
-                        className="flex items-center gap-2 self-start rounded-full bg-brand-soft! px-3 py-1.5 text-xs font-semibold text-brand"
-                      >
-                        <MousePointerClick size={14} className="shrink-0" />
-                        <span className="line-clamp-1">Trang kết quả: {message.action.label}</span>
-                      </Link>
-                    )}
+                    {message.actions?.map((action) => {
+                      const link = actionLink(action);
+                      return (
+                        link && (
+                          <Link
+                            key={`${action.type}-${link.href}`}
+                            href={link.href}
+                            onClick={() => window.innerWidth < 640 && setIsOpen(false)}
+                            className="flex items-center gap-2 self-start rounded-full bg-brand-soft! px-3 py-1.5 text-xs font-semibold text-brand"
+                          >
+                            <MousePointerClick size={14} className="shrink-0" />
+                            <span className="line-clamp-1">{link.text}</span>
+                          </Link>
+                        )
+                      );
+                    })}
                     {message.messageId && (
                       <div className="flex items-center gap-1 text-subtle">
                         {(

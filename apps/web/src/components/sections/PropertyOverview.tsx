@@ -49,6 +49,7 @@ import {
 } from '@/components/common';
 import { NO_IMAGE } from '@/constants';
 import { useSaveToggle } from '@/hooks/useSaveToggle';
+import { useAssistantCommand } from '@/lib/assistantRegistry';
 import {
   AMENITY_ITEMS,
   buildPropertyFeatures,
@@ -178,6 +179,7 @@ export function PropertyOverview({ listing, similarListings = [] }: PropertyOver
     }
     setIsReportOpen(true);
   }, [isLoggedIn, pathname, router]);
+  useAssistantCommand('report', openReport);
 
   const handleMoreClick = useCallback<NonNullable<MenuProps['onClick']>>(
     ({ key }) => {
@@ -353,6 +355,7 @@ export function PropertyOverview({ listing, similarListings = [] }: PropertyOver
             <h1 className="text-primary text-2xl!">{listing.title}</h1>
             <Button
               aria-pressed={isFavorite}
+              data-assistant="save"
               icon={<Heart size={24} className={isFavorite ? 'fill-price stroke-price' : ''} />}
               className="text-[16px]! text-ink! font-bold!"
               onClick={handleToggleFavorite}

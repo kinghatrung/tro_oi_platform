@@ -178,6 +178,8 @@ function SearchFiltersForm({ serializedParams }: { serializedParams: string }) {
               icon={<Bookmark size={20} strokeWidth={2.2} />}
               className="rounded-2xl! font-bold!"
               type={saved ? 'primary' : 'default'}
+              aria-pressed={saved}
+              data-assistant="save-search"
               onClick={toggleSaveSearch}
             >
               {saved ? 'Đã lưu tìm kiếm' : 'Lưu tìm kiếm'}

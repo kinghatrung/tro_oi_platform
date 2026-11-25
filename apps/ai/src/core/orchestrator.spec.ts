@@ -103,7 +103,7 @@ describe('Orchestrator', () => {
       tools: [
         { name: 'tim_tin', args: { ward: 'Cầu Giấy', maxPrice: 4 }, total: 1 },
       ],
-      action,
+      actions: [action],
     });
   });
 

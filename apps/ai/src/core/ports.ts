@@ -72,15 +72,62 @@ export interface ChatCard {
  * Việc agent làm trên giao diện web — widget diễn lại từng bước (gõ vào ô tìm kiếm rồi mở trang).
  * `path` luôn là đường dẫn nội bộ do công cụ dựng từ tham số đã kiểm (model không tự viết URL).
  */
-export interface ChatAction {
-  type: 'open-search';
-  /** Trang kết quả cuối cùng (đủ bộ lọc, keyword = query), vd "/tim-kiem?keyword=C%E1%BA%A7u+Gi%E1%BA%A5y&maxPrice=5". */
-  path: string;
-  /** Chữ agent gõ vào ô tìm kiếm rồi nhấn Enter; "" = không có gì để gõ (chỉ áp bộ lọc). */
-  query: string;
-  /** Mô tả bộ lọc hiện trong khung chat, vd "Phòng trọ · Phường Cầu Giấy · 3–5 triệu". */
-  label: string;
-}
+export type ChatAction =
+  | {
+      /** Gõ `query` vào ô tìm kiếm, nhấn Enter → trang `path` (đủ bộ lọc, keyword = query). */
+      type: 'open-search';
+      path: string;
+      /** "" = không có gì để gõ (chỉ áp bộ lọc). */
+      query: string;
+      /** Mô tả bộ lọc, vd "Phòng trọ · Phường Cầu Giấy · 3–5 triệu". */
+      label: string;
+    }
+  /** Bấm vào thẻ tin / món đồ trên trang (không có thì mở thẳng) → trang chi tiết `path`. */
+  | { type: 'open-item'; path: string; label: string }
+  /** Mở chi tiết, tới khối liên hệ, rồi mở trang chat `chatPath` có tin nhắn soạn sẵn (người dùng tự gửi). */
+  | { type: 'message'; path: string; chatPath: string; label: string }
+  /** Bấm nút đổi giao diện nếu đang khác `mode`. */
+  | { type: 'set-theme'; mode: 'light' | 'dark'; label: string }
+  /** Mở 1 trang của web (tin đã lưu, thông báo, đăng tin…). */
+  | { type: 'open-page'; path: string; label: string }
+  /**
+   * Tới `path` (bỏ trống = trang đang mở) rồi bấm nút `[data-assistant=target]`. `ensure` = trạng thái
+   * bật / tắt mong muốn (nút Lưu, công tắc) — đã đúng thì không bấm.
+   */
+  | {
+      type: 'click';
+      target: ClickTarget;
+      path?: string;
+      ensure?: boolean;
+      label: string;
+    }
+  /**
+   * Tới `path`, chạy lệnh `open` của trang nếu có (mở hộp sửa hồ sơ / báo cáo), rồi điền form
+   * từng ô một. Không bấm gửi — người dùng kiểm tra (và tải ảnh) rồi tự gửi.
+   */
+  | {
+      type: 'fill-form';
+      path: string;
+      form: FormKey;
+      open?: 'edit-profile' | 'report';
+      values: Record<string, unknown>;
+      label: string;
+    }
+  /** Đăng xuất. */
+  | { type: 'logout'; label: string };
+
+/** Nút trợ lý bấm được (web gắn `data-assistant`). */
+export type ClickTarget =
+  | 'save'
+  | 'save-search'
+  | 'show-phone'
+  | 'mark-all-read'
+  | 'notify-email'
+  | 'notify-sms'
+  | 'export-data';
+
+/** Form trợ lý điền sẵn được (trang web đăng ký qua useAssistantForm). */
+export type FormKey = 'listing' | 'product' | 'profile' | 'review' | 'report';
 
 export interface ToolResult {
   /** Dữ liệu rút gọn đưa lại cho model đọc. */
@@ -117,8 +164,8 @@ export interface RunSummary {
   text: string;
   cards: number;
   tools: ToolTrace[];
-  /** Trang agent đã mở cho người dùng (nếu có). */
-  action?: ChatAction;
+  /** Thao tác agent làm trên giao diện, theo thứ tự widget thực hiện. */
+  actions: ChatAction[];
 }
 
 /** Sự kiện SSE gửi về widget. */
@@ -128,8 +175,18 @@ export type ChatEvent =
   | { event: 'cards'; data: { items: ChatCard[] } }
   | { event: 'action'; data: ChatAction };
 
+/** Thẻ vừa hiện ở lượt trước (widget gửi lại) — để hiểu "phòng thứ 2", "món đầu tiên". */
+export interface RecentItem {
+  kind: 'listing' | 'product';
+  id: string;
+  title: string;
+}
+
 export interface ChatContext {
-  /** Trang người dùng đang xem, vd "/tim-kiem". */
+  /** Trang người dùng đang xem, vd "/tim-kiem", "/phong-tro/<id>". */
   page?: string;
   section?: 'housing' | 'market';
+  /** Lưu tin, nhắn tin, lưu tìm kiếm cần đăng nhập. */
+  isLoggedIn?: boolean;
+  recentItems?: RecentItem[];
 }
