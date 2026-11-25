@@ -68,10 +68,25 @@ export interface ChatCard {
   address?: string;
 }
 
+/**
+ * Việc agent làm trên giao diện web — widget diễn lại từng bước (gõ vào ô tìm kiếm rồi mở trang).
+ * `path` luôn là đường dẫn nội bộ do công cụ dựng từ tham số đã kiểm (model không tự viết URL).
+ */
+export interface ChatAction {
+  type: 'open-search';
+  /** Trang kết quả cuối cùng (đủ bộ lọc, keyword = query), vd "/tim-kiem?keyword=C%E1%BA%A7u+Gi%E1%BA%A5y&maxPrice=5". */
+  path: string;
+  /** Chữ agent gõ vào ô tìm kiếm rồi nhấn Enter; "" = không có gì để gõ (chỉ áp bộ lọc). */
+  query: string;
+  /** Mô tả bộ lọc hiện trong khung chat, vd "Phòng trọ · Phường Cầu Giấy · 3–5 triệu". */
+  label: string;
+}
+
 export interface ToolResult {
   /** Dữ liệu rút gọn đưa lại cho model đọc. */
   forModel: unknown;
   cards?: ChatCard[];
+  action?: ChatAction;
 }
 
 export interface Tool<S extends z.ZodType = z.ZodType> {
@@ -102,13 +117,16 @@ export interface RunSummary {
   text: string;
   cards: number;
   tools: ToolTrace[];
+  /** Trang agent đã mở cho người dùng (nếu có). */
+  action?: ChatAction;
 }
 
 /** Sự kiện SSE gửi về widget. */
 export type ChatEvent =
   | { event: 'status'; data: { text: string } }
   | { event: 'text'; data: { text: string } }
-  | { event: 'cards'; data: { items: ChatCard[] } };
+  | { event: 'cards'; data: { items: ChatCard[] } }
+  | { event: 'action'; data: ChatAction };
 
 export interface ChatContext {
   /** Trang người dùng đang xem, vd "/tim-kiem". */

@@ -31,7 +31,7 @@ export function Property({ stats }: { stats: ListingStat[] }) {
                   px-3! py-5!
                   rounded-xl
                   transition-all duration-300 ease-in-out
-                  group-hover:bg-gray-50
+                  group-hover:bg-soft
                   group-hover:shadow-md
                   group-hover:-translate-y-1
                 `)}

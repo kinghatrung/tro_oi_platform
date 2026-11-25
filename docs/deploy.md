@@ -6,21 +6,24 @@ Theo mẫu **B. Docker** của VPS `kun.io.vn` (giống Mivo / `chat.kun.io.vn`)
 | ---------- | -------------------- | ------------------------ |
 | Web (Next) | `room.kun.io.vn`     | `3000` → `127.0.0.1:3200` |
 | API (Nest) | `room-api.kun.io.vn` | `5000` → `127.0.0.1:5200` |
+| Trợ lý AI  | `room-api.kun.io.vn/ai/` | `5300` → `127.0.0.1:5300` |
 
 - Cổng `3100`/`5100` đã thuộc Mivo — không dùng.
 - API ở subdomain riêng (1 cấp — SSL Cloudflare free chỉ phủ `*.kun.io.vn`) vì API không có tiền tố `/api` và socket nối `${NEXT_PUBLIC_API_URL}/chat`.
 - MongoDB: Atlas (đã cho phép IP VPS), database riêng `tro-oi`.
 - Ảnh upload: volume Docker `uploads` (→ `/app/apps/api/uploads`), hoặc S3/R2 nếu điền `S3_*`.
+- Trợ lý AI: env **riêng** `/opt/tro-oi/ai.env` (chỉ biến model — không nhận `.env` của API, AI không được chạm MongoDB), gọi API qua mạng nội bộ compose (`http://api:5000`), log hội thoại ở volume `ai-data`. Chưa có `ai.env` → chạy model giả (mock).
 
 ## File trong repo
 
 | File                                   | Dùng để                                                                 |
 | -------------------------------------- | ----------------------------------------------------------------------- |
-| `apps/api/Dockerfile`, `apps/web/Dockerfile` | Đóng gói từng app; build context là gốc repo (`yarn.lock`)        |
+| `apps/api/Dockerfile`, `apps/web/Dockerfile`, `apps/ai/Dockerfile` | Đóng gói từng app; build context là gốc repo (`yarn.lock`) |
 | `.dockerignore`                        | Loại `**/.env*`, `node_modules`, `.next`, `dist`, `apps/mobile`…        |
 | `deploy/docker-compose.yml`            | Stack trên VPS (CI chép lên `/opt/tro-oi/` mỗi lần deploy)              |
 | `deploy/.env.example`                  | Danh sách biến bí mật cho `/opt/tro-oi/.env` (giá trị để trống)         |
-| `deploy/nginx/room.kun.io.vn.conf`     | 2 server: `room` → web, `room-api` → API (+ `/socket.io/` websocket)    |
+| `deploy/ai.env.example`               | Biến model của trợ lý AI cho `/opt/tro-oi/ai.env`                      |
+| `deploy/nginx/room.kun.io.vn.conf`     | 2 server: `room` → web, `room-api` → API (+ `/socket.io/` websocket, `/ai/` → trợ lý AI, tắt buffer cho SSE) |
 | `.github/workflows/ci-cd.yml`          | Kiểm tra (audit, lint, typecheck, test) → build image → GHCR → deploy, chỉ app nào thay đổi |
 | `scripts/audit-prod.mjs`               | Lọc `yarn audit --json`: critical trong api/web → CI đỏ (trừ mục `REVIEWED` có ghi lý do), high chỉ in ra |
 
@@ -34,6 +37,8 @@ Web build ra `output: 'standalone'` (`next.config.ts`, trace từ gốc monorepo
    mkdir -p /opt/tro-oi && chown deploy:deploy /opt/tro-oi
    nano /opt/tro-oi/.env            # điền theo deploy/.env.example; JWT_SECRET: openssl rand -hex 32
    chown deploy:deploy /opt/tro-oi/.env && chmod 600 /opt/tro-oi/.env
+   nano /opt/tro-oi/ai.env          # trợ lý AI: điền theo deploy/ai.env.example (AI_API_KEY...)
+   chown deploy:deploy /opt/tro-oi/ai.env && chmod 600 /opt/tro-oi/ai.env
    ```
 3. **Nginx + HTTPS** (file chỉ `listen 80`, certbot tự thêm 443):
    ```powershell
@@ -65,11 +70,12 @@ Web build ra `output: 'standalone'` (`next.config.ts`, trace từ gốc monorepo
      | `NEXT_PUBLIC_FIREBASE_*` (6 biến)          | như `apps/web/.env.local`                 |
      | `NEXT_PUBLIC_UPLOAD_URL`                   | chỉ khi dùng S3/R2 (= `S3_PUBLIC_URL`)    |
      | `NEXT_PUBLIC_MAP_STYLE_URL`                | tuỳ chọn — style bản đồ khác OpenFreeMap  |
+     | `NEXT_PUBLIC_AI_URL`                       | `https://room-api.kun.io.vn/ai`           |
 
      `NEXT_PUBLIC_*` gắn vào bundle lúc build → đặt ở đây, **không** đặt trong `.env` trên VPS. Đổi giá trị → chạy lại workflow để build lại web.
 6. **Actions → CI/CD → Run workflow** (nhánh `main`, tick `deploy_all`). Khi xanh:
    ```bash
-   cd /opt/tro-oi && docker compose ps     # 2 container "healthy"
+   cd /opt/tro-oi && docker compose ps     # 3 container "healthy" (api, web, ai)
    rm -f /home/deploy/.ssh/trooi_actions   # xoá private key như portfolio
    ```
 
@@ -83,6 +89,6 @@ Web build ra `output: 'standalone'` (`next.config.ts`, trace từ gốc monorepo
 ## Hằng ngày
 
 - Push / merge vào `main` → tự build + deploy app nào đổi. `dev` và PR chỉ chạy kiểm tra.
-- Quay về bản cũ 1 service: đặt `API_TAG=<sha>` / `WEB_TAG=<sha>` trong `/opt/tro-oi/.env` → `docker compose up -d api`.
-- Log: `cd /opt/tro-oi && docker compose logs -f api` (hoặc `web`).
+- Quay về bản cũ 1 service: đặt `API_TAG=<sha>` / `WEB_TAG=<sha>` / `AI_TAG=<sha>` trong `/opt/tro-oi/.env` → `docker compose up -d api`.
+- Log: `cd /opt/tro-oi && docker compose logs -f api` (hoặc `web`, `ai`). Đổi model AI: sửa `ai.env` → `docker compose up -d ai` (không cần build lại).
 - Xoá hẳn: `docker compose down -v` (`-v` xoá cả volume ảnh upload!), xoá `/opt/tro-oi`, file nginx, `certbot delete --cert-name room.kun.io.vn`, dòng `trooi-actions` trong `authorized_keys`.

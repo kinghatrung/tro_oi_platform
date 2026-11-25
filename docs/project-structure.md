@@ -174,7 +174,7 @@ src/
 ├── lib/youtube.ts                     # YOUTUBE_URL_PATTERN (trùng api) + youtubeEmbedUrl(): link → iframe youtube-nocookie
 ├── lib/viewHistory.ts                 # lịch sử đã xem (localStorage, 15 mục): recordView()/readViewHistory() cho tin Trọ ơi, recordProductView()/readProductHistory() cho món Chợ ơi; 3 từ khoá tìm kiếm gần nhất riêng theo basePath (recordSearch / readRecentSearches / removeRecentSearch) cho chip dưới SearchInput
 ├── components/
-│   ├── assistant/AssistantWidget.tsx  # nút tròn góc phải dưới → khung chat trợ lý AI (gắn ở providers.tsx, ẩn ở /quan-tri, /kenh-nguoi-dang, /dang-nhap, /tin-nhan; giữ hội thoại khi chuyển trang). gọi apps/ai qua src/api/assistant.ts (SSE: dòng trạng thái, câu trả lời, thẻ tin bấm được)
+│   ├── assistant/AssistantWidget.tsx  # nút tròn góc phải dưới → khung chat trợ lý AI (gắn ở providers.tsx, ẩn ở /quan-tri, /kenh-nguoi-dang, /dang-nhap, /tin-nhan; giữ hội thoại khi chuyển trang). gọi apps/ai qua src/api/assistant.ts (SSE: dòng trạng thái, câu trả lời, thẻ tin bấm được, `action` → agent gõ từng chữ vào ô tìm kiếm, nhấn Enter rồi áp bộ lọc — lib/assistantActions.ts, docs/ai.md)
 │   ├── layout/                        # Header (banner: trang chủ, Chợ ơi), SubHeader, Navbar (+ NotificationBell: nhận "notification:new" qua socket (badge + toast), hỏi lại khi kết nối lại và mỗi 5 phút dự phòng; MessagesButton: mở socket chat, badge tin nhắn; co theo màn: < lg ẩn ô khu vực + cặp "Trọ ơi!/Chợ ơi!" (Chợ ơi vào từ menu danh mục), < sm ẩn sáng/tối, Tin đã lưu, chuông, Đăng nhập; Tin nhắn / Đăng tin thành nút chỉ-icon), Container, Footer
 │   │                                  #   LampBackdrop: bóng đèn treo 2 lề (SVG + CSS, globals.css "Bóng đèn treo"), gắn 1 lần trong app/layout.tsx; HeroLights: dây đèn mắc dọc mép dưới menu của banner (Header.tsx, ẩn < 768px), 8 đoạn võng nông giữa các móc, 2 đoạn giữa võng nông hơn để không đè khẩu hiệu — cùng bóng, bật thành làn sóng từ 2 mép vào giữa ở giao diện tối
 │   ├── common/                        # UI thuần dùng lại (xem bảng dưới)
@@ -357,7 +357,7 @@ Web dùng qua `transpilePackages: ['@tro-oi/shared']`; package trỏ thẳng `sr
 
 ## Chưa làm (backlog)
 
-- Trợ lý AI: xem mục "Chưa làm" trong docs/ai.md (deploy, stream chữ, log, 👍/👎, RAG, thống kê giá, agent).
+- Trợ lý AI: xem mục "Chưa làm" trong docs/ai.md (stream chữ, RAG, thống kê giá; đã có deploy, log + 👍/👎 + trang quản trị, agent thao tác giao diện).
 - Tin tức, việc làm: mới có type ở shared. (Khảo sát: quyết định không làm — type `survey.ts` còn để lại, không phát triển.)
 - Tìm kiếm đã lưu có `filter` (tách từ query lúc lưu; bản cũ được bổ sung khi API khởi động) để Mongo lọc người cần báo; điều kiện "không đặt hoặc khớp" chưa dùng được index (Mongo vẫn quét user có tìm kiếm đã lưu) — hàng triệu tìm kiếm thì tách collection riêng + index. Tìm kiếm đã lưu dạng cũ có `district=` bị bỏ qua tham số đó.
 - Ứng dụng mobile / link tải app.

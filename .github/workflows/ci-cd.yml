@@ -11,7 +11,7 @@ on:
   workflow_dispatch:
     inputs:
       deploy_all:
-        description: 'Build lại và deploy cả api lẫn web'
+        description: 'Build lại và deploy cả api, web lẫn ai'
         type: boolean
         default: false
 
@@ -28,6 +28,7 @@ jobs:
     outputs:
       api: ${{ steps.filter.outputs.api == 'true' || inputs.deploy_all == true }}
       web: ${{ steps.filter.outputs.web == 'true' || inputs.deploy_all == true }}
+      ai: ${{ steps.filter.outputs.ai == 'true' || inputs.deploy_all == true }}
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v3
@@ -46,6 +47,9 @@ jobs:
               - *shared
               - 'apps/web/**'
               - 'packages/shared/**'
+            ai:
+              - *shared
+              - 'apps/ai/**'
 
   # ── Kiểm tra (yarn 1 không cài riêng 1 workspace được → cài cả repo, có cache) ──
   check:
@@ -88,7 +92,7 @@ jobs:
     needs: [changes, check]
     if: >-
       github.event_name != 'pull_request' && github.ref == 'refs/heads/main' &&
-      (needs.changes.outputs.api == 'true' || needs.changes.outputs.web == 'true')
+      (needs.changes.outputs.api == 'true' || needs.changes.outputs.web == 'true' || needs.changes.outputs.ai == 'true')
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -96,11 +100,11 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        app: [api, web]
+        app: [api, web, ai]
     steps:
       - name: Bỏ qua app không đổi
         id: gate
-        run: echo "run=${{ (matrix.app == 'api' && needs.changes.outputs.api == 'true') || (matrix.app == 'web' && needs.changes.outputs.web == 'true') }}" >> "$GITHUB_OUTPUT"
+        run: echo "run=${{ (matrix.app == 'api' && needs.changes.outputs.api == 'true') || (matrix.app == 'web' && needs.changes.outputs.web == 'true') || (matrix.app == 'ai' && needs.changes.outputs.ai == 'true') }}" >> "$GITHUB_OUTPUT"
       - uses: actions/checkout@v4
         if: steps.gate.outputs.run == 'true'
       - name: Tên image (GHCR cần chữ thường)
@@ -124,7 +128,7 @@ jobs:
           tags: |
             ${{ env.IMAGE }}:latest
             ${{ env.IMAGE }}:${{ github.sha }}
-          # NEXT_PUBLIC_* gắn vào bundle lúc build → lấy từ GitHub Variables (api bỏ qua các arg này)
+          # NEXT_PUBLIC_* gắn vào bundle lúc build → lấy từ GitHub Variables (api, ai bỏ qua các arg này)
           build-args: |
             NEXT_PUBLIC_SITE_URL=${{ vars.NEXT_PUBLIC_SITE_URL }}
             NEXT_PUBLIC_API_URL=${{ vars.NEXT_PUBLIC_API_URL }}
@@ -136,6 +140,7 @@ jobs:
             NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=${{ vars.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID }}
             NEXT_PUBLIC_FIREBASE_VAPID_KEY=${{ vars.NEXT_PUBLIC_FIREBASE_VAPID_KEY }}
             NEXT_PUBLIC_MAP_STYLE_URL=${{ vars.NEXT_PUBLIC_MAP_STYLE_URL }}
+            NEXT_PUBLIC_AI_URL=${{ vars.NEXT_PUBLIC_AI_URL }}
           cache-from: type=gha,scope=${{ matrix.app }}
           cache-to: type=gha,mode=max,scope=${{ matrix.app }}
 
@@ -156,6 +161,7 @@ jobs:
           s=""
           [ "${{ needs.changes.outputs.api }}" = "true" ] && s="$s api"
           [ "${{ needs.changes.outputs.web }}" = "true" ] && s="$s web"
+          [ "${{ needs.changes.outputs.ai }}" = "true" ] && s="$s ai"
           echo "SERVICES=${s# }" >> "$GITHUB_ENV"
       # Như portfolio: key base64 + host key ghim sẵn (không dùng action bên thứ ba)
       - name: SSH setup

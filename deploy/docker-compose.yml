@@ -60,6 +60,46 @@ services:
     mem_limit: 512m
     logging: *logging
 
+  # Trợ lý AI: chỉ đọc dữ liệu qua API công khai, KHÔNG nhận .env của API (không có MONGODB_URI, JWT_SECRET)
+  ai:
+    image: ${IMAGE_PREFIX}/trooi-ai:${AI_TAG:-latest}
+    restart: unless-stopped
+    env_file:
+      # Biến model (AI_PROVIDER, AI_BASE_URL, AI_API_KEY, AI_MODEL) — xem ai.env.example.
+      # Chưa tạo file → chạy model giả (mock), các service khác vẫn deploy bình thường
+      - path: ai.env
+        required: false
+    environment:
+      NODE_ENV: production
+      PORT: '5300'
+      # Gọi API qua mạng nội bộ của compose, không vòng ra internet
+      API_BASE_URL: http://api:5000
+      WEB_ORIGIN: ${WEB_ORIGIN:-https://room.kun.io.vn}
+      TRUST_PROXY: '1'
+      AI_DATA_DIR: /app/apps/ai/data
+    ports:
+      - '127.0.0.1:5300:5300'
+    volumes:
+      - ai-data:/app/apps/ai/data
+    depends_on:
+      - api
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:5300/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    mem_limit: 256m
+    logging: *logging
+
 volumes:
   # Ảnh upload (khi chưa dùng S3/R2) — giữ qua các lần tạo lại container
   uploads:
+  # Log hội thoại trợ lý AI (SQLite, tự xoá sau 90 ngày)
+  ai-data:

@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import { buildSystemPrompt } from './prompt.js';
 import type {
+  ChatAction,
   ChatCard,
   ChatContext,
   ChatEvent,
@@ -66,6 +67,8 @@ export class Orchestrator {
     const messages = [...history];
     const cards = new Map<string, ChatCard>();
     const traces: ToolTrace[] = [];
+    // Lần tìm sau cùng quyết định trang mở cho người dùng (model thường tìm lại với điều kiện nới ra)
+    const actions: ChatAction[] = [];
 
     for (let round = 0; ; round++) {
       // Hết lượt gọi công cụ → bắt model trả lời bằng dữ liệu đang có
@@ -75,9 +78,11 @@ export class Orchestrator {
       if (turn.toolCalls.length === 0 || tools.length === 0) {
         const text = turn.text.trim();
         const shown = [...cards.values()].slice(0, MAX_CARDS);
+        const action = actions.at(-1);
         emit({ event: 'text', data: { text } });
         if (shown.length > 0) emit({ event: 'cards', data: { items: shown } });
-        return { text, cards: shown.length, tools: traces };
+        if (action) emit({ event: 'action', data: action });
+        return { text, cards: shown.length, tools: traces, action };
       }
 
       messages.push({
@@ -88,7 +93,13 @@ export class Orchestrator {
       // Các công cụ trong 1 lượt chạy song song; kết quả trả lại đúng thứ tự gọi
       const results = await Promise.all(
         turn.toolCalls.map(async (call) => {
-          const output = await this.runTool(call.name, call.args, emit, cards);
+          const output = await this.runTool(
+            call.name,
+            call.args,
+            emit,
+            cards,
+            actions,
+          );
           traces.push(traceOf(call.name, call.args, output));
           return {
             role: 'tool' as const,
@@ -108,6 +119,7 @@ export class Orchestrator {
     args: unknown,
     emit: (event: ChatEvent) => void,
     cards: Map<string, ChatCard>,
+    actions: ChatAction[],
   ): Promise<unknown> {
     const tool = this.tools.get(name);
     if (!tool) return { error: `Không có công cụ "${name}"` };
@@ -123,6 +135,7 @@ export class Orchestrator {
       const result = await tool.run(parsed.data, this.api);
       for (const card of result.cards ?? [])
         cards.set(`${card.kind}:${card.id}`, card);
+      if (result.action) actions.push(result.action);
       return result.forModel;
     } catch (error) {
       return { error: (error as Error).message || 'Không lấy được dữ liệu' };

@@ -6,6 +6,9 @@ import {
   limitField,
   MILLION,
   normalizeWard,
+  openPageField,
+  priceLabel,
+  searchPath,
   shortAddress,
   type Paged,
   type PublicItem,
@@ -90,8 +93,54 @@ const schema = z
       .optional()
       .describe('Mặc định newest'),
     limit: limitField,
+    moTrang: openPageField,
   })
   .strict();
+
+const CATEGORY_LABELS = {
+  'phong-tro': 'Phòng trọ',
+  'can-ho': 'Căn hộ',
+  'nguyen-can': 'Nhà nguyên căn',
+  'o-ghep': 'Ở ghép',
+} as const;
+
+/** Trang /tim-kiem của web với cùng bộ lọc (giá theo triệu như URL web, sort dùng dấu "-"). */
+export function listingSearchAction(args: z.infer<typeof schema>) {
+  const ward = normalizeWard(args.ward);
+  // Chữ gõ vào ô: từ khoá, không có thì tên khu vực — từ khoá tin so khớp cả địa chỉ nên vẫn đúng
+  const query =
+    args.keyword?.trim() ||
+    ward?.replace(/^(phường|xã|đặc khu)\s+/i, '') ||
+    args.city ||
+    '';
+  return {
+    type: 'open-search' as const,
+    query,
+    path: searchPath('/tim-kiem', {
+      keyword: query,
+      city: args.city,
+      ward,
+      transaction: args.transaction,
+      category: args.category,
+      minPrice: args.minPrice,
+      maxPrice: args.maxPrice,
+      minArea: args.minArea,
+      maxArea: args.maxArea,
+      bedrooms: args.bedrooms,
+      amenities: args.amenities,
+      sort: args.sort?.replace('_', '-'),
+    }),
+    label:
+      [
+        args.category ? CATEGORY_LABELS[args.category] : 'Nhà ở',
+        args.keyword,
+        ward ?? args.city,
+        priceLabel(args.minPrice, args.maxPrice, (value) => `${value} triệu`),
+      ]
+        .filter(Boolean)
+        .join(' · ') || 'Tìm nhà',
+  };
+}
 
 /** Tìm tin nhà ở (GET /listings) — giá model gửi theo triệu, API nhận đồng. */
 export const timTin = defineTool({
@@ -147,6 +196,11 @@ export const timTin = defineTool({
         area: item.area,
         address: shortAddress(item),
       })),
+      // 0 kết quả → không chuyển sang trang trống, câu trả lời gợi ý nới điều kiện
+      action:
+        args.moTrang === false || result.total === 0
+          ? undefined
+          : listingSearchAction(args),
     };
   },
 });

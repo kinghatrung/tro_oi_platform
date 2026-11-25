@@ -13,6 +13,8 @@
 **/*.log
 **/coverage
 apps/api/uploads
+# Log hội thoại trợ lý AI ở máy dev (dữ liệu người dùng)
+apps/ai/data
 
 # Không thuộc image web/api
 apps/mobile

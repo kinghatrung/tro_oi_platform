@@ -902,6 +902,56 @@ select {
   transform-origin: bottom right;
 }
 
+/* Ô tìm kiếm trợ lý AI đang gõ hộ (lib/assistantActions.ts): nền + vòng màu brand cho dễ thấy.
+   !important: style AntD chèn sau (cùng độ ưu tiên) đè nền; ô banner có shadow-none! của Tailwind
+   (trong layer, thắng cả !important ngoài layer) nên ở đó chỉ hiện nền */
+/* Con trỏ chuột ảo của trợ lý: bay tới ô tìm kiếm rồi "click" (nhấp nháy vòng tròn) */
+.assistant-cursor {
+  position: fixed;
+  z-index: 2000;
+  pointer-events: none;
+  filter: drop-shadow(0 2px 4px rgb(0 0 0 / 0.35));
+  transition:
+    left 0.9s cubic-bezier(0.22, 0.8, 0.3, 1),
+    top 0.9s cubic-bezier(0.22, 0.8, 0.3, 1);
+}
+
+.assistant-cursor::after {
+  content: '';
+  position: absolute;
+  left: -10px;
+  top: -10px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid var(--brand);
+  opacity: 0;
+}
+
+.assistant-cursor-click::after {
+  animation: assistant-click 0.45s ease-out;
+}
+
+@keyframes assistant-click {
+  from {
+    opacity: 1;
+    transform: scale(0.4);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.6);
+  }
+}
+
+.assistant-typing {
+  background-color: var(--brand-soft) !important;
+  box-shadow: 0 0 0 2px var(--brand) !important;
+  border-radius: 10px;
+  transition:
+    background-color 0.2s,
+    box-shadow 0.2s;
+}
+
 .assistant-dot {
   animation: assistant-dot 1s infinite ease-in-out;
 }
@@ -910,6 +960,11 @@ select {
   .assistant-pop,
   .assistant-dot {
     animation: none;
+  }
+
+  /* Con trỏ ảo hiện thẳng ở ô tìm kiếm, không bay */
+  .assistant-cursor {
+    transition: none;
   }
 }
 

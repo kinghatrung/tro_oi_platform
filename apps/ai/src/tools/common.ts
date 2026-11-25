@@ -43,6 +43,45 @@ export const shortAddress = (item: PublicItem) =>
   [item.address?.ward, item.address?.city].filter(Boolean).join(', ') ||
   undefined;
 
+/** Agent mở trang kết quả trên web (mặc định có). */
+export const openPageField = z
+  .boolean()
+  .optional()
+  .describe(
+    'Mở trang kết quả trên web cho người dùng xem (mặc định true). Đặt false khi người dùng chỉ hỏi nhanh / hỏi số lượng / đang so sánh, không cần chuyển trang',
+  );
+
+/** Đường dẫn trang tìm kiếm của web: bỏ giá trị trống, mảng nối bằng dấu phẩy (như bộ lọc web). */
+export function searchPath(
+  base: string,
+  params: Record<string, string | number | string[] | undefined>,
+) {
+  const query = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    const text = Array.isArray(value) ? value.join(',') : value;
+    if (text !== undefined && text !== '') query.set(key, String(text));
+  }
+  const search = query.toString();
+  return search ? `${base}?${search}` : base;
+}
+
+/** Đồng → "5 triệu" / "200 nghìn". */
+export const formatVnd = (value: number) =>
+  value >= MILLION ? `${value / MILLION} triệu` : `${value / 1000} nghìn`;
+
+/** "3 triệu – 5 triệu", "dưới 5 triệu", "từ 3 triệu"; không có giá → undefined. */
+export function priceLabel(
+  min: number | undefined,
+  max: number | undefined,
+  format: (value: number) => string,
+) {
+  if (min !== undefined && max !== undefined)
+    return `${format(min)} – ${format(max)}`;
+  if (max !== undefined) return `dưới ${format(max)}`;
+  if (min !== undefined) return `từ ${format(min)}`;
+  return undefined;
+}
+
 /** Số kết quả trả về cho 1 lần tìm (thẻ trong khung chat). */
 export const limitField = z
   .number()

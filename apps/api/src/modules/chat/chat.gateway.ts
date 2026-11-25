@@ -47,7 +47,7 @@ const errorAck = (error: unknown, logger: Logger): Ack => {
  */
 @WebSocketGateway({ namespace: '/chat' })
 export class ChatGateway implements OnGatewayInit {
-  // shortcut: room nằm trong bộ nhớ 1 process — nhiều instance API cần @socket.io/redis-adapter
+  // Room nằm trong bộ nhớ process; nhiều instance API → đặt REDIS_URL (ChatIoAdapter dùng redis-adapter)
   @WebSocketServer() private readonly server: Namespace;
   private readonly logger = new Logger(ChatGateway.name);
 

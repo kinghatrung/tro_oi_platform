@@ -3,8 +3,12 @@ import { z } from 'zod';
 import { defineTool } from '../core/ports.js';
 import {
   areaFields,
+  formatVnd,
   limitField,
   normalizeWard,
+  openPageField,
+  priceLabel,
+  searchPath,
   shortAddress,
   type Paged,
   type PublicItem,
@@ -65,8 +69,50 @@ const schema = z
       .optional()
       .describe('Mặc định newest'),
     limit: limitField,
+    moTrang: openPageField,
   })
   .strict();
+
+/** Khoảng giá trang /cho-oi/tim-kiem lọc được (trùng PRODUCT_PRICE_RANGES bên web, đơn vị đồng). */
+const PRICE_PRESETS = [
+  { key: 'cho-tang', max: 0 },
+  { key: 'duoi-200k', max: 200_000 },
+  { key: '200k-1tr', min: 200_000, max: 1_000_000 },
+  { key: '1tr-5tr', min: 1_000_000, max: 5_000_000 },
+  { key: 'tren-5tr', min: 5_000_000 },
+] as const;
+
+/** Trang /cho-oi/tim-kiem với cùng bộ lọc; giá chỉ đưa vào khi khớp đúng 1 khoảng của web. */
+export function productSearchAction(args: z.infer<typeof schema>) {
+  const ward = normalizeWard(args.ward);
+  const price = PRICE_PRESETS.find(
+    (preset) =>
+      ('min' in preset ? preset.min : undefined) === args.minPrice &&
+      ('max' in preset ? preset.max : undefined) === args.maxPrice,
+  );
+  // Từ khoá đồ cũ chỉ so khớp tên món → chỉ gõ từ khoá thật (không gõ tên khu vực)
+  const query = args.keyword?.trim() ?? '';
+  return {
+    type: 'open-search' as const,
+    query,
+    path: searchPath('/cho-oi/tim-kiem', {
+      keyword: query,
+      category: args.category,
+      condition: args.condition,
+      city: args.city,
+      ward,
+      price: price?.key,
+      sort: args.sort?.replace('_', '-'),
+    }),
+    label: [
+      args.keyword ?? 'Đồ cũ',
+      ward ?? args.city,
+      priceLabel(args.minPrice, args.maxPrice, formatVnd),
+    ]
+      .filter(Boolean)
+      .join(' · '),
+  };
+}
 
 /** Tìm đồ cũ Chợ ơi (GET /products) — giá tính bằng đồng. */
 export const timDoCu = defineTool({
@@ -109,6 +155,11 @@ export const timDoCu = defineTool({
         price: item.price,
         address: shortAddress(item),
       })),
+      // 0 kết quả → không chuyển sang trang trống
+      action:
+        args.moTrang === false || result.total === 0
+          ? undefined
+          : productSearchAction(args),
     };
   },
 });

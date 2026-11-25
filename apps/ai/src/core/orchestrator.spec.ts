@@ -79,10 +79,23 @@ describe('Orchestrator', () => {
       path: '/listings',
       params: { ward: 'Phường Cầu Giấy', maxPrice: 4_000_000, pageSize: 3 },
     });
-    expect(events.map((e) => e.event)).toEqual(['status', 'text', 'cards']);
+    expect(events.map((e) => e.event)).toEqual([
+      'status',
+      'text',
+      'cards',
+      'action',
+    ]);
     expect(events[2]).toMatchObject({
       data: { items: [{ kind: 'listing', id: LISTING.id, price: 3_500_000 }] },
     });
+    // Agent gõ tên khu vực vào ô tìm kiếm + Enter, rồi áp bộ lọc (giá theo triệu như URL của web)
+    const action = {
+      type: 'open-search',
+      query: 'Cầu Giấy',
+      path: '/tim-kiem?keyword=C%E1%BA%A7u+Gi%E1%BA%A5y&ward=Ph%C6%B0%E1%BB%9Dng+C%E1%BA%A7u+Gi%E1%BA%A5y&maxPrice=4',
+      label: 'Nhà ở · Phường Cầu Giấy · dưới 4 triệu',
+    };
+    expect(events[3]).toEqual({ event: 'action', data: action });
     // Tóm tắt để lưu log: câu trả lời, số thẻ, công cụ đã gọi + số kết quả
     expect(lastSummary).toEqual({
       text: 'Có 1 phòng 3,5 triệu.',
@@ -90,6 +103,64 @@ describe('Orchestrator', () => {
       tools: [
         { name: 'tim_tin', args: { ward: 'Cầu Giấy', maxPrice: 4 }, total: 1 },
       ],
+      action,
+    });
+  });
+
+  it('moTrang=false (hỏi nhanh) → không mở trang; nhiều lần tìm → mở theo lần cuối', async () => {
+    const quick = scriptedLlm([
+      {
+        text: '',
+        toolCalls: [{ id: 'c1', name: 'tim_tin', args: { moTrang: false } }],
+      },
+      { text: 'Có 1 phòng.', toolCalls: [] },
+    ]);
+    const quickEvents = await run(
+      new Orchestrator(quick.llm, fakeApi().api, TOOLS),
+    );
+    expect(quickEvents.some((e) => e.event === 'action')).toBe(false);
+
+    // 0 kết quả → không chuyển sang trang trống
+    const empty = scriptedLlm([
+      { text: '', toolCalls: [{ id: 'c1', name: 'tim_tin', args: {} }] },
+      { text: 'Chưa có phòng.', toolCalls: [] },
+    ]);
+    const emptyApi: TroiApiPort = {
+      get: <T>() => Promise.resolve({ items: [], total: 0 } as T),
+    };
+    const emptyEvents = await run(new Orchestrator(empty.llm, emptyApi, TOOLS));
+    expect(emptyEvents.some((e) => e.event === 'action')).toBe(false);
+
+    const retry = scriptedLlm([
+      {
+        text: '',
+        toolCalls: [{ id: 'c1', name: 'tim_tin', args: { maxPrice: 2 } }],
+      },
+      {
+        text: '',
+        toolCalls: [
+          {
+            id: 'c2',
+            name: 'tim_do_cu',
+            args: {
+              keyword: 'tủ lạnh',
+              minPrice: 1_000_000,
+              maxPrice: 5_000_000,
+            },
+          },
+        ],
+      },
+      { text: 'Đây.', toolCalls: [] },
+    ]);
+    const retryEvents = await run(
+      new Orchestrator(retry.llm, fakeApi().api, TOOLS),
+    );
+    expect(retryEvents.find((e) => e.event === 'action')).toMatchObject({
+      data: {
+        query: 'tủ lạnh',
+        path: '/cho-oi/tim-kiem?keyword=t%E1%BB%A7+l%E1%BA%A1nh&price=1tr-5tr',
+        label: 'tủ lạnh · 1 triệu – 5 triệu',
+      },
     });
   });
 

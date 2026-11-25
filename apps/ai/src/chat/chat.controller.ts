@@ -100,7 +100,7 @@ export class ChatController {
   }
 
   /**
-   * POST /chat → SSE: status* → text → cards? → done | error.
+   * POST /chat → SSE: status* → text → cards? → action? (widget mở trang kết quả) → done | error.
    * Giới hạn theo IP (ThrottlerModule, app.module.ts) vì khách chưa đăng nhập cũng dùng được.
    */
   @Post('chat')

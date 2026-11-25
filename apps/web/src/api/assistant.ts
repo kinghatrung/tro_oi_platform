@@ -3,7 +3,8 @@ import type { PagedResponse } from '@tro-oi/shared';
 import { getAccessToken } from './axiosClient';
 
 /** Dịch vụ trợ lý AI (apps/ai) — tách khỏi API chính nên gọi fetch thẳng, không qua axiosClient. */
-const AI_URL = (process.env.NEXT_PUBLIC_AI_URL ?? 'http://localhost:5300').replace(/\/$/, '');
+// `||` không phải `??`: build-arg Docker trống truyền vào chuỗi rỗng
+const AI_URL = (process.env.NEXT_PUBLIC_AI_URL || 'http://localhost:5300').replace(/\/$/, '');
 
 /** Thẻ tin / món đồ trong câu trả lời — apps/ai dựng từ dữ liệu API thật. */
 export interface AssistantCard {
@@ -18,10 +19,22 @@ export interface AssistantCard {
   address?: string;
 }
 
+/**
+ * Agent tìm hộ: widget gõ `query` vào ô tìm kiếm, nhấn Enter, rồi áp nốt bộ lọc của `path` (nội bộ).
+ * `label` mô tả bộ lọc hiện trong khung chat.
+ */
+export interface AssistantAction {
+  type: 'open-search';
+  path: string;
+  query: string;
+  label: string;
+}
+
 export type AssistantEvent =
   | { event: 'status'; data: { text: string } }
   | { event: 'text'; data: { text: string } }
   | { event: 'cards'; data: { items: AssistantCard[] } }
+  | { event: 'action'; data: AssistantAction }
   | { event: 'error'; data: { message: string } }
   /** messageId: id lượt trả lời — dùng để gửi 👍 / 👎. */
   | { event: 'done'; data: { messageId: string } };

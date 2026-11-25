@@ -49,6 +49,14 @@ src/
 - Tên phường thiếu "Phường" được thêm lại (`normalizeWard`) vì API so khớp chính xác.
 - Thẻ tin (`cards`) dựng từ dữ liệu API thật — model không tạo được link / giá giả.
 
+## Agent thao tác giao diện
+
+`tim_tin` / `tim_do_cu` ngoài thẻ còn trả `action` = trang tìm kiếm của web với **cùng bộ lọc** (`listingSearchAction` → `/tim-kiem?…` giá theo triệu; `productSearchAction` → `/cho-oi/tim-kiem?…`, giá chỉ đưa vào khi khớp đúng 1 khoảng `price=` của web). Đường dẫn do công cụ dựng từ tham số đã kiểm, model không tự viết URL. Không mở trang khi model đặt `moTrang: false` (hỏi nhanh / đếm) hoặc 0 kết quả; nhiều lần tìm trong 1 câu → mở theo lần cuối.
+
+`query` = chữ sẽ gõ: tin → từ khoá, không có thì tên phường (bỏ chữ "Phường") / tỉnh (từ khoá tin so khớp cả địa chỉ); đồ cũ → chỉ từ khoá thật (so khớp tên món). `path` mang `keyword=query` để ô giữ đúng chữ đã gõ.
+
+Widget (`lib/assistantActions.ts`) làm như người thật: trang chủ / Chợ ơi dùng ô trên banner, trang tìm kiếm dùng ô từ khoá (`input[aria-label="Từ khoá tìm kiếm"]`; sai khu hoặc không có ô → mở trang tìm kiếm trước). (1) Bộ lọc không gõ được (loại hình, giá…) đặt sẵn lên URL trang hiện tại bằng `history.replaceState(null, …)` — Next cập nhật `useSearchParams` (state phải là `null`, truyền `history.state` cũ thì router bỏ qua), trang tìm kiếm hiện ngay các nút lọc đã chọn; (2) con trỏ chuột ảo (`.assistant-cursor`) bay từ nút trợ lý tới ô và "click", ô tô màu brand (`.assistant-typing`); (3) xoá chữ cũ, **gõ từng chữ thật** (setter gốc + sự kiện input, ~0,16 giây/chữ); (4) **nhấn Enter** (keydown) → chính ô tìm kiếm mang theo bộ lọc, tới thẳng trang đích (nếu thiếu tham số mới tự mở đúng `path`). Máy bật giảm chuyển động vẫn gõ, chỉ bỏ cuộn mượt / con trỏ bay. Không có gì để gõ → mở thẳng trang kết quả. Trong lúc thao tác, khung chat thu lại, các bước hiện ở nhãn cạnh nút trợ lý; xong thì mở lại (điện thoại để đóng). Câu trả lời giữ nút "Trang kết quả"; chỉ nhận đường dẫn nội bộ (`isInternalPath`).
+
 ## `POST /chat` — Server-Sent Events
 
 Body:
@@ -70,6 +78,7 @@ Response `text/event-stream`, theo thứ tự:
 | `status` (0..n)  | `{ text }` — vd "Đang tìm phòng ở Phường Cầu Giấy…"                                                                              |
 | `text`           | `{ text }` — câu trả lời (chưa stream từng chữ từ model)                                                                         |
 | `cards` (tuỳ)    | `{ items: ChatCard[] }` — `{ kind: listing\|product, id, title, image?, price (đồng), transaction?, area?, address? }`, tối đa 6 |
+| `action` (tuỳ)   | `{ type: "open-search", path, query, label }` — agent mở trang kết quả (xem "Agent thao tác giao diện") |
 | `done` / `error` | `{ messageId }` (uuid, dùng cho 👍/👎) / `{ message }`                                                                           |
 
 Người dùng đóng khung chat giữa chừng → huỷ gọi model, không lưu log. Các lượt còn lại (kể cả lỗi) được lưu kèm dấu tự gắn: `error`, `no_answer`, `no_results` (công cụ ra 0 kết quả), `tool_error`.
@@ -84,11 +93,14 @@ Header `Authorization: Bearer <JWT của web>`: dịch vụ hỏi `GET /users/me
 
 Query `filter` = `review` (mặc định: có dấu hoặc bị 👎) / `disliked` / `liked` / `all`; `page`; `pageSize` ≤ 100. Response `PagedResponse` (không bọc `{ code, message, data }`), mỗi mục: `{ id, sessionId, createdAt, section, page, question, answer, tools: [{ name, args, total?, error? }], cards, model, ms, error?, flags, rating }`. Trang web: `/quan-tri/tro-ly-ai`.
 
+## Deploy
+
+Image `trooi-ai` (`apps/ai/Dockerfile`), service `ai` trong `deploy/docker-compose.yml` (`127.0.0.1:5300`, volume `ai-data` cho `chat.db`), nginx `room-api.kun.io.vn/ai/` → service AI (bỏ tiền tố, `proxy_buffering off` cho SSE). Biến model ở file riêng `/opt/tro-oi/ai.env` (`deploy/ai.env.example`) — container AI không nhận `.env` của API. Web build với GitHub Variable `NEXT_PUBLIC_AI_URL=https://room-api.kun.io.vn/ai`. Chi tiết: [deploy.md](deploy.md).
+
 ## Vòng cải thiện
 
 Log → admin lọc "Cần xem lại" (👎, 0 kết quả, lỗi) → sửa `core/prompt.ts` (cách nói, quy tắc) / thêm công cụ / (sắp tới) thêm câu trả lời chuẩn vào kho kiến thức. Nội dung chat được nêu trong mẫu Chính sách bảo mật (`policyTemplates.ts`) — đăng lại trang chính sách sau khi cập nhật.
 
 ## Chưa làm
 
-- Deploy: Dockerfile, service trong `deploy/docker-compose.yml`, nginx `/ai/` → `127.0.0.1:5300`, build image trong workflow.
-- Stream từng chữ từ model; RAG (kho kiến thức chính sách, hướng dẫn); công cụ thống kê giá (cần `GET /listings/price-stats` bên API); agent thao tác giao diện.
+- Stream từng chữ từ model; RAG (kho kiến thức chính sách, hướng dẫn); công cụ thống kê giá (cần `GET /listings/price-stats` bên API). Agent mới mở trang tìm kiếm — chưa tự điền form đăng tin, chưa thao tác trên trang chi tiết.

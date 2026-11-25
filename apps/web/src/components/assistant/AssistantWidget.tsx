@@ -4,19 +4,35 @@ import clsx from 'clsx';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { Button, Input, Tag, Tooltip } from 'antd';
-import { Bot, SendHorizontal, Sparkles, ThumbsDown, ThumbsUp, X } from 'lucide-react';
+import {
+  Bot,
+  MousePointerClick,
+  SendHorizontal,
+  Sparkles,
+  ThumbsDown,
+  ThumbsUp,
+  X,
+} from 'lucide-react';
 import type { TransactionType } from '@tro-oi/shared';
 
-import { rateAssistantAnswer, streamAssistant, type AssistantCard } from '@/api/assistant';
+import {
+  rateAssistantAnswer,
+  streamAssistant,
+  type AssistantAction,
+  type AssistantCard,
+} from '@/api/assistant';
 import { NO_IMAGE } from '@/constants';
+import { isInternalPath, playAssistantAction } from '@/lib/assistantActions';
 import { formatListingPrice, formatVietnameseCurrency } from '@/utils/helpers';
 
 interface ChatMessage {
   role: 'user' | 'assistant';
   text: string;
   cards?: AssistantCard[];
+  /** Trang kết quả agent đã mở (bấm để mở lại). */
+  action?: AssistantAction;
   /** Id lượt trả lời (sự kiện done) — có thì hiện 👍 / 👎. */
   messageId?: string;
   rating?: 1 | -1;
@@ -90,6 +106,7 @@ function ResultCard({ card, onOpen }: { card: AssistantCard; onOpen: () => void 
 /** Nút tròn góc phải dưới → khung chat với trợ lý AI (giữ hội thoại khi chuyển trang). */
 export function AssistantWidget() {
   const pathname = usePathname();
+  const router = useRouter();
   const isMarket = pathname.startsWith('/cho-oi');
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -142,10 +159,18 @@ export function AssistantWidget() {
           if (event === 'status') setStatus(data.text);
           else if (event === 'text') showReply({ text: data.text });
           else if (event === 'cards') showReply({ cards: data.items });
+          else if (event === 'action') showReply({ action: data });
           else if (event === 'error') showReply({ text: data.message });
           else if (event === 'done') showReply({ messageId: data.messageId });
         },
       );
+      // Agent thao tác hộ: thu khung chat (không che ô tìm kiếm), gõ + Enter, áp bộ lọc, rồi mở lại
+      // khung chat (hội thoại vẫn giữ). Điện thoại: khung chat che cả màn hình → để đóng.
+      if (reply.action) {
+        setIsOpen(false);
+        await playAssistantAction(reply.action, (path) => router.push(path), setStatus);
+        if (window.innerWidth >= 640) setIsOpen(true);
+      }
     } catch (error) {
       showReply({ text: (error as Error).message });
     } finally {
@@ -246,6 +271,16 @@ export function AssistantWidget() {
                         onOpen={() => window.innerWidth < 640 && setIsOpen(false)}
                       />
                     ))}
+                    {message.action && isInternalPath(message.action.path) && (
+                      <Link
+                        href={message.action.path}
+                        onClick={() => window.innerWidth < 640 && setIsOpen(false)}
+                        className="flex items-center gap-2 self-start rounded-full bg-brand-soft! px-3 py-1.5 text-xs font-semibold text-brand"
+                      >
+                        <MousePointerClick size={14} className="shrink-0" />
+                        <span className="line-clamp-1">Trang kết quả: {message.action.label}</span>
+                      </Link>
+                    )}
                     {message.messageId && (
                       <div className="flex items-center gap-1 text-subtle">
                         {(
@@ -333,6 +368,17 @@ export function AssistantWidget() {
             />
           </form>
         </section>
+      )}
+
+      {/* Khung chat thu lại khi trợ lý đang thao tác trên trang → bước hiện cạnh nút */}
+      {!isOpen && isThinking && status && (
+        <p
+          aria-live="polite"
+          className="assistant-pop fixed right-22 bottom-8 z-1000 m-0 flex max-w-[calc(100vw-7rem)] items-center gap-2 rounded-full bg-surface px-4 py-2 text-sm font-semibold text-ink shadow-[0_8px_24px_rgba(0,0,0,0.18)]"
+        >
+          <Bot size={16} className="shrink-0 text-brand" />
+          <span className="truncate">{status}</span>
+        </p>
       )}
 
       <Tooltip title={isOpen ? undefined : 'Trợ lý AI'} placement="left">
