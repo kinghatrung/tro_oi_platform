@@ -11,13 +11,9 @@ const SEARCH_TARGET: Record<string, string> = {
 };
 const TYPE_DELAY_MS = 160;
 const PAUSE_MS = 700;
-const POINTER_MOVE_MS = 900;
 const WAIT_MS = 8000;
-/** Viền / nền nổi bật ô đang được gõ, con trỏ ảo (globals.css). */
+/** Viền / nền nổi bật ô đang được gõ (globals.css). */
 const TYPING_CLASS = 'assistant-typing';
-/** Con trỏ chuột ảo — chuỗi cố định, không chứa dữ liệu người dùng. */
-const POINTER_SVG =
-  '<svg viewBox="0 0 24 24" width="28" height="28"><path d="M4 2l15 11.5-6.6.9 3.9 7.2-2.7 1.4-3.9-7.3L4 20.5z" fill="#fff" stroke="#111" stroke-width="1.5" stroke-linejoin="round"/></svg>';
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -54,25 +50,6 @@ function isSameSearch(target: URL) {
   );
 }
 
-/** Con trỏ ảo bay từ nút trợ lý tới đầu ô tìm kiếm rồi "click". Trả phần tử để gỡ khi xong. */
-async function pointAt(input: HTMLInputElement, isReduced: boolean) {
-  const cursor = document.createElement('div');
-  cursor.className = 'assistant-cursor';
-  cursor.innerHTML = POINTER_SVG;
-  cursor.style.left = `${window.innerWidth - 60}px`;
-  cursor.style.top = `${window.innerHeight - 60}px`;
-  document.body.append(cursor);
-  const rect = input.getBoundingClientRect();
-  // Ép trình duyệt vẽ vị trí đầu rồi mới đặt đích → transition chạy
-  void cursor.offsetWidth;
-  cursor.style.left = `${rect.left + Math.min(40, rect.width / 3)}px`;
-  cursor.style.top = `${rect.top + rect.height / 2 - 4}px`;
-  await sleep(isReduced ? 100 : POINTER_MOVE_MS);
-  cursor.classList.add('assistant-cursor-click');
-  await sleep(250);
-  return cursor;
-}
-
 /** Chỉ đường dẫn nội bộ của web (chặn "//evil.com", "https://…" dù dịch vụ AI đã tự dựng path). */
 export const isInternalPath = (path: string) => path.startsWith('/') && !path.startsWith('//');
 
@@ -81,8 +58,8 @@ export const isInternalPath = (path: string) => path.startsWith('/') && !path.st
  * từ khoá (sai khu / không có ô → mở trang tìm kiếm trước):
  * 1. Bộ lọc không gõ được (loại hình, giá…) đặt sẵn lên URL trang hiện tại (replaceState, không tải
  *    lại) — ô tìm kiếm của trang mang theo khi nhấn Enter, nên Enter tới thẳng trang đích.
- * 2. Con trỏ ảo bay tới ô, click, xoá chữ cũ, gõ từng chữ, nhấn Enter — chính trang tự tìm.
- * Gõ là việc chính nên vẫn gõ khi máy bật giảm chuyển động (chỉ bỏ cuộn mượt / con trỏ bay).
+ * 2. Cuộn tới ô, xoá chữ cũ, gõ từng chữ, nhấn Enter — chính trang tự tìm.
+ * Gõ là việc chính nên vẫn gõ khi máy bật giảm chuyển động (chỉ bỏ cuộn mượt).
  */
 export async function playAssistantAction(
   action: AssistantAction,
@@ -123,10 +100,10 @@ export async function playAssistantAction(
     return;
   }
 
+  // Luôn cuộn tới ô tìm kiếm trước khi gõ (ô có thể đang ở ngoài màn hình)
   onStep('Đang gõ vào ô tìm kiếm…');
   input.scrollIntoView({ block: 'center', behavior: isReduced ? 'auto' : 'smooth' });
-  await sleep(isReduced ? 0 : 400);
-  const cursor = await pointAt(input, isReduced);
+  await sleep(isReduced ? 100 : PAUSE_MS);
   const box = input.closest<HTMLElement>('.ant-input-affix-wrapper') ?? input;
   try {
     box.classList.add(TYPING_CLASS);
@@ -144,7 +121,6 @@ export async function playAssistantAction(
     );
   } finally {
     box.classList.remove(TYPING_CLASS);
-    cursor.remove();
   }
 
   // Trang tự tìm → chờ tới trang đích; ô tìm kiếm không mang đủ bộ lọc (hiếm) → đi thẳng
