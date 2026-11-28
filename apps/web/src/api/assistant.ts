@@ -70,6 +70,8 @@ export interface AssistantRecentItem {
 
 export type AssistantEvent =
   | { event: 'status'; data: { text: string } }
+  /** Đoạn chữ vừa sinh (chữ hiện dần); `text` sau cùng là câu đầy đủ, thay thế. */
+  | { event: 'delta'; data: { text: string } }
   | { event: 'text'; data: { text: string } }
   | { event: 'cards'; data: { items: AssistantCard[] } }
   | { event: 'action'; data: AssistantAction }

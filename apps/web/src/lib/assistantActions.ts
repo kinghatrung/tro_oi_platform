@@ -313,3 +313,52 @@ export async function playAssistantAction(action: AssistantAction, context: Acti
       return;
   }
 }
+
+/** Nút chỉ dùng được khi đã đăng nhập (trang tự chuyển sang đăng nhập nếu chưa). */
+const LOGIN_TARGETS = new Set([
+  'save',
+  'save-search',
+  'mark-all-read',
+  'notify-email',
+  'notify-sms',
+  'export-data',
+]);
+
+/** Thao tác cần đăng nhập: điền form, nhắn tin, các nút trong LOGIN_TARGETS. */
+export const needsLogin = (action: AssistantAction) =>
+  action.type === 'fill-form' ||
+  action.type === 'message' ||
+  (action.type === 'click' && LOGIN_TARGETS.has(action.target));
+
+/** Đăng nhập xong quay về trang của thao tác (không có thì trang đang xem). */
+export const loginReturnPath = (action: AssistantAction) =>
+  'path' in action && action.path && isInternalPath(action.path)
+    ? action.path
+    : `${location.pathname}${location.search}`;
+
+const PENDING_KEY = 'assistant:pending';
+/** Quá 15 phút mới đăng nhập → coi như bỏ việc cũ, không tự làm bất ngờ. */
+const PENDING_TTL_MS = 15 * 60_000;
+
+/** Nhớ việc dở (trong tab này) để đăng nhập xong widget làm tiếp. */
+export function savePendingActions(actions: AssistantAction[]) {
+  try {
+    sessionStorage.setItem(PENDING_KEY, JSON.stringify({ at: Date.now(), actions }));
+  } catch {
+    // trình duyệt chặn storage → đăng nhập xong người dùng nhờ lại
+  }
+}
+
+/** Lấy (và xoá) việc dở còn hạn. */
+export function takePendingActions(): AssistantAction[] {
+  try {
+    const raw = sessionStorage.getItem(PENDING_KEY);
+    sessionStorage.removeItem(PENDING_KEY);
+    const pending = raw ? (JSON.parse(raw) as { at: number; actions: AssistantAction[] }) : null;
+    return pending && Date.now() - pending.at < PENDING_TTL_MS && Array.isArray(pending.actions)
+      ? pending.actions
+      : [];
+  } catch {
+    return [];
+  }
+}

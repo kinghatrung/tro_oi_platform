@@ -97,6 +97,71 @@ describe('OpenAiCompatibleLlm', () => {
     ]);
   });
 
+  it('stream: chữ đẩy ra từng đoạn, tool_calls ghép từ nhiều mảnh (có / không có index)', async () => {
+    const sse = [
+      { choices: [{ delta: { content: 'Chào ' } }] },
+      { choices: [{ delta: { content: 'bạn' } }] },
+      // Kiểu OpenAI: id + tên ở mảnh đầu, arguments chia nhiều mảnh
+      {
+        choices: [
+          {
+            delta: {
+              tool_calls: [
+                {
+                  index: 0,
+                  id: 't1',
+                  function: { name: 'tim_tin', arguments: '{"max' },
+                },
+              ],
+            },
+          },
+        ],
+      },
+      {
+        choices: [
+          {
+            delta: {
+              tool_calls: [{ index: 0, function: { arguments: 'Price":4}' } }],
+            },
+          },
+        ],
+      },
+    ]
+      .map((chunk) => `data: ${JSON.stringify(chunk)}\n\n`)
+      .join('');
+    // Cắt giữa chừng để thử ghép dòng bị chia đôi giữa 2 lần đọc
+    const bytes = new TextEncoder().encode(`${sse}data: [DONE]\n\n`);
+    const body = new ReadableStream({
+      start(controller) {
+        controller.enqueue(bytes.slice(0, 50));
+        controller.enqueue(bytes.slice(50));
+        controller.close();
+      },
+    });
+    const fetchMock = jest.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(body, {
+        headers: { 'content-type': 'text/event-stream' },
+      }),
+    );
+    const deltas: string[] = [];
+    const turn = await new OpenAiCompatibleLlm('https://x', 'm').complete({
+      system: '',
+      messages: [],
+      tools: [],
+      onText: (delta) => deltas.push(delta),
+    });
+
+    const sent = JSON.parse(
+      (fetchMock.mock.calls[0][1] as RequestInit).body as string,
+    );
+    expect(sent.stream).toBe(true);
+    expect(deltas).toEqual(['Chào ', 'bạn']);
+    expect(turn).toEqual({
+      text: 'Chào bạn',
+      toolCalls: [{ id: 't1', name: 'tim_tin', args: { maxPrice: 4 } }],
+    });
+  });
+
   it('nhà cung cấp trả lỗi → ném lỗi kèm mã', async () => {
     jest.spyOn(globalThis, 'fetch').mockResolvedValue(
       new Response(JSON.stringify({ error: { message: 'quota' } }), {

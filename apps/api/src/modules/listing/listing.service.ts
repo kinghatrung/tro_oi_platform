@@ -218,6 +218,52 @@ export class ListingService implements OnModuleInit, OnModuleDestroy {
       .exec();
   }
 
+  /**
+   * Thống kê giá tin active khớp bộ lọc tìm kiếm (khu vực, loại, diện tích…), tách theo
+   * transaction × category (giá thuê / tháng và giá bán không gộp chung). Trung vị cần MongoDB 7+.
+   */
+  priceStats(query: SearchListingDto) {
+    return this.listingModel
+      .aggregate<{
+        transaction: string;
+        category: string;
+        count: number;
+        median: number;
+        avg: number;
+        min: number;
+        max: number;
+        medianArea: number;
+      }>([
+        { $match: buildListingQuery(query).filter },
+        {
+          $group: {
+            _id: { transaction: '$transaction', category: '$category' },
+            count: { $sum: 1 },
+            median: { $median: { input: '$price', method: 'approximate' } },
+            avg: { $avg: '$price' },
+            min: { $min: '$price' },
+            max: { $max: '$price' },
+            medianArea: { $median: { input: '$area', method: 'approximate' } },
+          },
+        },
+        { $sort: { count: -1 } },
+        {
+          $project: {
+            _id: 0,
+            transaction: '$_id.transaction',
+            category: '$_id.category',
+            count: 1,
+            median: 1,
+            avg: { $round: ['$avg', -3] },
+            min: 1,
+            max: 1,
+            medianArea: 1,
+          },
+        },
+      ])
+      .exec();
+  }
+
   /** Mọi tin của tôi, kèm số người đã lưu từng tin (cho Kênh người đăng). */
   async findMine(userId: string) {
     const docs = await this.listingModel

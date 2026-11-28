@@ -26,7 +26,10 @@ const setup = ({
   const reviewModel = {
     findById: () => populated(review),
     exists: () => execOf(null),
-    findOneAndUpdate: (_filter: unknown, update: { $set: object }) => {
+    findOneAndUpdate: (
+      _filter: unknown,
+      update: { $set: Record<string, unknown> },
+    ) => {
       saved.push(update.$set);
       return populated({
         id: 'r1',

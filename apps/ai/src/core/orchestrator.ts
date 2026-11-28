@@ -74,7 +74,13 @@ export class Orchestrator {
     for (let round = 0; ; round++) {
       // Hết lượt gọi công cụ → bắt model trả lời bằng dữ liệu đang có
       const tools = round < MAX_TOOL_ROUNDS ? this.specs : [];
-      const turn = await this.llm.complete({ system, messages, tools, signal });
+      const turn = await this.llm.complete({
+        system,
+        messages,
+        tools,
+        signal,
+        onText: (delta) => emit({ event: 'delta', data: { text: delta } }),
+      });
 
       if (turn.toolCalls.length === 0 || tools.length === 0) {
         const text = turn.text.trim();

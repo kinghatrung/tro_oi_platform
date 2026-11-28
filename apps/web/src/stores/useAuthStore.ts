@@ -17,6 +17,7 @@ import {
   removeFavoriteProduct,
 } from '@/api/users';
 import { forgetPushToken } from '@/lib/pushToken';
+import { syncGuestHistory } from '@/lib/viewHistory';
 
 type SessionStatus = 'idle' | 'loading' | 'ready';
 
@@ -34,8 +35,6 @@ interface AuthState {
   login: (auth: AuthResponse) => Promise<void>;
   logout: () => void;
   setUser: (user: User) => void;
-  /** Đổi user + tải lại mục đã lưu (sau khi gộp tài khoản, dữ liệu đã lưu thay đổi ở server). */
-  reloadUser: (user: User) => Promise<void>;
   /** Lưu/bỏ lưu tin (optimistic). Ném lỗi để caller hiển thị toast. */
   toggleFavorite: (listing: Listing) => Promise<void>;
   toggleFavoriteProduct: (product: ProductItem) => Promise<void>;
@@ -82,6 +81,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   login: async ({ accessToken, user }) => {
     setAccessToken(accessToken);
+    // Trước khi đặt user: "Tin bạn đã xem" tải theo user sẽ có luôn tin vừa xem lúc chưa đăng nhập
+    await syncGuestHistory().catch(() => undefined);
     set({ user, status: 'loading' });
     set({ ...(await loadUserData()), status: 'ready' });
   },
@@ -93,8 +94,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   setUser: (user) => set({ user }),
-
-  reloadUser: async (user) => set({ user, ...(await loadUserData()) }),
 
   toggleFavorite: async (listing) => {
     const previous = get().favorites;

@@ -14,6 +14,7 @@ import { FirebaseService } from '../auth/firebase.service.js';
 import {
   User,
   toUser,
+  type SavedSearch,
   type UserDocument,
   type UserRole,
 } from '../auth/schemas/user.schema.js';
@@ -41,7 +42,7 @@ import { Report, type ReportDocument } from '../report/report.schema.js';
 import { Review, type ReviewDocument } from '../review/review.schema.js';
 import { StorageService } from '../upload/storage.service.js';
 import { anonymizedUserUpdate } from './account.service.js';
-import { MAX_SAVED_SEARCHES, MAX_VIEWED } from './user.service.js';
+import { MAX_SAVED_SEARCHES, MAX_VIEWED, unionIds } from './user.service.js';
 
 /** Gộp giữ vai trò "cao" hơn (không bao giờ tạo admin — tài khoản admin không bị gộp). */
 const ROLE_RANK: Record<UserRole, number> = {
@@ -82,10 +83,49 @@ export function mergeBlocker(
   return null;
 }
 
+/** Tìm kiếm đã lưu: giữ của tài khoản hiện tại, thêm của tài khoản kia nếu chưa có cùng bộ lọc. */
+export function mergeSavedSearches(mine: SavedSearch[], theirs: SavedSearch[]) {
+  const queries = new Set(mine.map((item) => item.query));
+  return [...mine, ...theirs.filter((item) => !queries.has(item.query))].slice(
+    -MAX_SAVED_SEARCHES,
+  );
+}
+
+type ConversationState = Pick<
+  ConversationDocument,
+  'lastMessage' | 'unreadByStarter' | 'unreadByOwner' | 'updatedAt'
+>;
+
+/**
+ * 2 cuộc trò chuyện về cùng 1 tin dồn làm 1: cộng số chưa đọc, tin cuối = tin mới hơn, thời điểm
+ * cập nhật = tin mới nhất (danh sách chat sắp theo updatedAt).
+ */
+export function mergedConversation(
+  kept: ConversationState,
+  duplicate: ConversationState,
+) {
+  const isDuplicateNewer =
+    (duplicate.lastMessage?.createdAt?.getTime() ?? 0) >
+    (kept.lastMessage?.createdAt?.getTime() ?? 0);
+  return {
+    $inc: {
+      unreadByStarter: duplicate.unreadByStarter ?? 0,
+      unreadByOwner: duplicate.unreadByOwner ?? 0,
+    },
+    ...(isDuplicateNewer && {
+      $set: {
+        lastMessage: duplicate.lastMessage,
+        updatedAt: duplicate.updatedAt,
+      },
+    }),
+  };
+}
+
 /**
  * Gộp tài khoản lỡ tạo riêng (vd 1 bằng SĐT, 1 bằng Google) vào tài khoản đang đăng nhập.
  * Người dùng chứng minh sở hữu tài khoản kia bằng token Firebase (OTP / popup) của nó → chuyển tin,
- * món đồ, đánh giá, chat, thông báo, báo cáo, yêu thích, tìm kiếm đã lưu sang; định danh vừa chứng
+ * món đồ, đánh giá, chat (cả tin cuối, số chưa đọc), thông báo, báo cáo, yêu thích, lịch sử xem,
+ * tìm kiếm đã lưu (bỏ trùng bộ lọc), push token sang; định danh vừa chứng
  * minh gắn vào tài khoản hiện tại; tài khoản kia ẩn danh hoá + khoá (như tự xoá).
  * shortcut: không dùng transaction (Mongo standalone) — lỗi giữa chừng để lại dữ liệu chia ở 2 tài
  * khoản (không mất), chạy gộp lại là tiếp tục được; cần chặt chẽ hơn thì chạy replica set + session.
@@ -190,8 +230,9 @@ export class AccountMergeService {
         user.viewedProductIds,
         other.viewedProductIds,
       ).slice(0, MAX_VIEWED),
-      savedSearches: [...user.savedSearches, ...other.savedSearches].slice(
-        -MAX_SAVED_SEARCHES,
+      savedSearches: mergeSavedSearches(
+        user.savedSearches,
+        other.savedSearches,
       ),
       pushTokens: [...new Set([...user.pushTokens, ...other.pushTokens])],
     });
@@ -236,6 +277,22 @@ export class AccountMergeService {
       this.moveConversations(to, from),
       this.moveReports(to, from),
     ]);
+    await this.dropSelfReports(to);
+  }
+
+  /** Báo cáo đang mở về tin / món đồ giờ là của chính người báo cáo → bỏ. */
+  private async dropSelfReports(userId: Types.ObjectId) {
+    const [listingIds, productIds] = await Promise.all([
+      this.listingModel.distinct('_id', { author: userId }).exec(),
+      this.productModel.distinct('_id', { seller: userId }).exec(),
+    ]);
+    await this.reportModel
+      .deleteMany({
+        reporter: userId,
+        status: 'open',
+        targetId: { $in: [...listingIds, ...productIds] },
+      })
+      .exec();
   }
 
   /** Đánh giá: unique (target, reviewer). Bỏ đánh giá giữa 2 tài khoản và bản trùng với đã có. */
@@ -282,27 +339,29 @@ export class AccountMergeService {
     ]);
 
     const kept = await this.conversationModel
-      .find({ starter: to }, { target: 1 })
+      .find({ starter: to })
       .lean()
       .exec();
     const keptByTarget = new Map(
-      kept.map((item) => [String(item.target), item._id]),
+      kept.map((item) => [String(item.target), item]),
     );
     const duplicates = await this.conversationModel
-      .find(
-        { starter: from, target: { $in: [...keptByTarget.keys()] } },
-        { target: 1 },
-      )
+      .find({ starter: from, target: { $in: [...keptByTarget.keys()] } })
       .lean()
       .exec();
     for (const duplicate of duplicates) {
+      const target = keptByTarget.get(String(duplicate.target))!;
       await this.messageModel
         .updateMany(
           { conversation: duplicate._id },
-          {
-            $set: { conversation: keptByTarget.get(String(duplicate.target)) },
-          },
+          { $set: { conversation: target._id } },
         )
+        .exec();
+      // timestamps: false — giữ updatedAt = thời điểm tin cuối (không phải lúc gộp)
+      await this.conversationModel
+        .updateOne({ _id: target._id }, mergedConversation(target, duplicate), {
+          timestamps: false,
+        })
         .exec();
       await this.conversationModel.deleteOne({ _id: duplicate._id }).exec();
     }
@@ -316,6 +375,14 @@ export class AccountMergeService {
         .exec(),
       this.messageModel
         .updateMany({ sender: from }, { $set: { sender: to } })
+        .exec(),
+      // Tin cuối hiện ở danh sách chat ("Bạn: …") theo người gửi
+      this.conversationModel
+        .updateMany(
+          { 'lastMessage.sender': from },
+          { $set: { 'lastMessage.sender': to } },
+          { timestamps: false },
+        )
         .exec(),
     ]);
   }
@@ -336,15 +403,4 @@ export class AccountMergeService {
       .updateMany({ reporter: from }, { $set: { reporter: to } })
       .exec();
   }
-}
-
-/** Hợp 2 danh sách id, giữ thứ tự (cũ → mới), bỏ trùng. */
-function unionIds(first: Types.ObjectId[], second: Types.ObjectId[]) {
-  const seen = new Set<string>();
-  return [...first, ...second].filter((id) => {
-    const key = String(id);
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
 }

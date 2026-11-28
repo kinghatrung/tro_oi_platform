@@ -150,31 +150,45 @@ export const timTin = defineTool({
   schema,
   status: (args) =>
     `Đang tìm ${args.category === 'can-ho' ? 'căn hộ' : 'phòng'}${args.ward ? ` ở ${normalizeWard(args.ward)}` : args.city ? ` ở ${args.city}` : ''}…`,
-  run: async (args, api) => {
-    const sort = SORTS[args.sort ?? 'newest'];
-    const result = await api.get<Paged<Listing>>('/listings', {
-      keyword: args.keyword,
-      city: args.city,
-      ward: normalizeWard(args.ward),
-      transaction: args.transaction,
-      category: args.category,
-      minPrice:
-        args.minPrice === undefined
-          ? undefined
-          : Math.round(args.minPrice * MILLION),
-      maxPrice:
-        args.maxPrice === undefined
-          ? undefined
-          : Math.round(args.maxPrice * MILLION),
-      minArea: args.minArea,
-      maxArea: args.maxArea,
-      bedrooms: args.bedrooms,
-      amenities: args.amenities,
-      ...sort,
-      pageSize: args.limit ?? 3,
-    });
+  run: async (input, api) => {
+    const search = (args: typeof input) =>
+      api.get<Paged<Listing>>('/listings', {
+        keyword: args.keyword,
+        city: args.city,
+        ward: normalizeWard(args.ward),
+        transaction: args.transaction,
+        category: args.category,
+        minPrice:
+          args.minPrice === undefined
+            ? undefined
+            : Math.round(args.minPrice * MILLION),
+        maxPrice:
+          args.maxPrice === undefined
+            ? undefined
+            : Math.round(args.maxPrice * MILLION),
+        minArea: args.minArea,
+        maxArea: args.maxArea,
+        bedrooms: args.bedrooms,
+        amenities: args.amenities,
+        ...SORTS[args.sort ?? 'newest'],
+        pageSize: args.limit ?? 3,
+      });
+    let args = input;
+    let result = await search(args);
+    let note: string | undefined;
+    // Phường chưa có tin khớp → nới ra cả tỉnh ngay trong lượt này (model khỏi gọi lại, trả lời nhanh hơn)
+    if (result.total === 0 && args.ward) {
+      const wider = { ...args, ward: undefined };
+      const widened = await search(wider);
+      if (widened.total > 0) {
+        note = `${normalizeWard(args.ward)} chưa có tin khớp — đã nới ra ${args.city ?? 'toàn quốc'}. Nói rõ điều này với người dùng.`;
+        args = wider;
+        result = widened;
+      }
+    }
     return {
       forModel: {
+        ...(note && { note }),
         total: result.total,
         items: result.items.map((item) => ({
           id: item.id,

@@ -44,6 +44,11 @@ export async function getViewedListings() {
   return res.data;
 }
 
+/** Lịch sử xem lúc chưa đăng nhập (mới xem trước) → đặt lên đầu lịch sử tài khoản. */
+export async function mergeViewedHistory(body: { listingIds: string[]; productIds: string[] }) {
+  await axiosClient.post('/users/me/viewed', body);
+}
+
 export async function recordViewedListing(listingId: string) {
   await axiosClient.put(`/users/me/viewed-listings/${listingId}`);
 }

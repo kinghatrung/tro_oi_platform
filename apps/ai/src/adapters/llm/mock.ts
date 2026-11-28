@@ -30,7 +30,10 @@ export function parsePriceRange(text: string) {
 export class MockLlm implements LlmPort {
   readonly name = 'mock';
 
-  complete(input: { messages: LlmMessage[] }): Promise<LlmTurn> {
+  complete(input: {
+    messages: LlmMessage[];
+    onText?: (delta: string) => void;
+  }): Promise<LlmTurn> {
     const last = input.messages.at(-1);
     if (last?.role === 'tool') {
       const { total, error } = JSON.parse(last.content) as {
@@ -42,6 +45,7 @@ export class MockLlm implements LlmPort {
         : total
           ? `Mình tìm thấy ${total} tin phù hợp, đây là vài tin tiêu biểu. (Đang dùng model giả — nối model thật trong apps/ai/.env.local.)`
           : 'Chưa có tin nào khớp. Bạn thử nới khoảng giá hoặc đổi khu vực nhé.';
+      input.onText?.(text);
       return Promise.resolve({ text, toolCalls: [] });
     }
     const question = last?.role === 'user' ? last.content : '';

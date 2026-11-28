@@ -17,6 +17,8 @@ import {
   moTrang,
   nhanTin,
 } from './thao-tac.js';
+import { traCuuHuongDan } from './huong-dan.js';
+import { thongKeGia } from './thong-ke-gia.js';
 import { timDoCu } from './tim-do-cu.js';
 import { timTin } from './tim-tin.js';
 import { xemTin } from './xem-tin.js';
@@ -26,6 +28,8 @@ export const TOOLS = [
   timTin,
   timDoCu,
   xemTin,
+  thongKeGia,
+  traCuuHuongDan,
   // Thao tác trên giao diện (agent làm hộ)
   moTin,
   moHoSo,

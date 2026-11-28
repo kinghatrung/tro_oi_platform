@@ -42,6 +42,8 @@ export interface LlmPort {
     messages: LlmMessage[];
     tools: LlmToolSpec[];
     signal?: AbortSignal;
+    /** Có → stream: gọi với từng đoạn chữ ngay khi model sinh ra (chữ hiện dần trên web). */
+    onText?: (delta: string) => void;
   }): Promise<LlmTurn>;
 }
 
@@ -176,6 +178,8 @@ export interface RunSummary {
 /** Sự kiện SSE gửi về widget. */
 export type ChatEvent =
   | { event: 'status'; data: { text: string } }
+  /** Đoạn chữ model vừa sinh (stream) — widget nối dần; `text` cuối cùng là câu đầy đủ, thay thế. */
+  | { event: 'delta'; data: { text: string } }
   | { event: 'text'; data: { text: string } }
   | { event: 'cards'; data: { items: ChatCard[] } }
   | { event: 'action'; data: ChatAction };

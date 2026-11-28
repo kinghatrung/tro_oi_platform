@@ -40,6 +40,12 @@ export class ListingController {
     return this.listingService.stats();
   }
 
+  /** Giá trung vị / trung bình / thấp / cao theo bộ lọc tìm kiếm (trợ lý AI dùng). */
+  @Get('price-stats')
+  priceStats(@Query() query: SearchListingDto) {
+    return this.listingService.priceStats(query);
+  }
+
   /** Dữ liệu sitemap theo phần (web /phong-tro/sitemap/<chunk>.xml). */
   @Get('sitemap')
   sitemap(@Query() query: SitemapQueryDto) {

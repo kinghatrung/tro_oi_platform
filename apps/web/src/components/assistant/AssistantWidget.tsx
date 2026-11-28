@@ -3,7 +3,7 @@
 import clsx from 'clsx';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { Button, Input, Tag, Tooltip } from 'antd';
 import {
@@ -24,7 +24,14 @@ import {
   type AssistantCard,
 } from '@/api/assistant';
 import { NO_IMAGE } from '@/constants';
-import { isInternalPath, playAssistantAction } from '@/lib/assistantActions';
+import {
+  isInternalPath,
+  loginReturnPath,
+  needsLogin,
+  playAssistantAction,
+  savePendingActions,
+  takePendingActions,
+} from '@/lib/assistantActions';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { formatListingPrice, formatVietnameseCurrency } from '@/utils/helpers';
 
@@ -105,6 +112,26 @@ function ResultCard({ card, onOpen }: { card: AssistantCard; onOpen: () => void 
 }
 
 /** Nút "mở lại" cho thao tác agent đã làm; thao tác không có trang riêng (lưu tìm kiếm, đổi giao diện) → null. */
+/**
+ * Chữ trợ lý: chỉ hiểu **đậm** và [chữ](/đường-dẫn) — link nội bộ bấm được, link ngoài chỉ hiện
+ * chữ. Còn lại giữ nguyên (React tự escape, không render HTML).
+ */
+function RichText({ text }: { text: string }) {
+  return text.split(/(\*\*[^*\n]+\*\*|\[[^\]\n]+\]\([^)\s]+\))/g).map((part, index) => {
+    const bold = /^\*\*(.+)\*\*$/.exec(part);
+    if (bold) return <strong key={index}>{bold[1]}</strong>;
+    const link = /^\[(.+)\]\((.+)\)$/.exec(part);
+    if (!link) return part;
+    return isInternalPath(link[2]) ? (
+      <Link key={index} href={link[2]} className="font-semibold text-brand underline">
+        {link[1]}
+      </Link>
+    ) : (
+      link[1]
+    );
+  });
+}
+
 function actionLink(action: AssistantAction): { href: string; text: string } | null {
   const link =
     action.type === 'open-search'
@@ -134,6 +161,53 @@ export function AssistantWidget() {
   /** Dòng trạng thái dịch vụ AI gửi về, vd "Đang tìm phòng ở Phường Cầu Giấy…". */
   const [status, setStatus] = useState('');
   const listRef = useRef<HTMLDivElement>(null);
+
+  /**
+   * Agent thao tác hộ, lần lượt từng việc: thu khung chat (không che trang), cuộn / gõ / bấm, rồi
+   * mở lại (điện thoại: khung chat che cả màn hình → để đóng). Việc cần đăng nhập mà chưa đăng
+   * nhập → nhớ phần còn lại, mở trang đăng nhập; đăng nhập xong effect bên dưới làm tiếp.
+   */
+  const playActions = async (actions: AssistantAction[]) => {
+    setIsOpen(false);
+    for (const [index, action] of actions.entries()) {
+      const { user, status: session } = useAuthStore.getState();
+      if (!user && session === 'ready' && needsLogin(action)) {
+        savePendingActions(actions.slice(index));
+        router.push(`/dang-nhap?redirect=${encodeURIComponent(loginReturnPath(action))}`);
+        return;
+      }
+      await playAssistantAction(action, {
+        navigate: (path) => router.push(path),
+        onStep: setStatus,
+      });
+    }
+    if (window.innerWidth >= 640) setIsOpen(true);
+  };
+  /** Làm tiếp việc dở lúc chưa đăng nhập (nhớ trong sessionStorage). */
+  const resumePending = useEffectEvent(() => {
+    const pending = takePendingActions();
+    if (pending.length === 0) return;
+    setMessages((current) => [
+      ...current,
+      {
+        role: 'assistant',
+        text: `Bạn đã đăng nhập — mình làm tiếp: ${pending.map((action) => action.label).join(', ')}.`,
+      },
+    ]);
+    setIsThinking(true);
+    void playActions(pending).finally(() => {
+      setIsThinking(false);
+      setStatus('');
+    });
+  });
+
+  // Đăng nhập xong và đã rời trang đăng nhập (trang đó tự chuyển về redirect) → đợi trang đích
+  // vẽ xong rồi làm tiếp; trang còn đổi tiếp thì huỷ hẹn giờ, chờ trang cuối
+  useEffect(() => {
+    if (!isLoggedIn || pathname.startsWith('/dang-nhap')) return;
+    const timer = setTimeout(resumePending, 400);
+    return () => clearTimeout(timer);
+  }, [isLoggedIn, pathname]);
 
   // Cuộn xuống tin mới nhất
   useEffect(() => {
@@ -184,6 +258,7 @@ export function AssistantWidget() {
         },
         ({ event, data }) => {
           if (event === 'status') setStatus(data.text);
+          else if (event === 'delta') showReply({ text: reply.text + data.text });
           else if (event === 'text') showReply({ text: data.text });
           else if (event === 'cards') showReply({ cards: data.items });
           else if (event === 'action') showReply({ actions: [...(reply.actions ?? []), data] });
@@ -191,18 +266,7 @@ export function AssistantWidget() {
           else if (event === 'done') showReply({ messageId: data.messageId });
         },
       );
-      // Agent thao tác hộ, lần lượt từng việc: thu khung chat (không che trang), cuộn / gõ / bấm,
-      // rồi mở lại khung chat (hội thoại vẫn giữ). Điện thoại: khung chat che cả màn hình → để đóng.
-      if (reply.actions?.length) {
-        setIsOpen(false);
-        for (const action of reply.actions) {
-          await playAssistantAction(action, {
-            navigate: (path) => router.push(path),
-            onStep: setStatus,
-          });
-        }
-        if (window.innerWidth >= 640) setIsOpen(true);
-      }
+      if (reply.actions?.length) await playActions(reply.actions);
     } catch (error) {
       showReply({ text: (error as Error).message });
     } finally {
@@ -292,7 +356,11 @@ export function AssistantWidget() {
                             : 'rounded-bl-sm bg-surface text-ink shadow-sm',
                         )}
                       >
-                        {message.text}
+                        {message.role === 'assistant' ? (
+                          <RichText text={message.text} />
+                        ) : (
+                          message.text
+                        )}
                       </p>
                     )}
                     {message.cards?.map((card) => (

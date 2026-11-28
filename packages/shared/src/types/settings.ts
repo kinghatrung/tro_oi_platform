@@ -4,6 +4,10 @@ export enum ThemeMode {
   DARK = 'dark',
 }
 
+/** Theme mặc định tự động theo giờ (Việt Nam): sáng 6:00–18:00, tối còn lại. */
+export const AUTO_THEME = 'auto';
+export type DefaultTheme = ThemeMode | typeof AUTO_THEME;
+
 export enum AnnouncementType {
   INFO = 'info',
   WARNING = 'warning',
@@ -26,7 +30,8 @@ export interface SiteSettings {
   primaryColor: string;
   /** Màu chủ đạo riêng của khu Chợ ơi (/cho-oi/*), dạng #RRGGBB. */
   marketplaceColor: string;
-  defaultTheme: ThemeMode;
+  /** Sáng / tối cố định, hoặc `auto` = theo giờ. */
+  defaultTheme: DefaultTheme;
   /** Cho người dùng tự chuyển sáng/tối. */
   allowThemeToggle: boolean;
   /** Ảnh banner quảng bá trên trang chủ. */

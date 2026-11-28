@@ -262,7 +262,7 @@ Breadcrumb (`BreadcrumbItem`) tự sinh từ URL theo `ROUTE_LABELS` — thêm r
 | --- | --- |
 | `layout/DashboardShell` | Khung toàn màn hình dùng chung Quản trị + Kênh người đăng: Sider 256/72px thu gọn được (≥ xl), Drawer (< xl), AdminTopBar + breadcrumb; props `base`, `title`, `menu`, `sidebarExtra` |
 | `layout/AdminSidebar` | Logo (thu gọn → favicon) + nhãn `badge` + `extra` (vd thẻ người dùng) + Menu; dùng chung cho Sider và Drawer |
-| `layout/AdminTopBar` | Nút thu gọn/mở sidebar (màn nhỏ: mở Drawer) + breadcrumb | xem website, sáng/tối, menu tài khoản |
+| `layout/AdminTopBar` | Nút thu gọn/mở sidebar (màn nhỏ: mở Drawer) + breadcrumb | nút "Về trang chủ" (cùng tab), sáng/tối, menu tài khoản |
 | `PageCard` | Khung trang danh sách, cao đúng bằng Content (trang không cuộn) |
 | `FilterBar` | [từ khoá] [lọc nhanh] … [phễu lọc nâng cao (popover Form, số bộ lọc đang bật)] [Tìm kiếm] [Làm mới] |
 | `DataTable` | Table + cột STT + `EmptyState`; lấp phần còn lại của PageCard: chỉ thân bảng cuộn (dọc + ngang), header bảng và phân trang cố định ở đáy (CSS `.fill-table` trong globals.css). `mobileKeys` / `withMobileSummary(columns, keys)` (cả bảng Kênh người đăng): điện thoại (< sm) chỉ giữ cột đầu, ẩn STT, các cột trong `keys` (trạng thái, thao tác...) vẽ lại thành 1 hàng dưới cột đầu |
@@ -292,7 +292,7 @@ Trang danh sách mới: `useAdminTable` + `PageCard` > `FilterBar` + `DataTable`
 
 1. `app/layout.tsx` gọi `loadSiteSettings()` (`GET /settings`, cache theo request; API lỗi → `FALLBACK_SETTINGS`).
 2. Metadata: title `"{siteName}: {tagline}"`, template `"%s | {siteName}"` (page chỉ đặt phần `%s`), description. Favicon render trong `providers.tsx`: `faviconUrl`, riêng Chợ ơi là icon sạp hàng sinh từ `marketplaceColor`.
-3. `<html data-theme>` = cookie `theme` (nếu `allowThemeToggle`) hoặc `defaultTheme`; `style="--brand: primaryColor"`.
+3. `<html data-theme>` = cookie `theme` (nếu `allowThemeToggle`) hoặc `defaultTheme` (`auto` → `lib/themeClock.ts`: sáng 6:00–18:00 giờ VN, server và trình duyệt cùng công thức nên không nháy; `providers.tsx` hẹn giờ đổi ngay lúc 6:00 / 18:00 và kiểm lại khi quay lại tab; khi `auto`, người dùng tự bấm đổi thì cookie chỉ sống tới mốc đổi kế tiếp); `style="--brand: primaryColor"`.
 4. `globals.css`: token màu đổi theo `[data-theme='dark']`; `--brand-soft/--brand-dark` sinh bằng `color-mix` từ `--brand`.
 5. `providers.tsx`: `buildAntTheme(primaryColor, isDark)` cho AntD; `ThemeToggle` ghi cookie + đổi `data-theme` ngay.
 6. Server Component đọc thiết lập bằng `loadSiteSettings()` (Header, Footer, Promote); Client Component dùng `useSiteSettings()` (Navbar, trang đăng nhập...).
@@ -357,7 +357,7 @@ Web dùng qua `transpilePackages: ['@tro-oi/shared']`; package trỏ thẳng `sr
 
 ## Chưa làm (backlog)
 
-- Trợ lý AI: xem mục "Chưa làm" trong docs/ai.md (stream chữ, RAG, thống kê giá; đã có deploy, log + 👍/👎 + trang quản trị, agent thao tác giao diện).
+- Trợ lý AI: xem mục "Chưa làm" trong docs/ai.md (đã có: deploy, log + 👍/👎 + trang quản trị, agent thao tác giao diện, chữ hiện dần, tra cứu chính sách / hướng dẫn, thống kê giá, làm tiếp sau đăng nhập).
 - Tin tức, việc làm: mới có type ở shared. (Khảo sát: quyết định không làm — type `survey.ts` còn để lại, không phát triển.)
 - Tìm kiếm đã lưu có `filter` (tách từ query lúc lưu; bản cũ được bổ sung khi API khởi động) để Mongo lọc người cần báo; điều kiện "không đặt hoặc khớp" chưa dùng được index (Mongo vẫn quét user có tìm kiếm đã lưu) — hàng triệu tìm kiếm thì tách collection riêng + index. Tìm kiếm đã lưu dạng cũ có `district=` bị bỏ qua tham số đó.
 - Ứng dụng mobile / link tải app.
@@ -366,7 +366,7 @@ Web dùng qua `transpilePackages: ['@tro-oi/shared']`; package trỏ thẳng `sr
 - SMS mới là chỗ cắm (`SMS_PROVIDER=log` chỉ ghi log) — cần hợp đồng + brandname với nhà cung cấp (eSMS, SpeedSMS...) rồi thêm nhánh trong `SmsService`. Push / email cần điền cấu hình Firebase (VAPID) / SMTP mới chạy; chưa thử với dịch vụ thật.
 - Xoá tài khoản dọn ảnh của tin / món đồ / avatar, nhưng ảnh tin nhắn giữ lại; ảnh upload rồi bỏ (không gắn vào đâu) được `UploadCleanupService` dọn mỗi ngày (chạy lần đầu 10 phút sau khởi động): chỉ file tên do API sinh, quá 7 ngày, không nơi nào tham chiếu (tin: ảnh / video / ảnh bìa; món đồ; avatar, ảnh bìa hồ sơ; ảnh tin nhắn; quét văn bản thiết lập + trang). Tải dữ liệu stream trong 1 request (không gom tin nhắn vào RAM); không làm job nền + link tải vì file chứa dữ liệu cá nhân, không nên đặt ở nơi có link công khai.
 - Video tin đăng tải lên được giữ nguyên file gốc (không nén / chuyển định dạng; ảnh bìa do trình duyệt chụp — `lib/videoPoster.ts`, trình duyệt không giải mã được video thì không có ảnh bìa); nhận qua file tạm trên đĩa (không giữ trong RAM) nhưng vẫn đi qua API — cần giảm băng thông API thì upload thẳng S3 bằng presigned URL (thêm `@aws-sdk/s3-request-presigner`; R2 không hỗ trợ POST policy nên không giới hạn được dung lượng phía S3).
-- Lịch sử xem: đã đăng nhập lưu theo tài khoản (`/users/me/viewed-*`), khách lưu localStorage; lịch sử xem trước khi đăng nhập không gộp lên tài khoản.
+- Lịch sử xem: đã đăng nhập lưu theo tài khoản (`/users/me/viewed-*`), khách lưu localStorage; đăng nhập → `syncGuestHistory` (lib/viewHistory.ts) gửi lịch sử trình duyệt lên `POST /users/me/viewed` (đứng đầu, bỏ trùng) rồi xoá bản trình duyệt. Trình duyệt vẫn ghi lịch sử khi đã đăng nhập, nên lần đăng nhập sau các tin đó được đưa lên đầu lại (thứ tự xen với thiết bị khác có thể lệch).
 - Bản đồ quản trị tối đa 5000 điểm mới nhất mỗi lần tải (`MAP_LIMIT`); nhiều hơn thì tải theo khung nhìn khi người dùng kéo / phóng to. Món Chợ ơi đăng trước khi có ô ghim vị trí không có toạ độ → không lên bản đồ tới khi người bán sửa và ghim (seed mới đã có toạ độ).
 - Địa chỉ cũ không tự xác định được phường (vd quận cũ tách thành nhiều phường như "Quận 1") cần chủ tin sửa tay (API từ chối lưu phường không thuộc tỉnh, nên sửa tin cũ phải chọn lại phường).
 - Redis adapter và lưu S3 mới test bằng mock/unit test, chưa chạy với Redis/S3 thật.

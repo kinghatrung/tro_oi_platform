@@ -1,8 +1,8 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import type { HydratedDocument } from 'mongoose';
 
-// Trùng ThemeMode / AnnouncementType bên @tro-oi/shared (settings.ts)
-export const THEME_MODES = ['light', 'dark'] as const;
+// Trùng DefaultTheme / AnnouncementType bên @tro-oi/shared (settings.ts); auto = theo giờ
+export const THEME_MODES = ['light', 'dark', 'auto'] as const;
 export const ANNOUNCEMENT_TYPES = ['info', 'warning', 'success'] as const;
 
 /** Giá trị mặc định = giao diện hiện tại của web. */

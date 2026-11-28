@@ -36,13 +36,16 @@ src/
 │   ├── prompt.ts               #   prompt hệ thống (quy tắc, cách nói "củ" = triệu…) + ngữ cảnh lượt
 │   └── orchestrator.ts         #   agent loop: model → công cụ → model …, tối đa 4 vòng
 ├── adapters/
-│   ├── llm/                    #   mock.ts, openai-compatible.ts, index.ts (chọn theo AI_PROVIDER)
+│   ├── llm/                    #   mock.ts, openai-compatible.ts (stream SSE khi có onText), index.ts (chọn theo AI_PROVIDER)
 │   └── troi-api.ts             #   GET API công khai, bóc { code, message, data }
 └── tools/                      # mỗi công cụ 1 file: mô tả + schema Zod + status + run
-    ├── tim-tin.ts              #   GET /listings — giá model gửi theo TRIỆU, đổi sang đồng
+    ├── tim-tin.ts              #   GET /listings — giá model gửi theo TRIỆU, đổi sang đồng; phường 0 tin → tự nới ra tỉnh (note)
     ├── tim-do-cu.ts            #   GET /products — giá theo ĐỒNG
     ├── xem-tin.ts              #   GET /listings/:id | /products/:id — mô tả cắt 800 ký tự, đánh dấu là dữ liệu
-    ├── thao-tac.ts             #   thao tác giao diện: mo_tin, luu_tin, nhan_tin, luu_tim_kiem, doi_giao_dien, mo_trang
+    ├── thong-ke-gia.ts         #   thong_ke_gia: GET /listings/price-stats — trung vị / TB / thấp / cao (triệu) theo loại; phường 0 tin → cả tỉnh
+    ├── huong-dan.ts            #   tra_cuu_huong_dan: RAG đơn giản — trang chính sách (GET /pages, cắt theo h2) + hướng dẫn soạn sẵn (+ thiết lập duyệt tin, liên hệ), xếp hạng theo từ / cặp từ (bỏ dấu), top 3 mục kèm link; nhớ 5 phút
+    ├── thao-tac.ts             #   thao tác giao diện: mo_tin, luu_tin, nhan_tin, luu_tim_kiem, bam_nut, doi_giao_dien, mo_trang…
+    ├── dien-form.ts            #   điền sẵn form: soan_tin_dang, soan_do_ban, sua_ho_so, viet_danh_gia, bao_cao_tin
     └── index.ts                #   TOOLS — thêm khả năng = thêm 1 file + 1 dòng
 ```
 
@@ -108,7 +111,8 @@ Response `text/event-stream`, theo thứ tự:
 | Sự kiện          | `data`                                                                                                                           |
 | ---------------- | -------------------------------------------------------------------------------------------------------------------------------- |
 | `status` (0..n)  | `{ text }` — vd "Đang tìm phòng ở Phường Cầu Giấy…"                                                                              |
-| `text`           | `{ text }` — câu trả lời (chưa stream từng chữ từ model)                                                                         |
+| `delta` (0..n)   | `{ text }` — đoạn chữ model vừa sinh (stream), widget nối dần; có thể có ở lượt model gọi công cụ |
+| `text`           | `{ text }` — câu trả lời đầy đủ, **thay thế** chữ đã nối từ `delta`. Chữ chỉ dùng `**đậm**`, `[chữ](/đường-dẫn)`, gạch đầu dòng — widget chỉ hiểu 2 dạng đầu (link ngoài hiện chữ) |
 | `cards` (tuỳ)    | `{ items: ChatCard[] }` — `{ kind: listing\|product, id, title, image?, price (đồng), transaction?, area?, address? }`, tối đa 6 |
 | `action` (0..n)  | `ChatAction` — thao tác agent làm trên giao diện, theo thứ tự widget thực hiện (xem "Agent thao tác giao diện") |
 | `done` / `error` | `{ messageId }` (uuid, dùng cho 👍/👎) / `{ message }`                                                                           |
@@ -129,10 +133,17 @@ Query `filter` = `review` (mặc định: có dấu hoặc bị 👎) / `dislike
 
 Image `trooi-ai` (`apps/ai/Dockerfile`), service `ai` trong `deploy/docker-compose.yml` (`127.0.0.1:5300`, volume `ai-data` cho `chat.db`), nginx `room-api.kun.io.vn/ai/` → service AI (bỏ tiền tố, `proxy_buffering off` cho SSE). Biến model ở file riêng `/opt/tro-oi/ai.env` (`deploy/ai.env.example`) — container AI không nhận `.env` của API. Web build với GitHub Variable `NEXT_PUBLIC_AI_URL=https://room-api.kun.io.vn/ai`. Chi tiết: [deploy.md](deploy.md).
 
+## Tốc độ, làm tiếp sau đăng nhập
+
+- Model stream (`stream: true` khi orchestrator truyền `onText`): chữ tới trình duyệt ngay khi sinh (`delta`); nhà cung cấp trả JSON thường thì vẫn đọc được. Gemini stream gửi cả lời gọi công cụ trong 1 mảnh (không có `index`, kèm `extra_content`).
+- `tim_tin`, `thong_ke_gia` tự nới phường → tỉnh trong cùng lượt; prompt dặn gọi các công cụ độc lập trong cùng 1 lượt (chạy song song). Mỗi vòng model ~1–1,5 giây.
+- Thao tác cần đăng nhập (`needsLogin`: điền form, nhắn tin, nút lưu / lưu tìm kiếm / thông báo / tải dữ liệu) khi chưa đăng nhập: widget lưu các thao tác còn lại vào `sessionStorage` (`assistant:pending`, hạn 15 phút), mở `/dang-nhap?redirect=<trang của thao tác>`; đăng nhập xong, rời trang đăng nhập → widget báo "mình làm tiếp" và chạy tiếp.
+
 ## Vòng cải thiện
 
 Log → admin lọc "Cần xem lại" (👎, 0 kết quả, lỗi) → sửa `core/prompt.ts` (cách nói, quy tắc) / thêm công cụ / (sắp tới) thêm câu trả lời chuẩn vào kho kiến thức. Nội dung chat được nêu trong mẫu Chính sách bảo mật (`policyTemplates.ts`) — đăng lại trang chính sách sau khi cập nhật.
 
 ## Chưa làm
 
-- Stream từng chữ từ model; RAG (kho kiến thức chính sách, hướng dẫn); công cụ thống kê giá (cần `GET /listings/price-stats` bên API). Agent chưa tự điền form đăng tin / đăng bán, chưa bấm từng dropdown bộ lọc; thao tác cần đăng nhập khi chưa đăng nhập chỉ dừng ở trang đăng nhập (đăng nhập xong không tự làm tiếp).
+- Tra cứu hướng dẫn so khớp từ khoá (không hiểu từ đồng nghĩa) — kho lớn hơn vài chục mục thì dùng embedding. Hướng dẫn soạn sẵn ở `tools/huong-dan.ts` phải sửa tay khi đổi hành vi web/API. Gemini (OpenAI-compatible) đẩy chữ theo mảng lớn nên chữ hiện dần chỉ rõ với câu dài.
+- Agent không tự tải ảnh / video (người dùng tự chọn file), chưa bấm từng dropdown bộ lọc (đặt bộ lọc qua URL). Tên phường AI điền chưa được kiểm với danh sách phường của tỉnh trước khi điền (sai thì form báo lỗi khi bấm Đăng). Thao tác cần đăng nhập (điền form, công tắc thông báo, đăng xuất) mới kiểm bằng typecheck, chưa chạy e2e khi đã đăng nhập.

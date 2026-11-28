@@ -49,7 +49,6 @@ const formatPhone = (phone: string) =>
 export function LinkedAccounts({ user }: { user: User }) {
   const { message, modal } = App.useApp();
   const setUser = useAuthStore((state) => state.setUser);
-  const reloadUser = useAuthStore((state) => state.reloadUser);
   const isFirebaseEnabled = Boolean(process.env.NEXT_PUBLIC_FIREBASE_API_KEY);
   const [busy, setBusy] = useState<Provider | 'unlink' | 'unlink-phone'>();
   const [phoneMode, setPhoneMode] = useState<'add' | 'change'>();
@@ -69,8 +68,12 @@ export function LinkedAccounts({ user }: { user: User }) {
         cancelText: 'Huỷ',
       });
       if (!isConfirmed) return false;
-      await reloadUser(await mergeAccount(token));
-      message.success('Đã gộp tài khoản');
+      setUser(await mergeAccount(token));
+      // Dữ liệu chuyển sang ở mọi nơi (tin, chat, thông báo, đã lưu, đã xem, số chưa đọc…) →
+      // tải lại toàn trang để mọi phần hiện đúng, không sót phần nào còn số liệu cũ
+      void message
+        .success('Đã gộp tài khoản — đang tải lại dữ liệu…', 1.2)
+        .then(() => window.location.reload());
       return true;
     }
   };

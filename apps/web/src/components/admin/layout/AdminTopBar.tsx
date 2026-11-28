@@ -7,12 +7,11 @@ import {
   Breadcrumb,
   Button,
   Dropdown,
-  Tooltip,
   type BreadcrumbProps,
   type MenuProps,
 } from 'antd';
 import {
-  ExternalLink,
+  House,
   LogOut,
   Menu as MenuIcon,
   PanelLeftClose,
@@ -37,7 +36,7 @@ const USER_MENU: MenuProps['items'] = [
   { key: 'logout', label: 'Đăng xuất', icon: <LogOut size={16} />, danger: true },
 ];
 
-/** Header quản trị: nút thu gọn/mở sidebar + breadcrumb | xem website, sáng/tối, tài khoản. */
+/** Header quản trị: nút thu gọn/mở sidebar + breadcrumb | về trang chủ, sáng/tối, tài khoản. */
 export function AdminTopBar({
   isCompact,
   sidebarOpen,
@@ -72,11 +71,11 @@ export function AdminTopBar({
       </div>
 
       <div className="flex shrink-0 items-center gap-2">
-        <Tooltip title="Xem website">
-          <Link href="/" target="_blank">
-            <Button type="text" icon={<ExternalLink size={18} />} aria-label="Xem website" />
-          </Link>
-        </Tooltip>
+        <Link href="/">
+          <Button type="text" icon={<House size={18} />} aria-label="Về trang chủ">
+            <span className="hidden sm:inline">Về trang chủ</span>
+          </Button>
+        </Link>
         <ThemeToggle />
         <div className="mx-1 h-6 w-px bg-line" />
         <Dropdown

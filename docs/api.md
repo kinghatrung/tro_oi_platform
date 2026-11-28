@@ -124,6 +124,7 @@ Type `SavedSearch`: `{ id, query, title, createdAt }` — web mở lại bằng 
 | DELETE | `/users/me/favorites/:listingId` 🔒 | Bỏ lưu tin (idempotent)                | `null`                  |
 | GET    | `/users/me/viewed-listings` 🔒    | Tin đã xem gần đây (tối đa 15, chỉ tin còn hiển thị), mới xem trước — đồng bộ giữa thiết bị | `Listing[]` |
 | PUT    | `/users/me/viewed-listings/:listingId` 🔒 | Ghi đã xem: đưa lên đầu, giữ 15. Tin không tồn tại → 404 | `null` |
+| POST   | `/users/me/viewed` 🔒 | `{ listingIds?, productIds? }` (mỗi mảng ≤ 15 id, mới xem trước) — lịch sử xem lúc chưa đăng nhập; web gửi ngay khi đăng nhập. Đặt lên đầu lịch sử tài khoản, bỏ trùng, giữ 15 | `null` |
 | GET    | `/users/me/viewed-products` 🔒    | Món đồ đã xem gần đây (tối đa 15, chỉ món đang bán) | `ProductItem[]` |
 | PUT    | `/users/me/viewed-products/:productId` 🔒 | Như trên cho món đồ | `null` |
 | GET    | `/users/me/favorite-products` 🔒    | Món đồ Chợ ơi đã lưu (chỉ món đang bán), mới lưu trước | `ProductItem[]` |
@@ -132,7 +133,7 @@ Type `SavedSearch`: `{ id, query, title, createdAt }` — web mở lại bằng 
 | GET    | `/users/me/saved-searches` 🔒      | Tìm kiếm đã lưu, mới lưu trước          | `SavedSearch[]`         |
 | POST   | `/users/me/saved-searches` 🔒      | `{ query (≤1000, query string /tim-kiem không có page), title (≤200) }`. Trùng `query` → trả bản đã có; tối đa 20 (400) | `SavedSearch` |
 | DELETE | `/users/me/saved-searches/:id` 🔒  | Xoá tìm kiếm đã lưu (idempotent)        | `null`                  |
-| POST   | `/users/me/merge` 🔒              | `{ firebaseToken }` của tài khoản kia (SĐT đã OTP / Google / Facebook) — chứng minh sở hữu. Chuyển tin, món đồ, đánh giá, chat, thông báo, báo cáo, mục đã lưu sang tài khoản đang đăng nhập (bỏ bản trùng / tự đánh giá / chat giữa 2 tài khoản), gắn định danh vừa chứng minh vào, vai trò giữ mức cao hơn; tài khoản kia ẩn danh hoá + khoá. Không gộp chính mình / tài khoản admin (400), tài khoản bị khoá (403); không tìm thấy → 404 | `User` |
+| POST   | `/users/me/merge` 🔒              | `{ firebaseToken }` của tài khoản kia (SĐT đã OTP / Google / Facebook) — chứng minh sở hữu. Chuyển tin, món đồ, đánh giá, chat, thông báo, báo cáo, yêu thích, lịch sử xem, tìm kiếm đã lưu, push token sang tài khoản đang đăng nhập (bỏ bản trùng / tự đánh giá / chat giữa 2 tài khoản / báo cáo đang mở về tin giờ là của mình / tìm kiếm đã lưu trùng bộ lọc). Chat: người gửi tin cuối đổi theo; 2 cuộc về cùng 1 tin dồn làm 1 (cộng số chưa đọc, tin cuối = tin mới hơn, giữ thời điểm tin cuối). Web gộp xong tải lại toàn trang (số chưa đọc, danh sách… đều mới), gắn định danh vừa chứng minh vào, vai trò giữ mức cao hơn; tài khoản kia ẩn danh hoá + khoá. Không gộp chính mình / tài khoản admin (400), tài khoản bị khoá (403); không tìm thấy → 404 | `User` |
 | GET    | `/users/me/export` 🔒              | Tải toàn bộ dữ liệu của tôi: `profile`, tin / món đồ, đánh giá đã viết & nhận, cuộc trò chuyện kèm tin nhắn (`fromMe`), thông báo, báo cáo đã gửi, tin đã lưu, tin / món đã xem, tìm kiếm đã lưu. Trả **dạng stream** (vẫn `{ code, message, data }`): tin nhắn đọc bằng cursor theo từng cuộc trò chuyện, không gom vào RAM; lỗi giữa chừng → cắt kết nối | JSON |
 | DELETE | `/users/me` 🔒                     | Tự xoá tài khoản (**ẩn danh hoá**), body `{ confirm: "XOA TAI KHOAN" }` (sai → 400). Xoá tin, món đồ, đánh giá về mình, thông báo, tin / tìm kiếm đã lưu, token push; tên → "Người dùng đã xoá", bỏ email/ảnh/bio, SĐT → `deleted:<id>` (số đó đăng ký lại được), `isBlocked` + `deletedAt` (token cũ → 403, `GET /users/:id` → 404). Xoá luôn file ảnh đã upload của tin, món đồ, avatar, ảnh bìa (`StorageService.remove`, lỗi từng file chỉ ghi log). Tin nhắn (kèm ảnh) / đánh giá đã viết giữ lại. Admin → 400. Ghi nhật ký "Tự xoá tài khoản" | `null` |
 | GET    | `/users/:id`                       | Hồ sơ công khai (ẩn `phone`, `email`)   | `User`                  |
@@ -188,6 +189,7 @@ Type `Listing` (rút gọn):
 | ------ | -------------------- | --------------------------------------------------- | --------------------------- |
 | GET    | `/listings`          | Tìm kiếm tin **active**, phân trang                 | `PagedResponse<Listing>`    |
 | GET    | `/listings/stats`    | Đếm tin active theo `transaction × category × city` | `ListingStat[]`             |
+| GET    | `/listings/price-stats` | Thống kê giá tin active khớp bộ lọc như `GET /listings` (`city, ward, transaction, category, minArea, maxArea, bedrooms…`), tách theo `transaction × category`, nhóm nhiều tin trước: `[{ transaction, category, count, median, avg (làm tròn nghìn), min, max, medianArea }]` (đồng). Trung vị `$median` cần MongoDB 7+. Trợ lý AI dùng | `PriceStat[]` |
 | GET    | `/listings/mine` 🔒  | Mọi tin của tôi (mọi status), mới nhất trước, kèm `favoriteCount` | `Listing[]`   |
 | GET    | `/listings/:id`      | Chi tiết tin **active** (không đếm lượt xem)          | `Listing`                   |
 | GET    | `/listings/sitemap`  | Dữ liệu sitemap: `chunk` (≥0, mặc định 0) → `{ total, chunkSize: 5000, items: [{ id, updatedAt, image? }] }` của tin **active**, sắp theo id. Khai báo trước `/:id` | `SitemapChunk` |
@@ -394,7 +396,7 @@ Trang nội dung do admin soạn: `slug` ∈ `dieu-khoan-su-dung | chinh-sach-ba
 
 ### `GET /settings` (công khai)
 
-Type `SiteSettings`: `siteName, tagline, description, logoUrl, faviconUrl, heroTitle, primaryColor (#RRGGBB), marketplaceColor (#RRGGBB), defaultTheme (light/dark), allowThemeToggle, banners[], announcementEnabled, announcementText, announcementType (info/warning/success), contactEmail, contactPhone, footerText, enableMarketplace, requireListingApproval, requireProductApproval, requireReviewApproval, updatedAt`.
+Type `SiteSettings`: `siteName, tagline, description, logoUrl, faviconUrl, heroTitle, primaryColor (#RRGGBB), marketplaceColor (#RRGGBB), defaultTheme (light/dark/auto — auto = theo giờ Việt Nam: sáng 6:00–18:00, tối còn lại), allowThemeToggle, banners[], announcementEnabled, announcementText, announcementType (info/warning/success), contactEmail, contactPhone, footerText, enableMarketplace, requireListingApproval, requireProductApproval, requireReviewApproval, updatedAt`.
 
 Field admin chưa từng sửa lấy theo `DEFAULT_SETTINGS` (`apps/api/src/modules/settings/settings.schema.ts`).
 

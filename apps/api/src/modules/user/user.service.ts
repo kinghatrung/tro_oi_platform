@@ -23,6 +23,7 @@ import {
   Product,
   type ProductDocument,
 } from '../product/schemas/product.schema.js';
+import type { MergeViewedDto } from './dto/merge-viewed.dto.js';
 import type { CreateSavedSearchDto } from './dto/saved-search.dto.js';
 import type { UpdateProfileDto } from './dto/update-profile.dto.js';
 
@@ -39,6 +40,17 @@ function sortByIds<T extends { id: unknown }>(
   return [...docs].sort(
     (a, b) => order.indexOf(String(a.id)) - order.indexOf(String(b.id)),
   );
+}
+
+/** Hợp 2 danh sách id, giữ thứ tự (danh sách đầu trước), bỏ trùng. */
+export function unionIds(first: Types.ObjectId[], second: Types.ObjectId[]) {
+  const seen = new Set<string>();
+  return [...first, ...second].filter((id) => {
+    const key = String(id);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 const toSavedSearch = (item: SavedSearch) => ({
@@ -178,6 +190,29 @@ export class UserService {
       (await this.listingModel.exists({ _id: listingId }));
     if (!exists) throw new NotFoundException('Không tìm thấy tin đăng');
     await this.pushViewed(userId, 'viewedListingIds', listingId);
+    return null;
+  }
+
+  /**
+   * Lịch sử xem lúc chưa đăng nhập (trình duyệt gửi lên khi đăng nhập, mới xem trước) → đặt trên
+   * lịch sử của tài khoản, bỏ trùng, giữ MAX_VIEWED. Id không tồn tại vẫn lưu được nhưng không hiện
+   * (getViewed* chỉ lấy tin còn active).
+   */
+  async mergeViewed(
+    userId: string,
+    { listingIds = [], productIds = [] }: MergeViewedDto,
+  ) {
+    const user = await this.findOrThrow(userId);
+    const toIds = (ids: string[]) => ids.map((id) => new Types.ObjectId(id));
+    user.viewedListingIds = unionIds(
+      toIds(listingIds),
+      user.viewedListingIds,
+    ).slice(0, MAX_VIEWED);
+    user.viewedProductIds = unionIds(
+      toIds(productIds),
+      user.viewedProductIds,
+    ).slice(0, MAX_VIEWED);
+    await user.save();
     return null;
   }
 

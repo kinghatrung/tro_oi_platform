@@ -5,7 +5,12 @@ import { useRouter } from 'next/navigation';
 import { App, Button, Col, ColorPicker, Form, Input, Radio, Row, Tabs, type TabsProps } from 'antd';
 import type { Color } from 'antd/es/color-picker';
 import { RotateCcw, Save } from 'lucide-react';
-import { AnnouncementType, ThemeMode, type UpdateSiteSettingsRequest } from '@tro-oi/shared';
+import {
+  AnnouncementType,
+  AUTO_THEME,
+  ThemeMode,
+  type UpdateSiteSettingsRequest,
+} from '@tro-oi/shared';
 
 import { updateSiteSettings } from '@/api/settings';
 import { useSiteSettings } from '@/app/providers';
@@ -36,6 +41,7 @@ const COLOR_PRESETS = [
 const THEME_OPTIONS = [
   { value: ThemeMode.LIGHT, label: 'Sáng' },
   { value: ThemeMode.DARK, label: 'Tối' },
+  { value: AUTO_THEME, label: 'Tự động theo giờ (sáng 6:00–18:00)' },
 ];
 const ANNOUNCEMENT_OPTIONS = [
   { value: AnnouncementType.INFO, label: 'Thông tin' },

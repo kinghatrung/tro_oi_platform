@@ -6,11 +6,12 @@ import { AntdRegistry } from '@ant-design/nextjs-registry';
 
 import { AnnouncementBar } from '@/components/layout/AnnouncementBar';
 import { cookies } from 'next/headers';
-import { ThemeMode, type SiteSettings } from '@tro-oi/shared';
+import { AUTO_THEME, ThemeMode, type SiteSettings } from '@tro-oi/shared';
 
 import { LampBackdrop } from '@/components/layout/LampBackdrop';
 import { buildOpenGraph, SITE_URL } from '@/lib/seo';
 import { loadSiteSettings } from '@/lib/siteSettings';
+import { themeByClock } from '@/lib/themeClock';
 
 import { Providers } from './providers';
 
@@ -22,11 +23,15 @@ const redditSans = Reddit_Sans({
 /** Cookie lưu theme người dùng tự chọn (ghi ở providers.tsx) — đọc ở server để không nháy màu. */
 const THEME_COOKIE = 'theme';
 
-/** Theme hiệu lực: lựa chọn của người dùng (nếu admin cho phép) hoặc mặc định của site. */
+/**
+ * Theme hiệu lực: lựa chọn của người dùng (nếu admin cho phép) hoặc mặc định của site
+ * (`auto` → theo giờ lúc render; providers.tsx tự đổi khi tới giờ).
+ */
 async function resolveThemeMode(settings: SiteSettings): Promise<ThemeMode> {
   const chosen = (await cookies()).get(THEME_COOKIE)?.value;
   const isValid = chosen === ThemeMode.LIGHT || chosen === ThemeMode.DARK;
-  return settings.allowThemeToggle && isValid ? chosen : settings.defaultTheme;
+  if (settings.allowThemeToggle && isValid) return chosen;
+  return settings.defaultTheme === AUTO_THEME ? themeByClock() : settings.defaultTheme;
 }
 
 /** Tiêu đề, mô tả lấy từ thiết lập website (admin đổi ở /quan-tri/thiet-lap). Favicon ở providers.tsx. */

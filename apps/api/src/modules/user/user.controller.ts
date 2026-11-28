@@ -25,6 +25,7 @@ import { UpdateProfileDto } from './dto/update-profile.dto.js';
 import { AccountMergeService } from './account-merge.service.js';
 import { AccountService } from './account.service.js';
 import { DeleteAccountDto } from './dto/delete-account.dto.js';
+import { MergeViewedDto } from './dto/merge-viewed.dto.js';
 import { UserService } from './user.service.js';
 
 @Controller('users')
@@ -111,6 +112,13 @@ export class UserController {
   @UseGuards(JwtAuthGuard)
   getViewedListings(@CurrentUser() user: AuthUser) {
     return this.userService.getViewedListings(user.sub);
+  }
+
+  /** Đăng nhập xong: đưa lịch sử xem lúc chưa đăng nhập (trình duyệt) lên tài khoản. */
+  @Post('me/viewed')
+  @UseGuards(JwtAuthGuard)
+  mergeViewed(@CurrentUser() user: AuthUser, @Body() dto: MergeViewedDto) {
+    return this.userService.mergeViewed(user.sub, dto);
   }
 
   @Put('me/viewed-listings/:listingId')
